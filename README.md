@@ -4,8 +4,7 @@ A live, in-browser interactive companion to Khanna & Bickel, *Inferring
 Distributional Features based on Quantile-Parameterized Distribution
 Fits*, built as a [marimo](https://marimo.io) notebook.
 
-**Live notebook:** (add the `https://<user>.github.io/<repo>/` URL here
-after the first deploy — see below)
+**Live notebook:** https://rohit5khanna.github.io/QPD-Distributional-Features/
 
 The page runs entirely in your browser via WebAssembly (Pyodide) — no
 server, no install. Redraw samples, refit, and explore, and the figures
@@ -20,23 +19,6 @@ recompute live.
   three real datasets (fish weights, river gauge height, Old Faithful).
 - **Full-simulation batch mode** — run up to 100 replicates of the
   configured scenario and watch a summary-stats table fill in live.
-
-## Deploy it (GitHub Pages)
-
-1. Create a new GitHub repo and push these files (see commands below).
-2. In the repo: **Settings → Pages → Source → "GitHub Actions."**
-3. Push to `main`. The included workflow exports the notebook to
-   WebAssembly and publishes it. The live URL appears in the Actions run
-   (and under Settings → Pages).
-
-```bash
-git init
-git add .
-git commit -m "QPD Playground marimo notebook"
-git branch -M main
-git remote add origin https://github.com/<your-username>/<repo-name>.git
-git push -u origin main
-```
 
 ## Run / edit locally
 

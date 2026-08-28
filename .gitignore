@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+__marimo__/
+_site/
+.DS_Store

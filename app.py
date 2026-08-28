@@ -21,7 +21,6 @@ def _():
 
     _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
     sys.path.insert(0, _THIS_DIR)
-    sys.path.insert(0, os.path.join(_THIS_DIR, "common"))
 
     import marimo as mo
     import numpy as np
@@ -29,11 +28,19 @@ def _():
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
 
-    from metalog.metalog_v2 import Metalog, MetalogError
-    from qflex.core import QFlex, ConstraintType
-    from qflex.constraints import QFlexError
-    from jpse.johnson import JohnsonSU, JohnsonSL, JohnsonSB
-    from mode_utils import detect_modes_from_arrays
+    # NOTE: imported as `common.<pkg>`, not top-level `<pkg>`. marimo's WASM
+    # export bundles the local `common/` folder as an installable wheel named
+    # "common" (see common-*.whl), so once it's micropip-installed the only
+    # importable path is `common.metalog`, `common.qflex`, etc. -- there is no
+    # top-level `metalog`/`qflex`/`jpse`/`mode_utils` package in that build.
+    # Importing this way also works locally, since `common/` sits right next
+    # to app.py and _THIS_DIR is on sys.path (namespace package, no
+    # common/__init__.py needed).
+    from common.metalog.metalog_v2 import Metalog, MetalogError
+    from common.qflex.core import QFlex, ConstraintType
+    from common.qflex.constraints import QFlexError
+    from common.jpse.johnson import JohnsonSU, JohnsonSL, JohnsonSB
+    from common.mode_utils import detect_modes_from_arrays
 
     DATA_DIR = mo.notebook_location() / "public"
     return (

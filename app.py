@@ -20,6 +20,7 @@ app = marimo.App(width="medium", app_title="QPD Playground")
 def _():
     import sys
     import os
+    import io
 
     _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
     sys.path.insert(0, _THIS_DIR)
@@ -67,6 +68,7 @@ def _():
         detect_modes_from_arrays,
         dip_stat,
         go,
+        io,
         make_subplots,
         mo,
         np,
@@ -143,6 +145,71 @@ def _(
         "QFlex-A+": "#2E8B57",
     }
     _QFLEX_CONSTRAINTS = {"QFlex-U": "NONE", "QFlex-TA+": "TA", "QFlex-A+": "A"}
+
+    # Shared look for every figure in the notebook -- clean white
+    # background, thin dark-gray box axes, no heavy gridlines, restrained
+    # tick density -- matching the companion QFlex tutorial notebook's
+    # matplotlib-default aesthetic instead of Plotly's stock "plotly"
+    # template (a light blue-gray plot area with thick white gridlines,
+    # which is what made every panel here look inconsistent/"off").
+    # Applied via style_fig() right before each figure is returned, so
+    # every plot in the notebook shares one visual identity.
+    PLOT_FONT = dict(family="Helvetica, Arial, sans-serif", size=12, color="#262626")
+
+    def style_fig(fig):
+        """Apply the notebook-wide plot style. Call this last, right
+        before returning/displaying a figure -- it only touches
+        background/font/axis-line/tick styling, never title_text, range,
+        or other content-specific properties set earlier, so call order
+        relative to those doesn't matter."""
+        fig.update_layout(
+            template="simple_white",
+            font=PLOT_FONT,
+            title_font=dict(size=15, color="#1A1A1A"),
+            legend=dict(font=dict(size=11.5)),
+            hoverlabel=dict(font_size=12, font_family=PLOT_FONT["family"]),
+        )
+        fig.update_xaxes(
+            showline=True, linewidth=1.3, linecolor="#4A4A4A", mirror=True,
+            showgrid=False, zeroline=False,
+            ticks="outside", ticklen=5, tickwidth=1.1, tickcolor="#4A4A4A",
+            tickfont=dict(size=11.5), title_font=dict(size=13),
+            nticks=7,
+        )
+        fig.update_yaxes(
+            showline=True, linewidth=1.3, linecolor="#4A4A4A", mirror=True,
+            showgrid=False, zeroline=False,
+            ticks="outside", ticklen=5, tickwidth=1.1, tickcolor="#4A4A4A",
+            tickfont=dict(size=11.5), title_font=dict(size=13),
+            nticks=6,
+        )
+        fig.update_annotations(font=dict(size=13.5, color="#262626"))  # subplot titles
+        return fig
+
+    def section_header_html(text, level=2):
+        """Raw HTML (for embedding into an f-string markdown block) for a
+        visually prominent section header. Plain markdown `##`/`###` was
+        easy to miss while scrolling -- every header rendered the same
+        muted weight as the body text around it, so a new section didn't
+        register. This adds real size contrast, a colored left accent bar,
+        a soft background band, and generous top spacing, so a new section
+        is unmistakable at a glance rather than something you have to
+        notice you've entered. Level 2 = main section (blue accent, larger);
+        level 3 = subsection (purple accent, smaller)."""
+        _cfg = {
+            2: dict(size="26px", weight=800, color="#16213A", mt="12px",
+                     accent="#3B5FA0", bg="#EEF1F8"),
+            3: dict(size="19px", weight=700, color="#2A2A2A", mt="6px",
+                     accent="#8E5AA6", bg="#F5F1F7"),
+        }[level]
+        return (
+            f'<div style="margin-top:{_cfg["mt"]}; margin-bottom:16px; '
+            f'border-left:6px solid {_cfg["accent"]}; background:{_cfg["bg"]}; '
+            f'padding:10px 16px; border-radius:0 4px 4px 0;">'
+            f'<span style="font-size:{_cfg["size"]}; font-weight:{_cfg["weight"]}; '
+            f'color:{_cfg["color"]}; letter-spacing:-0.01em;">{text}</span>'
+            f'</div>'
+        )
 
     def fit_all_qpds(x_sorted, y_plot_pos, k_metalog_val, k_qflex_val):
         """Fit all 4 QPDs (Metalog + all 3 QFlex constraint variants) to one
@@ -355,9 +422,10 @@ def _(
         _fig.update_xaxes(title_text="Value", range=x_range, row=1, col=2)
         _fig.update_yaxes(title_text="Density", range=y_range, row=1, col=2)
         _fig.update_layout(
-            height=430, margin=dict(l=10, r=10, t=40, b=10),
-            legend=dict(orientation="h", y=-0.18), uirevision="keep-zoom",
+            height=460, margin=dict(l=55, r=25, t=45, b=75),
+            legend=dict(orientation="h", y=-0.22), uirevision="keep-zoom",
         )
+        style_fig(_fig)
 
         return mo.vstack([
             mo.ui.plotly(_fig, config=plotly_config),
@@ -455,9 +523,10 @@ def _(
         _fig.update_yaxes(title_text="Density", range=[0, _pdf_y_max], row=1, col=2)
         _fig.update_layout(
             title=f"{title} — N={_n_raw}",
-            height=430, margin=dict(l=10, r=10, t=50, b=10),
-            legend=dict(orientation="h", y=-0.18), dragmode="zoom", barmode="overlay",
+            height=460, margin=dict(l=55, r=25, t=70, b=75),
+            legend=dict(orientation="h", y=-0.22), dragmode="zoom", barmode="overlay",
         )
+        style_fig(_fig)
 
         return mo.vstack([
             mo.ui.plotly(_fig, config=plotly_config),
@@ -571,6 +640,8 @@ def _(
         render_empirical_panel,
         render_mc_panel,
         run_replicate_batch,
+        section_header_html,
+        style_fig,
         true_dist_ranges,
     )
 
@@ -592,11 +663,10 @@ def _():
 
 
 @app.cell
-def _(mo):
+def _(mo, section_header_html):
     mo.md(
-        r"""
-        ---
-        ## Johnson distributions
+        rf"""
+        {section_header_html("Johnson distributions", level=2)}
 
         The reference ("true") population every Monte Carlo panel below
         draws from is a member of the Johnson system: one $(\eta, \kappa,
@@ -633,11 +703,11 @@ def _(JohnsonSB, JohnsonSL, JohnsonSU, c_j, d_j, eta_j, kappa_j):
 
 
 @app.cell
-def _(PLOTLY_CONFIG, go, make_subplots, mo, np, sb_dist, sl_dist, su_dist):
+def _(PLOTLY_CONFIG, go, make_subplots, mo, np, sb_dist, sl_dist, style_fig, su_dist):
     _fig = make_subplots(
         rows=1, cols=3,
         subplot_titles=("Johnson SU (unbounded)", "Johnson SL (semi-bounded)", "Johnson SB (bounded)"),
-        horizontal_spacing=0.06,
+        horizontal_spacing=0.08,
     )
 
     _p = np.linspace(0.002, 0.998, 500)
@@ -653,17 +723,17 @@ def _(PLOTLY_CONFIG, go, make_subplots, mo, np, sb_dist, sl_dist, su_dist):
         if _col == 1:
             _fig.update_yaxes(title_text="Density", row=1, col=_col)
 
-    _fig.update_layout(height=340, margin=dict(l=10, r=10, t=40, b=10), showlegend=False)
+    _fig.update_layout(height=360, margin=dict(l=55, r=20, t=45, b=50), showlegend=False)
+    style_fig(_fig)
     mo.ui.plotly(_fig, config=PLOTLY_CONFIG)
     return
 
 
 @app.cell
-def _(mo):
+def _(mo, section_header_html):
     mo.md(
-        r"""
-        ---
-        ## Monte Carlo & Bootstrap refit
+        rf"""
+        {section_header_html("Monte Carlo &amp; Bootstrap refit", level=2)}
 
         Pick which Johnson family (from the panel above) to treat as the
         true population, then redraw samples from it and watch Metalog and
@@ -943,11 +1013,10 @@ def _(
 
 
 @app.cell
-def _(mo):
+def _(mo, section_header_html):
     mo.md(
-        r"""
-        ---
-        ## Bimodal mixture playground
+        rf"""
+        {section_header_html("Bimodal mixture playground", level=2)}
 
         A two-component mixture built from the **Johnson SU panel above**:
         both components share that panel's shape, offset from each other by
@@ -1285,11 +1354,10 @@ def _(
 
 
 @app.cell
-def _(mo):
+def _(mo, section_header_html):
     mo.md(
-        r"""
-        ---
-        ## Empirical case studies
+        rf"""
+        {section_header_html("Empirical case studies", level=2)}
 
         Four real datasets, each in its own section with its **own**
         Metalog K / QFlex K / constraint controls, its own Hartigan dip
@@ -1309,7 +1377,7 @@ def _(mo):
 
 
 @app.cell
-def _(DATA_DIR, np, pd):
+def _(DATA_DIR, io, np, pd):
     def load_fish_raw():
         _df = pd.read_excel(str(DATA_DIR / "Fish Biology.xlsx"))
         return np.sort(_df["Fish Weight (lbs)"].dropna().values.astype(float))
@@ -1322,12 +1390,39 @@ def _(DATA_DIR, np, pd):
         # Whitespace-separated text with a few "M" (missing) markers in the
         # eruption-duration column (unused here). `str(DATA_DIR / ...)` is
         # an actual local path when running desktop marimo, but resolves to
-        # an https:// URL in the deployed WASM build -- pandas' read_csv
-        # (via the pyodide-http patch loaded alongside it) transparently
-        # fetches either; a plain open() cannot follow the URL form, so this
-        # must go through pandas like the other two loaders.
+        # an https:// URL in the deployed WASM build.
+        #
+        # Handing that URL *string* straight to pd.read_csv() is what broke
+        # this loader (and only this loader) in the deployed build: GitHub
+        # Pages/Fastly serves plain-text files like this one with a
+        # transparent `Content-Encoding: gzip` (the browser already
+        # decompresses it before Python ever sees the bytes -- normal,
+        # invisible transport-level compression). But when pandas itself
+        # fetches a URL (pandas.io.common._get_filepath_or_buffer), it
+        # unconditionally re-checks that same now-irrelevant response
+        # header and, seeing "gzip", forces ANOTHER round of gzip
+        # decompression on the already-plain bytes -- even when
+        # compression=None is passed explicitly, since this override
+        # happens before the caller's compression argument is consulted.
+        # That crashes with `gzip.BadGzipFile: Not a gzipped file`, which
+        # aborts this cell and (being upstream of the plot) blanks the
+        # entire Geyser section with no plot area and no visible error.
+        # The .xlsx loaders above don't hit this because GitHub Pages
+        # doesn't gzip already-compressed binary content, only plain text.
+        #
+        # Fetching the bytes ourselves and handing pandas a BytesIO buffer
+        # instead of the URL string sidesteps the bug entirely: pandas'
+        # Content-Encoding override only triggers when pandas does the
+        # URL fetching itself, not when it's just parsing a buffer.
+        _path = str(DATA_DIR / "geyser.txt")
+        if _path.startswith("http://") or _path.startswith("https://"):
+            import urllib.request
+            with urllib.request.urlopen(_path) as _resp:
+                _source = io.BytesIO(_resp.read())
+        else:
+            _source = _path
         _df = pd.read_csv(
-            str(DATA_DIR / "geyser.txt"), sep=r"\s+", header=None,
+            _source, sep=r"\s+", header=None,
             names=["eruption", "waiting", "indicator"],
         )
         return np.sort(_df["waiting"].dropna().values.astype(float))
@@ -1359,10 +1454,10 @@ def _(DATA_DIR, np, pd):
 
 
 @app.cell
-def _(mo):
+def _(mo, section_header_html):
     mo.md(
-        r"""
-        ### Historical asset-class returns (`Returns-Stocks_Bonds_Bills.xlsx`)
+        rf"""
+        {section_header_html("Historical asset-class returns (<code>Returns-Stocks_Bonds_Bills.xlsx</code>)", level=3)}
 
         The same 7 U.S. asset-class return categories from Khanna &amp;
         Bickel's own empirical case study &mdash; annual returns, 1928-2025
@@ -1509,8 +1604,8 @@ def _(
 
 
 @app.cell
-def _(mo):
-    mo.md(r"""### Fish weights (`Fish Biology.xlsx`)""")
+def _(mo, section_header_html):
+    mo.md(section_header_html("Fish weights (<code>Fish Biology.xlsx</code>)", level=3))
     return
 
 
@@ -1650,8 +1745,8 @@ def _(
 
 
 @app.cell
-def _(mo):
-    mo.md(r"""### River gauge height (`Hydrology.xlsx`)""")
+def _(mo, section_header_html):
+    mo.md(section_header_html("River gauge height (<code>Hydrology.xlsx</code>)", level=3))
     return
 
 
@@ -1766,8 +1861,8 @@ def _(
 
 
 @app.cell
-def _(mo):
-    mo.md(r"""### Old Faithful waiting time (`geyser.txt`)""")
+def _(mo, section_header_html):
+    mo.md(section_header_html("Old Faithful waiting time (<code>geyser.txt</code>)", level=3))
     return
 
 

@@ -156,12 +156,20 @@ def _(
     # every plot in the notebook shares one visual identity.
     PLOT_FONT = dict(family="Helvetica, Arial, sans-serif", size=12, color="#262626")
 
-    def style_fig(fig):
+    def style_fig(fig, dense_ticks=False):
         """Apply the notebook-wide plot style. Call this last, right
         before returning/displaying a figure -- it only touches
         background/font/axis-line/tick styling, never title_text, range,
         or other content-specific properties set earlier, so call order
-        relative to those doesn't matter."""
+        relative to those doesn't matter.
+
+        dense_ticks=True tightens tick spacing (more ticks) for the
+        Johnson-distribution panels (the standalone Johnson distributions
+        plot, and every Monte Carlo / bimodal-mixture panel built from
+        them via render_mc_panel) -- their smooth, low-curvature reference
+        shapes read better with a finer grid than the empirical-data
+        panels, which have plenty of visual detail from the histogram/raw
+        points already."""
         fig.update_layout(
             template="simple_white",
             font=PLOT_FONT,
@@ -169,19 +177,21 @@ def _(
             legend=dict(font=dict(size=11.5)),
             hoverlabel=dict(font_size=12, font_family=PLOT_FONT["family"]),
         )
+        _nticks_x = 11 if dense_ticks else 7
+        _nticks_y = 9 if dense_ticks else 6
         fig.update_xaxes(
             showline=True, linewidth=1.3, linecolor="#4A4A4A", mirror=True,
-            showgrid=False, zeroline=False,
+            showgrid=True, gridcolor="#E7E9EE", gridwidth=1, zeroline=False,
             ticks="outside", ticklen=5, tickwidth=1.1, tickcolor="#4A4A4A",
             tickfont=dict(size=11.5), title_font=dict(size=13),
-            nticks=7,
+            nticks=_nticks_x,
         )
         fig.update_yaxes(
             showline=True, linewidth=1.3, linecolor="#4A4A4A", mirror=True,
-            showgrid=False, zeroline=False,
+            showgrid=True, gridcolor="#E7E9EE", gridwidth=1, zeroline=False,
             ticks="outside", ticklen=5, tickwidth=1.1, tickcolor="#4A4A4A",
             tickfont=dict(size=11.5), title_font=dict(size=13),
-            nticks=6,
+            nticks=_nticks_y,
         )
         fig.update_annotations(font=dict(size=13.5, color="#262626"))  # subplot titles
         return fig
@@ -425,7 +435,7 @@ def _(
             height=460, margin=dict(l=55, r=25, t=45, b=75),
             legend=dict(orientation="h", y=-0.22), uirevision="keep-zoom",
         )
-        style_fig(_fig)
+        style_fig(_fig, dense_ticks=True)
 
         return mo.vstack([
             mo.ui.plotly(_fig, config=plotly_config),
@@ -724,7 +734,7 @@ def _(PLOTLY_CONFIG, go, make_subplots, mo, np, sb_dist, sl_dist, style_fig, su_
             _fig.update_yaxes(title_text="Density", row=1, col=_col)
 
     _fig.update_layout(height=360, margin=dict(l=55, r=20, t=45, b=50), showlegend=False)
-    style_fig(_fig)
+    style_fig(_fig, dense_ticks=True)
     mo.ui.plotly(_fig, config=PLOTLY_CONFIG)
     return
 
@@ -1367,10 +1377,10 @@ def _(mo, section_header_html):
         (on the density panel) a histogram of the raw data for reference.
         **Drag a rectangle on a plot to zoom**; double-click to reset.
 
-        We begin with the historical asset-class returns from Khanna &amp;
-        Bickel's own empirical case study, then the paper's three other
-        real datasets (fish weights, river gauge height, Old Faithful
-        waiting time).
+        We begin with a historical asset-class returns dataset as an
+        additional real-world example, then the paper's own three
+        empirical case studies: river gauge height, fish weights, and the
+        Old Faithful geyser.
         """
     )
     return
@@ -1457,19 +1467,24 @@ def _(DATA_DIR, io, np, pd):
 def _(mo, section_header_html):
     mo.md(
         rf"""
-        {section_header_html("Historical asset-class returns (<code>Returns-Stocks_Bonds_Bills.xlsx</code>)", level=3)}
+        {section_header_html("Historical asset-class returns", level=3)}
 
-        The same 7 U.S. asset-class return categories from Khanna &amp;
-        Bickel's own empirical case study &mdash; annual returns, 1928-2025
-        (N=98 years each). Pick a category below, then work through the
+        A public dataset of historical annual returns across 7 U.S. asset
+        classes &mdash; S&amp;P 500 (with dividends), small-cap stocks,
+        3-month T-bills, 10-year T-bonds, Baa corporate bonds, real
+        estate, and gold &mdash; 1928-2025 (N=98 years each), matching the
+        widely used historical-returns series published by NYU Stern's
+        Aswath Damodaran. This dataset isn't one of the paper's own three
+        empirical case studies below; it's included here as an additional
+        real-world example. Pick a category below, then work through the
         same Metalog/QFlex fit, EQF+CI plot, Hartigan dip test, and
         bootstrap batch analysis as the sections that follow.
 
-        **Note:** this section uses the paper's own Weibull plotting
-        positions ($p_i = i/(n+1)$) to assign quantile probabilities to the
-        sorted returns, rather than the $(i-0.3)/(n+0.4)$ convention the
-        rest of this page uses &mdash; matching the paper's empirical
-        methodology for this dataset exactly.
+        **Note:** this section borrows the paper's own Weibull plotting
+        positions ($p_i = i/(n+1)$, used there for the river-gauge-height
+        example) to assign quantile probabilities to the sorted returns,
+        rather than the $(i-0.3)/(n+0.4)$ convention the rest of this page
+        uses.
         """
     )
     return
@@ -1605,7 +1620,146 @@ def _(
 
 @app.cell
 def _(mo, section_header_html):
-    mo.md(section_header_html("Fish weights (<code>Fish Biology.xlsx</code>)", level=3))
+    mo.md(
+        rf"""
+        {section_header_html("River gauge height", level=3)}
+
+        Annual peak flood gauge heights for the Williamson River, N=95
+        years (1920&ndash;2014), as reported by the U.S. Geological Survey
+        (USGS) and used by Keelin (2016) as an illustrative QPD example.
+        As annual block maxima, this dataset sits squarely in the
+        traditional domain of extreme-value theory &mdash; the paper's
+        case where a stable model fit and the underlying theory both
+        point toward unimodal structure.
+        """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    hydro_k_metalog = mo.ui.slider(start=2, stop=15, step=1, value=9, label="Metalog K", show_value=True)
+    hydro_k_qflex = mo.ui.slider(start=2, stop=15, step=1, value=9, label="QFlex K", show_value=True)
+    hydro_qflex_constraint = mo.ui.dropdown(
+        options={"Unconstrained": "NONE", "A+  (all coefficients ≥ 0)": "A", "TA+  (tail coefficients ≥ 0)": "TA"},
+        value="Unconstrained", label="QFlex constraint",
+    )
+    mo.vstack([mo.hstack([hydro_k_metalog, hydro_k_qflex], justify="start", gap=2), hydro_qflex_constraint])
+    return hydro_k_metalog, hydro_k_qflex, hydro_qflex_constraint
+
+
+@app.cell
+def _(load_hydrology_raw, np):
+    hydro_x = load_hydrology_raw()
+    _n = len(hydro_x)
+    hydro_y = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)
+    return hydro_x, hydro_y
+
+
+@app.cell
+def _(eqf_bootstrap_ci, hydro_x, np):
+    hydro_p_grid = np.linspace(0.01, 0.99, 300)
+    hydro_eqf_point, hydro_eqf_lo, hydro_eqf_hi = eqf_bootstrap_ci(hydro_x, hydro_p_grid, n_boot=300, seed=42)
+    return hydro_eqf_hi, hydro_eqf_lo, hydro_eqf_point, hydro_p_grid
+
+
+@app.cell
+def _(fit_metalog_qflex, hydro_k_metalog, hydro_k_qflex, hydro_qflex_constraint, hydro_x, hydro_y):
+    _res = fit_metalog_qflex(hydro_x, hydro_y, hydro_k_metalog.value, hydro_k_qflex.value, hydro_qflex_constraint.value)
+    hydro_fit_error = _res["fit_error"]
+    hydro_metalog_fit, hydro_metalog_curve, hydro_metalog_modes = _res["metalog_fit"], _res["metalog_curve"], _res["metalog_modes"]
+    hydro_qflex_fit, hydro_qflex_curve, hydro_qflex_modes = _res["qflex_fit"], _res["qflex_curve"], _res["qflex_modes"]
+    return hydro_fit_error, hydro_metalog_curve, hydro_metalog_fit, hydro_metalog_modes, hydro_qflex_curve, hydro_qflex_fit, hydro_qflex_modes
+
+
+@app.cell
+def _(
+    PLOTLY_CONFIG,
+    hydro_eqf_hi,
+    hydro_eqf_lo,
+    hydro_eqf_point,
+    hydro_fit_error,
+    hydro_metalog_curve,
+    hydro_metalog_fit,
+    hydro_metalog_modes,
+    hydro_p_grid,
+    hydro_qflex_constraint,
+    hydro_qflex_curve,
+    hydro_qflex_fit,
+    hydro_qflex_modes,
+    hydro_x,
+    mo,
+    render_empirical_panel,
+):
+    render_empirical_panel(
+        mo, PLOTLY_CONFIG, "River gauge height", "Gauge height (ft)", hydro_qflex_constraint.value, hydro_p_grid,
+        hydro_eqf_point, hydro_eqf_lo, hydro_eqf_hi, hydro_x, hydro_metalog_curve, hydro_metalog_fit,
+        hydro_metalog_modes, hydro_qflex_curve, hydro_qflex_fit, hydro_qflex_modes, hydro_fit_error,
+    )
+    return
+
+
+@app.cell
+def _(hartigan_line_md, hydro_x, mo):
+    hartigan_line_md(mo, hydro_x)
+    return
+
+
+@app.cell
+def _(mo):
+    hydro_n_replicates = mo.ui.slider(start=5, stop=100, step=5, value=30, label="Replicates", show_value=True)
+    hydro_run_batch = mo.ui.run_button(label="▶ Run Bootstrap Analysis")
+    mo.md("**Full simulation for this dataset** — bootstrap-resample the gauge-height data and refit repeatedly, across all 4 QPDs.")
+    mo.hstack([hydro_n_replicates, hydro_run_batch], justify="start", gap=2)
+    return hydro_n_replicates, hydro_run_batch
+
+
+@app.cell
+def _(
+    fit_all_qpds,
+    hydro_k_metalog,
+    hydro_k_qflex,
+    hydro_n_replicates,
+    hydro_run_batch,
+    hydro_x,
+    hydro_y,
+    mo,
+    np,
+    run_replicate_batch,
+):
+    if hydro_run_batch.value:
+        _all_fits, _ = fit_all_qpds(hydro_x, hydro_y, hydro_k_metalog.value, hydro_k_qflex.value)
+        _w1_refs = {_label: (_r["curve"][0] if _r["curve"] is not None else None) for _label, _r in _all_fits.items()}
+
+        def _draw(rng):
+            _n = len(hydro_x)
+            _x = np.sort(rng.choice(hydro_x, size=_n, replace=True))
+            _y = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)
+            return _x, _y
+
+        run_replicate_batch(
+            mo, hydro_n_replicates.value, hydro_k_metalog.value, hydro_k_qflex.value,
+            _draw, 471_002, w1_ref=_w1_refs, w1_label="W1 vs full-sample fit",
+        )
+    else:
+        mo.output.replace(mo.md("*Click **▶ Run Bootstrap Analysis** to bootstrap-resample and refit repeatedly.*"))
+    return
+
+
+@app.cell
+def _(mo, section_header_html):
+    mo.md(
+        rf"""
+        {section_header_html("Fish weights", level=3)}
+
+        Weight measurements of N=3,474 steelhead trout from the Babine
+        River in northern British Columbia, used by Keelin (2016) to
+        illustrate how high-order Metalogs can uncover multimodality in
+        empirical data. The raw weights are heavily rounded (about 91%
+        recorded as whole pounds), making this the paper's case where true
+        modality remains genuinely data-dependent and unresolved.
+        """
+    )
     return
 
 
@@ -1746,123 +1900,19 @@ def _(
 
 @app.cell
 def _(mo, section_header_html):
-    mo.md(section_header_html("River gauge height (<code>Hydrology.xlsx</code>)", level=3))
-    return
+    mo.md(
+        rf"""
+        {section_header_html("The Old Faithful Geyser", level=3)}
 
-
-@app.cell
-def _(mo):
-    hydro_k_metalog = mo.ui.slider(start=2, stop=15, step=1, value=9, label="Metalog K", show_value=True)
-    hydro_k_qflex = mo.ui.slider(start=2, stop=15, step=1, value=9, label="QFlex K", show_value=True)
-    hydro_qflex_constraint = mo.ui.dropdown(
-        options={"Unconstrained": "NONE", "A+  (all coefficients ≥ 0)": "A", "TA+  (tail coefficients ≥ 0)": "TA"},
-        value="Unconstrained", label="QFlex constraint",
+        Waiting times between successive eruptions of the Old Faithful
+        geyser at Yellowstone &mdash; the ~299-point Azzalini &amp; Bowman
+        (1990) sample recorded August 1&ndash;15, 1985. This is one of the
+        most famous empirical datasets in statistics, and the paper's case
+        where bimodality is directly observable and well established, so
+        the open question is the stability of the fitted modes rather than
+        their existence.
+        """
     )
-    mo.vstack([mo.hstack([hydro_k_metalog, hydro_k_qflex], justify="start", gap=2), hydro_qflex_constraint])
-    return hydro_k_metalog, hydro_k_qflex, hydro_qflex_constraint
-
-
-@app.cell
-def _(load_hydrology_raw, np):
-    hydro_x = load_hydrology_raw()
-    _n = len(hydro_x)
-    hydro_y = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)
-    return hydro_x, hydro_y
-
-
-@app.cell
-def _(eqf_bootstrap_ci, hydro_x, np):
-    hydro_p_grid = np.linspace(0.01, 0.99, 300)
-    hydro_eqf_point, hydro_eqf_lo, hydro_eqf_hi = eqf_bootstrap_ci(hydro_x, hydro_p_grid, n_boot=300, seed=42)
-    return hydro_eqf_hi, hydro_eqf_lo, hydro_eqf_point, hydro_p_grid
-
-
-@app.cell
-def _(fit_metalog_qflex, hydro_k_metalog, hydro_k_qflex, hydro_qflex_constraint, hydro_x, hydro_y):
-    _res = fit_metalog_qflex(hydro_x, hydro_y, hydro_k_metalog.value, hydro_k_qflex.value, hydro_qflex_constraint.value)
-    hydro_fit_error = _res["fit_error"]
-    hydro_metalog_fit, hydro_metalog_curve, hydro_metalog_modes = _res["metalog_fit"], _res["metalog_curve"], _res["metalog_modes"]
-    hydro_qflex_fit, hydro_qflex_curve, hydro_qflex_modes = _res["qflex_fit"], _res["qflex_curve"], _res["qflex_modes"]
-    return hydro_fit_error, hydro_metalog_curve, hydro_metalog_fit, hydro_metalog_modes, hydro_qflex_curve, hydro_qflex_fit, hydro_qflex_modes
-
-
-@app.cell
-def _(
-    PLOTLY_CONFIG,
-    hydro_eqf_hi,
-    hydro_eqf_lo,
-    hydro_eqf_point,
-    hydro_fit_error,
-    hydro_metalog_curve,
-    hydro_metalog_fit,
-    hydro_metalog_modes,
-    hydro_p_grid,
-    hydro_qflex_constraint,
-    hydro_qflex_curve,
-    hydro_qflex_fit,
-    hydro_qflex_modes,
-    hydro_x,
-    mo,
-    render_empirical_panel,
-):
-    render_empirical_panel(
-        mo, PLOTLY_CONFIG, "River gauge height", "Gauge height (ft)", hydro_qflex_constraint.value, hydro_p_grid,
-        hydro_eqf_point, hydro_eqf_lo, hydro_eqf_hi, hydro_x, hydro_metalog_curve, hydro_metalog_fit,
-        hydro_metalog_modes, hydro_qflex_curve, hydro_qflex_fit, hydro_qflex_modes, hydro_fit_error,
-    )
-    return
-
-
-@app.cell
-def _(hartigan_line_md, hydro_x, mo):
-    hartigan_line_md(mo, hydro_x)
-    return
-
-
-@app.cell
-def _(mo):
-    hydro_n_replicates = mo.ui.slider(start=5, stop=100, step=5, value=30, label="Replicates", show_value=True)
-    hydro_run_batch = mo.ui.run_button(label="▶ Run Bootstrap Analysis")
-    mo.md("**Full simulation for this dataset** — bootstrap-resample the gauge-height data and refit repeatedly, across all 4 QPDs.")
-    mo.hstack([hydro_n_replicates, hydro_run_batch], justify="start", gap=2)
-    return hydro_n_replicates, hydro_run_batch
-
-
-@app.cell
-def _(
-    fit_all_qpds,
-    hydro_k_metalog,
-    hydro_k_qflex,
-    hydro_n_replicates,
-    hydro_run_batch,
-    hydro_x,
-    hydro_y,
-    mo,
-    np,
-    run_replicate_batch,
-):
-    if hydro_run_batch.value:
-        _all_fits, _ = fit_all_qpds(hydro_x, hydro_y, hydro_k_metalog.value, hydro_k_qflex.value)
-        _w1_refs = {_label: (_r["curve"][0] if _r["curve"] is not None else None) for _label, _r in _all_fits.items()}
-
-        def _draw(rng):
-            _n = len(hydro_x)
-            _x = np.sort(rng.choice(hydro_x, size=_n, replace=True))
-            _y = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)
-            return _x, _y
-
-        run_replicate_batch(
-            mo, hydro_n_replicates.value, hydro_k_metalog.value, hydro_k_qflex.value,
-            _draw, 471_002, w1_ref=_w1_refs, w1_label="W1 vs full-sample fit",
-        )
-    else:
-        mo.output.replace(mo.md("*Click **▶ Run Bootstrap Analysis** to bootstrap-resample and refit repeatedly.*"))
-    return
-
-
-@app.cell
-def _(mo, section_header_html):
-    mo.md(section_header_html("Old Faithful waiting time (<code>geyser.txt</code>)", level=3))
     return
 
 

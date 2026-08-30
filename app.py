@@ -444,7 +444,7 @@ def _(
 
     def render_empirical_panel(mo, plotly_config, title, axis_label, constraint_label, p_grid, eqf_point, eqf_lo,
                                  eqf_hi, x_raw, metalog_curve, metalog_fit, metalog_modes, qflex_curve, qflex_fit,
-                                 qflex_modes, fit_error):
+                                 qflex_modes, fit_error, value_xlim=None):
         """The EQF+CI / Metalog / QFlex panel pair shared by the four
         empirical dataset sections. The PDF panel also shows a histogram of
         the raw data for reference."""
@@ -531,6 +531,27 @@ def _(
         _fig.update_yaxes(title_text=axis_label, row=1, col=1)
         _fig.update_xaxes(title_text=axis_label, row=1, col=2)
         _fig.update_yaxes(title_text="Density", range=[0, _pdf_y_max], row=1, col=2)
+
+        # Optional fixed lower/upper bound on the value axis (the QF plot's
+        # y-axis and the PDF plot's x-axis both show the same data domain,
+        # e.g. weight or waiting time). Either side of value_xlim may be
+        # None, in which case that side keeps a data-driven bound matching
+        # Plotly's own default ~ padding rather than clipping to it exactly.
+        if value_xlim is not None:
+            _lo_override, _hi_override = value_xlim
+            _value_arrays = [x_raw]
+            if metalog_curve is not None:
+                _value_arrays.append(metalog_curve[0])
+            if qflex_curve is not None:
+                _value_arrays.append(qflex_curve[0])
+            _value_all = np.concatenate(_value_arrays)
+            _v_min, _v_max = float(np.min(_value_all)), float(np.max(_value_all))
+            _v_pad = (_v_max - _v_min) * 0.05 or 1.0
+            _v_lo = _lo_override if _lo_override is not None else (_v_min - _v_pad)
+            _v_hi = _hi_override if _hi_override is not None else (_v_max + _v_pad)
+            _fig.update_yaxes(range=[_v_lo, _v_hi], row=1, col=1)
+            _fig.update_xaxes(range=[_v_lo, _v_hi], row=1, col=2)
+
         _fig.update_layout(
             title=f"{title} — N={_n_raw}",
             height=460, margin=dict(l=55, r=25, t=70, b=75),
@@ -1846,7 +1867,7 @@ def _(
     render_empirical_panel(
         mo, PLOTLY_CONFIG, "Fish weights", "Weight (lbs)", fish_qflex_constraint.value, fish_p_grid, fish_eqf_point,
         fish_eqf_lo, fish_eqf_hi, fish_x, fish_metalog_curve, fish_metalog_fit, fish_metalog_modes, fish_qflex_curve,
-        fish_qflex_fit, fish_qflex_modes, fish_fit_error,
+        fish_qflex_fit, fish_qflex_modes, fish_fit_error, value_xlim=(None, 30),
     )
     return
 
@@ -1977,7 +1998,7 @@ def _(
         mo, PLOTLY_CONFIG, "Old Faithful waiting time", "Waiting time (min)", geyser_qflex_constraint.value,
         geyser_p_grid, geyser_eqf_point, geyser_eqf_lo, geyser_eqf_hi, geyser_x, geyser_metalog_curve,
         geyser_metalog_fit, geyser_metalog_modes, geyser_qflex_curve, geyser_qflex_fit, geyser_qflex_modes,
-        geyser_fit_error,
+        geyser_fit_error, value_xlim=(30, None),
     )
     return
 

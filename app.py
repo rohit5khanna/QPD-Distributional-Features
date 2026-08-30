@@ -1,10 +1,13 @@
 # /// script
+# requires-python = ">=3.11"
 # dependencies = [
 #     "numpy",
 #     "pandas",
 #     "plotly",
 #     "scipy",
 #     "openpyxl",
+#     "marimo",
+#     "diptest",
 # ]
 # ///
 
@@ -27,6 +30,7 @@ def _():
     import pandas as pd
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
+    import diptest
 
     # NOTE: imported as `common.<pkg>`, not top-level `<pkg>`. marimo's WASM
     # export bundles the local `common/` folder as an installable wheel named
@@ -54,6 +58,7 @@ def _():
         QFlex,
         QFlexError,
         detect_modes_from_arrays,
+        diptest,
         go,
         make_subplots,
         mo,
@@ -76,17 +81,31 @@ def _(mo):
         that motivate the paper.
 
         **On this page:** Johnson distributions &middot; Monte Carlo &amp;
-        Bootstrap refit &middot; a bimodal-mixture playground &middot; three
-        empirical case studies (each with its own QPD fit). Every section
-        has its own per-scenario batch-simulation run with the paper's
-        feasibility / false-modality / W1 statistics.
+        Bootstrap refit &middot; a bimodal-mixture playground &middot; four
+        empirical case studies (each with its own QPD fit, Hartigan dip
+        test, and bootstrap batch analysis). Every batch run reports all 4
+        QPDs &mdash; Metalog, QFlex-U, QFlex-TA+, QFlex-A+ &mdash; with the
+        paper's feasibility / false-modality / W1 statistics, plus the
+        Hartigan unimodality rejection rate.
         """
     )
     return
 
 
 @app.cell
-def _(ConstraintType, Metalog, MetalogError, QFlex, QFlexError, detect_modes_from_arrays, go, make_subplots, np, pd):
+def _(
+    ConstraintType,
+    Metalog,
+    MetalogError,
+    QFlex,
+    QFlexError,
+    detect_modes_from_arrays,
+    diptest,
+    go,
+    make_subplots,
+    np,
+    pd,
+):
     # Shared helpers used by every fitting/plotting/batch-simulation section
     # below, so the core logic exists in exactly one place instead of being
     # copy-pasted per section.
@@ -96,6 +115,75 @@ def _(ConstraintType, Metalog, MetalogError, QFlex, QFlexError, detect_modes_fro
     # not a generic "QFlex" label that hides which constraint was actually
     # used.
     QFLEX_LABELS = {"NONE": "QFlex-U", "A": "QFlex-A+", "TA": "QFlex-TA+"}
+
+    # The 4 QPDs, in the order used consistently across this notebook and the
+    # companion Returns-analysis workbook: Metalog, then the 3 QFlex
+    # constraint variants with TA+ before A+.
+    MODEL_ORDER = ("Metalog", "QFlex-U", "QFlex-TA+", "QFlex-A+")
+
+    # Same per-model palette as the companion Returns-analysis workbook, so a
+    # color means the same model whether you're looking at this notebook or
+    # that spreadsheet. Previously every QFlex curve was plotted in the same
+    # green no matter which constraint was active, which quietly discarded
+    # the one piece of information (which constraint?) most worth encoding
+    # visually -- the constraint dropdown's own text was the only way to
+    # tell U/TA+/A+ apart at a glance.
+    MODEL_COLORS = {
+        "Metalog": "#3B5FA0",
+        "QFlex-U": "#8E5AA6",
+        "QFlex-TA+": "#B0413E",
+        "QFlex-A+": "#2E8B57",
+    }
+    _QFLEX_CONSTRAINTS = {"QFlex-U": "NONE", "QFlex-TA+": "TA", "QFlex-A+": "A"}
+
+    def fit_all_qpds(x_sorted, y_plot_pos, k_metalog_val, k_qflex_val):
+        """Fit all 4 QPDs (Metalog + all 3 QFlex constraint variants) to one
+        (x, y) EQF sample. Never raises. Returns a dict keyed by MODEL_ORDER
+        label -> {"fit", "curve", "modes"} (same shape per model), plus a
+        combined error string (or None). Used wherever a batch/summary needs
+        all 4 models at once, rather than just the single QFlex constraint
+        shown in a section's live 2-model panel."""
+        _results = {}
+        _errors = []
+        try:
+            _mf = Metalog(x_sorted, y_plot_pos, terms=k_metalog_val)
+            _xg, _pg = _mf.quantile(FIT_P_GRID), _mf.pdf(FIT_P_GRID)
+            _results["Metalog"] = {"fit": _mf, "curve": (_xg, _pg), "modes": detect_modes_from_arrays(_xg, _pg)}
+        except MetalogError as e:
+            _results["Metalog"] = {"fit": None, "curve": None, "modes": (None, None, None)}
+            _errors.append(f"Metalog: {e}")
+
+        for _label in ("QFlex-U", "QFlex-TA+", "QFlex-A+"):
+            try:
+                _constraint = ConstraintType[_QFLEX_CONSTRAINTS[_label]]
+                _qf = QFlex(x_sorted, y_plot_pos, terms=k_qflex_val, constraint_type=_constraint)
+                _xg, _pg = _qf.quantile(FIT_P_GRID), _qf.pdf(FIT_P_GRID)
+                _results[_label] = {"fit": _qf, "curve": (_xg, _pg), "modes": detect_modes_from_arrays(_xg, _pg)}
+            except QFlexError as e:
+                _results[_label] = {"fit": None, "curve": None, "modes": (None, None, None)}
+                _errors.append(f"{_label}: {e}")
+
+        return _results, (" · ".join(_errors) if _errors else None)
+
+    def hartigan_test(x):
+        """Hartigan dip test for unimodality (diptest package). Cheap (no
+        QPD fitting involved) -- unlike Silverman's test, this is fast
+        enough to run on every replicate of a bootstrap batch, not just the
+        single raw/current sample."""
+        _dip, _pval = diptest.diptest(np.asarray(x, dtype=float))
+        return float(_dip), float(_pval), bool(_pval < 0.05)
+
+    def hartigan_line_md(mo, x):
+        """The one-line Hartigan verdict for a single (raw/current) sample:
+        just reject-or-not, per the paper's convention -- the interesting
+        aggregate is the *rate* of rejection across a bootstrap batch,
+        reported separately by run_replicate_batch below."""
+        _dip, _pval, _reject = hartigan_test(x)
+        _verdict = "**rejects**" if _reject else "fails to reject"
+        return mo.md(
+            f"**Hartigan dip test** (this sample, N={len(x)}): dip = {_dip:.4f}, p = {_pval:.4f} "
+            f"&rarr; {_verdict} unimodality at α=0.05."
+        )
 
     def fit_metalog_qflex(x_sorted, y_plot_pos, k_metalog_val, k_qflex_val, constraint_label):
         """Fit Metalog and QFlex to one (x, y) EQF sample. Never raises."""
@@ -171,6 +259,7 @@ def _(ConstraintType, Metalog, MetalogError, QFlex, QFlexError, detect_modes_fro
         bimodal-mixture MC section: true curve, sample, both fits, both
         fits' true-curve overlay for contrast, and fixed axes."""
         _qflex_name = QFLEX_LABELS[constraint_label]
+        _qflex_color = MODEL_COLORS[_qflex_name]
         _fig = make_subplots(
             rows=1, cols=2,
             subplot_titles=("Quantile function", "Probability density"),
@@ -223,19 +312,19 @@ def _(ConstraintType, Metalog, MetalogError, QFlex, QFlexError, detect_modes_fro
             _xg, _pg = qflex_curve
             _fig.add_trace(
                 go.Scatter(x=FIT_P_GRID, y=_xg, mode="lines", name=f"{_qflex_name} K={k_qflex_val}",
-                            line=dict(color="#2E8B57", width=2.4)),
+                            line=dict(color=_qflex_color, width=2.4)),
                 row=1, col=1,
             )
             _fig.add_trace(
                 go.Scatter(x=_xg, y=_pg, mode="lines", name=f"{_qflex_name} K={k_qflex_val}",
-                            line=dict(color="#2E8B57", width=2.4), showlegend=False),
+                            line=dict(color=_qflex_color, width=2.4), showlegend=False),
                 row=1, col=2,
             )
             _n_modes, _locs, _hgts = qflex_modes
             if _locs is not None and len(_locs) > 0:
                 _fig.add_trace(
                     go.Scatter(x=_locs, y=_hgts, mode="markers", name=f"{_qflex_name} modes",
-                                marker=dict(color="#2E8B57", size=10, symbol="diamond",
+                                marker=dict(color=_qflex_color, size=10, symbol="diamond",
                                             line=dict(color="white", width=1))),
                     row=1, col=2,
                 )
@@ -257,10 +346,11 @@ def _(ConstraintType, Metalog, MetalogError, QFlex, QFlexError, detect_modes_fro
     def render_empirical_panel(mo, plotly_config, title, axis_label, constraint_label, p_grid, eqf_point, eqf_lo,
                                  eqf_hi, x_raw, metalog_curve, metalog_fit, metalog_modes, qflex_curve, qflex_fit,
                                  qflex_modes, fit_error):
-        """The EQF+CI / Metalog / QFlex panel pair shared by the three
+        """The EQF+CI / Metalog / QFlex panel pair shared by the four
         empirical dataset sections. The PDF panel also shows a histogram of
         the raw data for reference."""
         _qflex_name = QFLEX_LABELS[constraint_label]
+        _qflex_color = MODEL_COLORS[_qflex_name]
         _fig = make_subplots(
             rows=1, cols=2,
             subplot_titles=("Quantile function", "Probability density"),
@@ -305,19 +395,43 @@ def _(ConstraintType, Metalog, MetalogError, QFlex, QFlexError, detect_modes_fro
         if qflex_curve is not None:
             _xg, _pg = qflex_curve
             _fig.add_trace(go.Scatter(x=FIT_P_GRID, y=_xg, mode="lines", name=f"{_qflex_name} fit",
-                                        line=dict(color="#2E8B57", width=2.4)), row=1, col=1)
+                                        line=dict(color=_qflex_color, width=2.4)), row=1, col=1)
             _fig.add_trace(go.Scatter(x=_xg, y=_pg, mode="lines", name=f"{_qflex_name} fit",
-                                        line=dict(color="#2E8B57", width=2.4), showlegend=False), row=1, col=2)
+                                        line=dict(color=_qflex_color, width=2.4), showlegend=False), row=1, col=2)
             _n_modes, _locs, _hgts = qflex_modes
             if _locs is not None and len(_locs) > 0:
                 _fig.add_trace(go.Scatter(x=_locs, y=_hgts, mode="markers", name=f"{_qflex_name} modes",
-                                            marker=dict(color="#2E8B57", size=10, symbol="diamond",
+                                            marker=dict(color=_qflex_color, size=10, symbol="diamond",
                                                         line=dict(color="white", width=1))), row=1, col=2)
+
+        # Guard the density axis against a runaway infeasible-fit spike -- a
+        # known QFlex failure mode where an infeasible fit's PDF is 50-100x
+        # taller than anything sensible (e.g. the Old Faithful waiting-time
+        # data at default K). Left to Plotly's autorange, that single spike
+        # stretches the y-axis so far that the histogram and every other
+        # curve flatten to what looks like an empty plot. Anchor the range
+        # on the histogram and any *feasible* fit instead; only fall back to
+        # the raw curve max (which may itself be the spike) when nothing
+        # feasible is available to anchor on, so the panel is never left
+        # with no range at all.
+        _hist_counts, _ = np.histogram(x_raw, bins=40, density=True)
+        _hist_max = float(np.max(_hist_counts)) if len(_hist_counts) else 0.0
+        _feasible_maxes = []
+        if metalog_fit is not None and getattr(metalog_fit, "is_feasible", False) and metalog_curve is not None:
+            _feasible_maxes.append(float(np.max(metalog_curve[1])))
+        if qflex_fit is not None and getattr(qflex_fit, "is_feasible", False) and qflex_curve is not None:
+            _feasible_maxes.append(float(np.max(qflex_curve[1])))
+
+        if _hist_max > 0 or _feasible_maxes:
+            _pdf_y_max = max([_hist_max] + _feasible_maxes) * 1.25
+        else:
+            _fallback_maxes = [float(np.max(_c[1])) for _c in (metalog_curve, qflex_curve) if _c is not None]
+            _pdf_y_max = (max(_fallback_maxes) * 1.1) if _fallback_maxes else 1.0
 
         _fig.update_xaxes(title_text="Cumulative probability", range=[0, 1], row=1, col=1)
         _fig.update_yaxes(title_text=axis_label, row=1, col=1)
         _fig.update_xaxes(title_text=axis_label, row=1, col=2)
-        _fig.update_yaxes(title_text="Density", row=1, col=2)
+        _fig.update_yaxes(title_text="Density", range=[0, _pdf_y_max], row=1, col=2)
         _fig.update_layout(
             title=f"{title} — N={_n_raw}",
             height=430, margin=dict(l=10, r=10, t=50, b=10),
@@ -329,54 +443,73 @@ def _(ConstraintType, Metalog, MetalogError, QFlex, QFlexError, detect_modes_fro
             mode_summary_md(mo, fit_error, metalog_fit, metalog_modes, qflex_fit, qflex_modes, constraint_label),
         ])
 
-    def run_replicate_batch(mo, n_reps, k_metalog_val, k_qflex_val, constraint_label, draw_fn, seed,
-                              metalog_w1_ref=None, qflex_w1_ref=None, w1_label="W1 vs true QF"):
-        """Stream a batch of (fit Metalog + fit QFlex) replicates, updating
-        the cell's output after every replicate, then leave a summary table
-        behind -- feasibility rate, false-modality rate, and (when a
-        reference curve is given) median W1 distance, the same statistics
-        behind the paper's Table 2/3, scoped to whichever single scenario
-        called this."""
-        _qflex_name = QFLEX_LABELS[constraint_label]
-        _constraint = ConstraintType[constraint_label]
+    def run_replicate_batch(mo, n_reps, k_metalog_val, k_qflex_val, draw_fn, seed, w1_ref=None,
+                              w1_label="W1 vs reference"):
+        """Run a batch of replicates, fitting all 4 QPDs (Metalog + all 3
+        QFlex constraint variants) to each one, then leave a summary behind
+        -- feasibility rate, false-modality rate, and (when a reference is
+        given) median W1 distance per model, the same statistics behind the
+        paper's Table 2/3, now covering all 4 QPDs rather than just the 2
+        shown in the live panel above. Also runs the Hartigan dip test on
+        each replicate's raw draw and reports the aggregate unimodality
+        rejection rate. Only the final summary is shown -- not a
+        per-iteration table -- since for 30-100 replicates x 4 models that
+        table was mostly noise nobody read.
+
+        w1_ref: either a single quantile-grid array used as the reference
+        for all 4 models (e.g. the "true" population in the Monte Carlo
+        sections, which doesn't depend on which model is fit), or a dict
+        {model_label: array_or_None} for a per-model reference (e.g. each
+        empirical section's own full-sample fit per model)."""
+        _constraints = {"QFlex-U": "NONE", "QFlex-TA+": "TA", "QFlex-A+": "A"}
         _dp = FIT_P_GRID[1] - FIT_P_GRID[0]
         _rng = np.random.default_rng(seed)
         _rows = []
+        _dip_rejects = 0
+
+        def _ref_for(label):
+            if w1_ref is None:
+                return None
+            return w1_ref.get(label) if isinstance(w1_ref, dict) else w1_ref
 
         for _rep in range(n_reps):
             _x, _y = draw_fn(_rng)
 
-            for _model_name, _fit_fn, _w1_ref in (
-                ("Metalog", lambda: Metalog(_x, _y, terms=k_metalog_val), metalog_w1_ref),
-                (_qflex_name, lambda: QFlex(_x, _y, terms=k_qflex_val, constraint_type=_constraint), qflex_w1_ref),
-            ):
+            try:
+                _, _dip_pval, _dip_reject = hartigan_test(_x)
+                _dip_rejects += int(_dip_reject)
+            except Exception:
+                pass
+
+            for _model_name in MODEL_ORDER:
                 _row = {"Replicate": _rep + 1, "Model": _model_name}
+                _w1_ref_arr = _ref_for(_model_name)
                 try:
-                    _fit = _fit_fn()
+                    if _model_name == "Metalog":
+                        _fit = Metalog(_x, _y, terms=k_metalog_val)
+                    else:
+                        _fit = QFlex(_x, _y, terms=k_qflex_val, constraint_type=ConstraintType[_constraints[_model_name]])
                     _xg = _fit.quantile(FIT_P_GRID)
                     _pg = _fit.pdf(FIT_P_GRID)
                     _n_modes, _, _ = detect_modes_from_arrays(_xg, _pg)
                     _row["Feasible"] = bool(_fit.is_feasible)
                     _row["Modes"] = int(_n_modes) if _n_modes is not None else 0
-                    if _w1_ref is not None:
-                        _row[w1_label] = round(float(np.sum(np.abs(_xg - _w1_ref)) * _dp), 4)
+                    if _w1_ref_arr is not None:
+                        _row[w1_label] = round(float(np.sum(np.abs(_xg - _w1_ref_arr)) * _dp), 4)
                 except (MetalogError, QFlexError):
                     _row["Feasible"] = False
                     _row["Modes"] = None
-                    if _w1_ref is not None:
+                    if _w1_ref_arr is not None:
                         _row[w1_label] = None
                 _rows.append(_row)
 
-            mo.output.replace(
-                mo.vstack([
-                    mo.md(f"Running replicate {_rep + 1} / {n_reps}..."),
-                    mo.ui.table(_rows, selection=None, show_download=False, pagination=True, page_size=10),
-                ])
-            )
+            if _rep == 0 or (_rep + 1) % 5 == 0 or _rep == n_reps - 1:
+                mo.output.replace(mo.md(f"Running replicate {_rep + 1} / {n_reps} (4 QPDs each)..."))
 
         _df = pd.DataFrame(_rows)
         _summary_rows = []
-        for _model, _g in _df.groupby("Model", sort=False):
+        for _model in MODEL_ORDER:
+            _g = _df[_df["Model"] == _model]
             _n = len(_g)
             _feas = _g[_g["Feasible"]]
             _feas_pct = round(100 * len(_feas) / _n) if _n else 0
@@ -386,20 +519,33 @@ def _(ConstraintType, Metalog, MetalogError, QFlex, QFlexError, detect_modes_fro
                 _summary[f"Median {w1_label}"] = round(_feas[w1_label].median(), 4) if len(_feas) else float("nan")
             _summary_rows.append(_summary)
 
+        _dip_rate_pct = round(100 * _dip_rejects / n_reps) if n_reps else 0
+
         mo.output.replace(
             mo.vstack([
-                mo.md(f"**Done — {n_reps} replicates.**"),
-                mo.ui.table(_rows, selection=None, show_download=False, pagination=True, page_size=10),
-                mo.md("**Summary across all replicates** &mdash; the same statistics behind the paper's Table 2/3."),
+                mo.md(f"**Done — {n_reps} replicates × 4 QPDs.**"),
+                mo.md(
+                    "**Summary across all replicates** &mdash; the same feasibility / false-modality / W1 "
+                    "statistics behind the paper's Table 2/3, now reported for all 4 QPDs."
+                ),
                 mo.ui.table(_summary_rows, selection=None, show_download=False, pagination=False),
+                mo.md(
+                    f"**Hartigan unimodality rejection rate:** {_dip_rate_pct}% of the {n_reps} replicate "
+                    "draws reject unimodality at α=0.05 (dip test on the raw values themselves, independent "
+                    "of any QPD fit)."
+                ),
             ])
         )
         return
 
     return (
         FIT_P_GRID,
+        MODEL_ORDER,
         QFLEX_LABELS,
+        fit_all_qpds,
         fit_metalog_qflex,
+        hartigan_line_md,
+        hartigan_test,
         mode_summary_md,
         render_empirical_panel,
         render_mc_panel,
@@ -702,14 +848,37 @@ def _(
 
 
 @app.cell
+def _(hartigan_line_md, mo, x_sample):
+    hartigan_line_md(mo, x_sample)
+    return
+
+
+@app.cell
 def _(mo):
     mc_n_replicates = mo.ui.slider(
         start=5, stop=100, step=5, value=30, label="Replicates", show_value=True
     )
-    mc_run_batch = mo.ui.run_button(label="▶ Run batch for this scenario")
-    mo.md("**Full simulation for this scenario** — same family, sampling mode, N, and K's as above.")
+    return (mc_n_replicates,)
+
+
+@app.cell
+def _(mo, sampling_mode):
+    # Label reflects what a click will actually do: draw fresh Monte Carlo
+    # samples, or bootstrap-resample the fixed reference realization -- "Run
+    # batch for this scenario" told you neither.
+    _is_bootstrap = sampling_mode.value.startswith("Bootstrap")
+    mc_run_batch = mo.ui.run_button(
+        label="▶ Run Bootstrap Analysis" if _is_bootstrap else "▶ Run Monte Carlo Analysis"
+    )
+    return (mc_run_batch,)
+
+
+@app.cell
+def _(mc_n_replicates, mc_run_batch, mo, sampling_mode):
+    _kind = "bootstrap-resample the fixed reference realization" if sampling_mode.value.startswith("Bootstrap") else "draw a fresh Monte Carlo sample"
+    mo.md(f"**Full simulation for this scenario** — same family, sampling mode, N, and K's as above; each replicate will {_kind}.")
     mo.hstack([mc_n_replicates, mc_run_batch], justify="start", gap=2)
-    return mc_n_replicates, mc_run_batch
+    return
 
 
 @app.cell
@@ -723,7 +892,6 @@ def _(
     mo,
     n_effective,
     np,
-    qflex_constraint,
     reference_sample,
     run_replicate_batch,
     sampling_mode,
@@ -742,12 +910,13 @@ def _(
             return _x, _y
 
         run_replicate_batch(
-            mo, mc_n_replicates.value, k_metalog.value, k_qflex.value, qflex_constraint.value,
-            _draw, base_seed.value + 777, metalog_w1_ref=_x_true_grid, qflex_w1_ref=_x_true_grid,
+            mo, mc_n_replicates.value, k_metalog.value, k_qflex.value,
+            _draw, base_seed.value + 777, w1_ref=_x_true_grid,
         )
     else:
+        _label = "▶ Run Bootstrap Analysis" if sampling_mode.value.startswith("Bootstrap") else "▶ Run Monte Carlo Analysis"
         mo.output.replace(
-            mo.md("*Click **▶ Run batch for this scenario** to simulate replicates with the current controls.*")
+            mo.md(f"*Click **{_label}** to simulate replicates with the current controls.*")
         )
     return
 
@@ -1024,14 +1193,34 @@ def _(
 
 
 @app.cell
+def _(bimodal_x_sample, hartigan_line_md, mo):
+    hartigan_line_md(mo, bimodal_x_sample)
+    return
+
+
+@app.cell
 def _(mo):
     bimodal_n_replicates = mo.ui.slider(
         start=5, stop=100, step=5, value=30, label="Replicates", show_value=True
     )
-    bimodal_run_batch = mo.ui.run_button(label="▶ Run batch for this scenario")
-    mo.md("**Full simulation for this scenario** — same mixture, sampling mode, N, and K's as above.")
+    return (bimodal_n_replicates,)
+
+
+@app.cell
+def _(bimodal_sampling_mode, mo):
+    _is_bootstrap = bimodal_sampling_mode.value.startswith("Bootstrap")
+    bimodal_run_batch = mo.ui.run_button(
+        label="▶ Run Bootstrap Analysis" if _is_bootstrap else "▶ Run Monte Carlo Analysis"
+    )
+    return (bimodal_run_batch,)
+
+
+@app.cell
+def _(bimodal_n_replicates, bimodal_run_batch, bimodal_sampling_mode, mo):
+    _kind = "bootstrap-resample the fixed reference realization" if bimodal_sampling_mode.value.startswith("Bootstrap") else "draw a fresh Monte Carlo sample"
+    mo.md(f"**Full simulation for this scenario** — same mixture, sampling mode, N, and K's as above; each replicate will {_kind}.")
     mo.hstack([bimodal_n_replicates, bimodal_run_batch], justify="start", gap=2)
-    return bimodal_n_replicates, bimodal_run_batch
+    return
 
 
 @app.cell
@@ -1042,7 +1231,6 @@ def _(
     bimodal_k_qflex,
     bimodal_n_effective,
     bimodal_n_replicates,
-    bimodal_qflex_constraint,
     bimodal_reference_sample,
     bimodal_run_batch,
     bimodal_sampling_mode,
@@ -1065,12 +1253,12 @@ def _(
 
         run_replicate_batch(
             mo, bimodal_n_replicates.value, bimodal_k_metalog.value, bimodal_k_qflex.value,
-            bimodal_qflex_constraint.value, _draw, bimodal_seed.value + 777,
-            metalog_w1_ref=_x_true_grid, qflex_w1_ref=_x_true_grid,
+            _draw, bimodal_seed.value + 777, w1_ref=_x_true_grid,
         )
     else:
+        _label = "▶ Run Bootstrap Analysis" if bimodal_sampling_mode.value.startswith("Bootstrap") else "▶ Run Monte Carlo Analysis"
         mo.output.replace(
-            mo.md("*Click **▶ Run batch for this scenario** to simulate replicates with the current controls.*")
+            mo.md(f"*Click **{_label}** to simulate replicates with the current controls.*")
         )
     return
 
@@ -1082,13 +1270,18 @@ def _(mo):
         ---
         ## Empirical case studies
 
-        The paper's three real datasets, each in its own section with its
-        **own** Metalog K / QFlex K / constraint controls and its own
-        per-scenario batch simulation. Every panel shows the empirical
-        quantile function (raw sorted data as a step-like curve) with a
-        pointwise 95% bootstrap CI, plus a Metalog/QFlex fit, plus (on the
-        density panel) a histogram of the raw data for reference.
+        Four real datasets, each in its own section with its **own**
+        Metalog K / QFlex K / constraint controls, its own Hartigan dip
+        test, and its own bootstrap batch analysis. Every panel shows the
+        empirical quantile function (raw sorted data as a step-like curve)
+        with a pointwise 95% bootstrap CI, plus a Metalog/QFlex fit, plus
+        (on the density panel) a histogram of the raw data for reference.
         **Drag a rectangle on a plot to zoom**; double-click to reset.
+
+        We begin with the historical asset-class returns from Khanna &amp;
+        Bickel's own empirical case study, then the paper's three other
+        real datasets (fish weights, river gauge height, Old Faithful
+        waiting time).
         """
     )
     return
@@ -1118,6 +1311,11 @@ def _(DATA_DIR, np, pd):
         )
         return np.sort(_df["waiting"].dropna().values.astype(float))
 
+    def load_returns_df():
+        _df = pd.read_excel(str(DATA_DIR / "Returns-Stocks_Bonds_Bills.xlsx"))
+        _df.columns = [c.strip() for c in _df.columns]
+        return _df
+
     def eqf_bootstrap_ci(x_raw, p_grid, n_boot, seed=42):
         # Pointwise 95% percentile bootstrap CI on the EQF, matching the
         # method used for the paper's own EQF+CI figures (e.g. Figure 10,
@@ -1136,7 +1334,157 @@ def _(DATA_DIR, np, pd):
         _hi = np.percentile(_boot, 97.5, axis=0)
         return _point, _lo, _hi
 
-    return eqf_bootstrap_ci, load_fish_raw, load_geyser_raw, load_hydrology_raw
+    return eqf_bootstrap_ci, load_fish_raw, load_geyser_raw, load_hydrology_raw, load_returns_df
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+        ### Historical asset-class returns (`Returns-Stocks_Bonds_Bills.xlsx`)
+
+        The same 7 U.S. asset-class return categories from Khanna &amp;
+        Bickel's own empirical case study &mdash; annual returns, 1928-2025
+        (N=98 years each). Pick a category below, then work through the
+        same Metalog/QFlex fit, EQF+CI plot, Hartigan dip test, and
+        bootstrap batch analysis as the sections that follow.
+
+        **Note:** this section uses the paper's own Weibull plotting
+        positions ($p_i = i/(n+1)$) to assign quantile probabilities to the
+        sorted returns, rather than the $(i-0.3)/(n+0.4)$ convention the
+        rest of this page uses &mdash; matching the paper's empirical
+        methodology for this dataset exactly.
+        """
+    )
+    return
+
+
+@app.cell
+def _(load_returns_df):
+    returns_df = load_returns_df()
+    returns_categories = [c for c in returns_df.columns if c.lower() != "year"]
+    return returns_categories, returns_df
+
+
+@app.cell
+def _(mo, returns_categories):
+    returns_category = mo.ui.dropdown(
+        options=returns_categories, value=returns_categories[0], label="Return category",
+    )
+    returns_category
+    return (returns_category,)
+
+
+@app.cell
+def _(mo):
+    returns_k_metalog = mo.ui.slider(start=2, stop=15, step=1, value=9, label="Metalog K", show_value=True)
+    returns_k_qflex = mo.ui.slider(start=2, stop=15, step=1, value=9, label="QFlex K", show_value=True)
+    returns_qflex_constraint = mo.ui.dropdown(
+        options={"Unconstrained": "NONE", "A+  (all coefficients ≥ 0)": "A", "TA+  (tail coefficients ≥ 0)": "TA"},
+        value="Unconstrained", label="QFlex constraint",
+    )
+    mo.vstack([mo.hstack([returns_k_metalog, returns_k_qflex], justify="start", gap=2), returns_qflex_constraint])
+    return returns_k_metalog, returns_k_qflex, returns_qflex_constraint
+
+
+@app.cell
+def _(returns_category, returns_df, np):
+    returns_x = np.sort(returns_df[returns_category.value].dropna().to_numpy(dtype=float))
+    _n = len(returns_x)
+    returns_y = np.arange(1, _n + 1) / (_n + 1)  # Weibull plotting position -- see note above
+    return returns_x, returns_y
+
+
+@app.cell
+def _(eqf_bootstrap_ci, returns_x, np):
+    returns_p_grid = np.linspace(0.01, 0.99, 300)
+    returns_eqf_point, returns_eqf_lo, returns_eqf_hi = eqf_bootstrap_ci(returns_x, returns_p_grid, n_boot=300, seed=42)
+    return returns_eqf_hi, returns_eqf_lo, returns_eqf_point, returns_p_grid
+
+
+@app.cell
+def _(fit_metalog_qflex, returns_k_metalog, returns_k_qflex, returns_qflex_constraint, returns_x, returns_y):
+    _res = fit_metalog_qflex(
+        returns_x, returns_y, returns_k_metalog.value, returns_k_qflex.value, returns_qflex_constraint.value
+    )
+    returns_fit_error = _res["fit_error"]
+    returns_metalog_fit, returns_metalog_curve, returns_metalog_modes = _res["metalog_fit"], _res["metalog_curve"], _res["metalog_modes"]
+    returns_qflex_fit, returns_qflex_curve, returns_qflex_modes = _res["qflex_fit"], _res["qflex_curve"], _res["qflex_modes"]
+    return returns_fit_error, returns_metalog_curve, returns_metalog_fit, returns_metalog_modes, returns_qflex_curve, returns_qflex_fit, returns_qflex_modes
+
+
+@app.cell
+def _(
+    PLOTLY_CONFIG,
+    returns_category,
+    returns_eqf_hi,
+    returns_eqf_lo,
+    returns_eqf_point,
+    returns_fit_error,
+    returns_metalog_curve,
+    returns_metalog_fit,
+    returns_metalog_modes,
+    returns_p_grid,
+    returns_qflex_constraint,
+    returns_qflex_curve,
+    returns_qflex_fit,
+    returns_qflex_modes,
+    returns_x,
+    mo,
+    render_empirical_panel,
+):
+    render_empirical_panel(
+        mo, PLOTLY_CONFIG, returns_category.value, "Annual return", returns_qflex_constraint.value, returns_p_grid,
+        returns_eqf_point, returns_eqf_lo, returns_eqf_hi, returns_x, returns_metalog_curve, returns_metalog_fit,
+        returns_metalog_modes, returns_qflex_curve, returns_qflex_fit, returns_qflex_modes, returns_fit_error,
+    )
+    return
+
+
+@app.cell
+def _(hartigan_line_md, mo, returns_x):
+    hartigan_line_md(mo, returns_x)
+    return
+
+
+@app.cell
+def _(mo):
+    returns_n_replicates = mo.ui.slider(start=5, stop=100, step=5, value=30, label="Replicates", show_value=True)
+    returns_run_batch = mo.ui.run_button(label="▶ Run Bootstrap Analysis")
+    mo.md("**Full simulation for this category** — bootstrap-resample the annual returns and refit repeatedly, across all 4 QPDs.")
+    mo.hstack([returns_n_replicates, returns_run_batch], justify="start", gap=2)
+    return returns_n_replicates, returns_run_batch
+
+
+@app.cell
+def _(
+    fit_all_qpds,
+    returns_k_metalog,
+    returns_k_qflex,
+    returns_n_replicates,
+    returns_run_batch,
+    returns_x,
+    mo,
+    np,
+    run_replicate_batch,
+):
+    if returns_run_batch.value:
+        _all_fits, _ = fit_all_qpds(returns_x, np.arange(1, len(returns_x) + 1) / (len(returns_x) + 1), returns_k_metalog.value, returns_k_qflex.value)
+        _w1_refs = {_label: (_r["curve"][0] if _r["curve"] is not None else None) for _label, _r in _all_fits.items()}
+
+        def _draw(rng):
+            _n = len(returns_x)
+            _x = np.sort(rng.choice(returns_x, size=_n, replace=True))
+            _y = np.arange(1, _n + 1) / (_n + 1)  # Weibull, matching this section's convention
+            return _x, _y
+
+        run_replicate_batch(
+            mo, returns_n_replicates.value, returns_k_metalog.value, returns_k_qflex.value,
+            _draw, 471_000, w1_ref=_w1_refs, w1_label="W1 vs full-sample fit",
+        )
+    else:
+        mo.output.replace(mo.md("*Click **▶ Run Bootstrap Analysis** to bootstrap-resample and refit repeatedly.*"))
+    return
 
 
 @app.cell
@@ -1234,10 +1582,16 @@ def _(
 
 
 @app.cell
+def _(fish_x, hartigan_line_md, mo):
+    hartigan_line_md(mo, fish_x)
+    return
+
+
+@app.cell
 def _(mo):
     fish_n_replicates = mo.ui.slider(start=5, stop=100, step=5, value=30, label="Replicates", show_value=True)
-    fish_run_batch = mo.ui.run_button(label="▶ Run batch for this dataset")
-    mo.md("**Full simulation for this dataset** — bootstrap-resample the (jittered) fish weights and refit repeatedly.")
+    fish_run_batch = mo.ui.run_button(label="▶ Run Bootstrap Analysis")
+    mo.md("**Full simulation for this dataset** — bootstrap-resample the (jittered) fish weights and refit repeatedly, across all 4 QPDs.")
     mo.hstack([fish_n_replicates, fish_run_batch], justify="start", gap=2)
     return fish_n_replicates, fish_run_batch
 
@@ -1246,19 +1600,18 @@ def _(mo):
 def _(
     fish_k_metalog,
     fish_k_qflex,
-    fish_metalog_curve,
     fish_n_replicates,
-    fish_qflex_constraint,
-    fish_qflex_curve,
     fish_run_batch,
     fish_x,
+    fish_y,
+    fit_all_qpds,
     mo,
     np,
     run_replicate_batch,
 ):
     if fish_run_batch.value:
-        _metalog_ref = fish_metalog_curve[0] if fish_metalog_curve is not None else None
-        _qflex_ref = fish_qflex_curve[0] if fish_qflex_curve is not None else None
+        _all_fits, _ = fit_all_qpds(fish_x, fish_y, fish_k_metalog.value, fish_k_qflex.value)
+        _w1_refs = {_label: (_r["curve"][0] if _r["curve"] is not None else None) for _label, _r in _all_fits.items()}
 
         def _draw(rng):
             _n = len(fish_x)
@@ -1267,12 +1620,11 @@ def _(
             return _x, _y
 
         run_replicate_batch(
-            mo, fish_n_replicates.value, fish_k_metalog.value, fish_k_qflex.value, fish_qflex_constraint.value,
-            _draw, 471_001, metalog_w1_ref=_metalog_ref, qflex_w1_ref=_qflex_ref,
-            w1_label="W1 vs full-sample fit",
+            mo, fish_n_replicates.value, fish_k_metalog.value, fish_k_qflex.value,
+            _draw, 471_001, w1_ref=_w1_refs, w1_label="W1 vs full-sample fit",
         )
     else:
-        mo.output.replace(mo.md("*Click **▶ Run batch for this dataset** to bootstrap-resample and refit repeatedly.*"))
+        mo.output.replace(mo.md("*Click **▶ Run Bootstrap Analysis** to bootstrap-resample and refit repeatedly.*"))
     return
 
 
@@ -1346,31 +1698,36 @@ def _(
 
 
 @app.cell
+def _(hartigan_line_md, hydro_x, mo):
+    hartigan_line_md(mo, hydro_x)
+    return
+
+
+@app.cell
 def _(mo):
     hydro_n_replicates = mo.ui.slider(start=5, stop=100, step=5, value=30, label="Replicates", show_value=True)
-    hydro_run_batch = mo.ui.run_button(label="▶ Run batch for this dataset")
-    mo.md("**Full simulation for this dataset** — bootstrap-resample the gauge-height data and refit repeatedly.")
+    hydro_run_batch = mo.ui.run_button(label="▶ Run Bootstrap Analysis")
+    mo.md("**Full simulation for this dataset** — bootstrap-resample the gauge-height data and refit repeatedly, across all 4 QPDs.")
     mo.hstack([hydro_n_replicates, hydro_run_batch], justify="start", gap=2)
     return hydro_n_replicates, hydro_run_batch
 
 
 @app.cell
 def _(
+    fit_all_qpds,
     hydro_k_metalog,
     hydro_k_qflex,
-    hydro_metalog_curve,
     hydro_n_replicates,
-    hydro_qflex_constraint,
-    hydro_qflex_curve,
     hydro_run_batch,
     hydro_x,
+    hydro_y,
     mo,
     np,
     run_replicate_batch,
 ):
     if hydro_run_batch.value:
-        _metalog_ref = hydro_metalog_curve[0] if hydro_metalog_curve is not None else None
-        _qflex_ref = hydro_qflex_curve[0] if hydro_qflex_curve is not None else None
+        _all_fits, _ = fit_all_qpds(hydro_x, hydro_y, hydro_k_metalog.value, hydro_k_qflex.value)
+        _w1_refs = {_label: (_r["curve"][0] if _r["curve"] is not None else None) for _label, _r in _all_fits.items()}
 
         def _draw(rng):
             _n = len(hydro_x)
@@ -1379,12 +1736,11 @@ def _(
             return _x, _y
 
         run_replicate_batch(
-            mo, hydro_n_replicates.value, hydro_k_metalog.value, hydro_k_qflex.value, hydro_qflex_constraint.value,
-            _draw, 471_002, metalog_w1_ref=_metalog_ref, qflex_w1_ref=_qflex_ref,
-            w1_label="W1 vs full-sample fit",
+            mo, hydro_n_replicates.value, hydro_k_metalog.value, hydro_k_qflex.value,
+            _draw, 471_002, w1_ref=_w1_refs, w1_label="W1 vs full-sample fit",
         )
     else:
-        mo.output.replace(mo.md("*Click **▶ Run batch for this dataset** to bootstrap-resample and refit repeatedly.*"))
+        mo.output.replace(mo.md("*Click **▶ Run Bootstrap Analysis** to bootstrap-resample and refit repeatedly.*"))
     return
 
 
@@ -1461,31 +1817,36 @@ def _(
 
 
 @app.cell
+def _(geyser_x, hartigan_line_md, mo):
+    hartigan_line_md(mo, geyser_x)
+    return
+
+
+@app.cell
 def _(mo):
     geyser_n_replicates = mo.ui.slider(start=5, stop=100, step=5, value=30, label="Replicates", show_value=True)
-    geyser_run_batch = mo.ui.run_button(label="▶ Run batch for this dataset")
-    mo.md("**Full simulation for this dataset** — bootstrap-resample the waiting times and refit repeatedly.")
+    geyser_run_batch = mo.ui.run_button(label="▶ Run Bootstrap Analysis")
+    mo.md("**Full simulation for this dataset** — bootstrap-resample the waiting times and refit repeatedly, across all 4 QPDs.")
     mo.hstack([geyser_n_replicates, geyser_run_batch], justify="start", gap=2)
     return geyser_n_replicates, geyser_run_batch
 
 
 @app.cell
 def _(
+    fit_all_qpds,
     geyser_k_metalog,
     geyser_k_qflex,
-    geyser_metalog_curve,
     geyser_n_replicates,
-    geyser_qflex_constraint,
-    geyser_qflex_curve,
     geyser_run_batch,
     geyser_x,
+    geyser_y,
     mo,
     np,
     run_replicate_batch,
 ):
     if geyser_run_batch.value:
-        _metalog_ref = geyser_metalog_curve[0] if geyser_metalog_curve is not None else None
-        _qflex_ref = geyser_qflex_curve[0] if geyser_qflex_curve is not None else None
+        _all_fits, _ = fit_all_qpds(geyser_x, geyser_y, geyser_k_metalog.value, geyser_k_qflex.value)
+        _w1_refs = {_label: (_r["curve"][0] if _r["curve"] is not None else None) for _label, _r in _all_fits.items()}
 
         def _draw(rng):
             _n = len(geyser_x)
@@ -1495,11 +1856,10 @@ def _(
 
         run_replicate_batch(
             mo, geyser_n_replicates.value, geyser_k_metalog.value, geyser_k_qflex.value,
-            geyser_qflex_constraint.value, _draw, 471_003,
-            metalog_w1_ref=_metalog_ref, qflex_w1_ref=_qflex_ref, w1_label="W1 vs full-sample fit",
+            _draw, 471_003, w1_ref=_w1_refs, w1_label="W1 vs full-sample fit",
         )
     else:
-        mo.output.replace(mo.md("*Click **▶ Run batch for this dataset** to bootstrap-resample and refit repeatedly.*"))
+        mo.output.replace(mo.md("*Click **▶ Run Bootstrap Analysis** to bootstrap-resample and refit repeatedly.*"))
     return
 
 

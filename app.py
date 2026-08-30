@@ -7,7 +7,6 @@
 #     "scipy",
 #     "openpyxl",
 #     "marimo",
-#     "diptest",
 # ]
 # ///
 
@@ -30,7 +29,6 @@ def _():
     import pandas as pd
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
-    import diptest
 
     # NOTE: imported as `common.<pkg>`, not top-level `<pkg>`. marimo's WASM
     # export bundles the local `common/` folder as an installable wheel named
@@ -45,11 +43,20 @@ def _():
     from common.qflex.constraints import QFlexError
     from common.jpse.johnson import JohnsonSU, JohnsonSL, JohnsonSB
     from common.mode_utils import detect_modes_from_arrays
+    # Pure-Python/NumPy port of the Hartigan dip test, vendored (GPLv3,
+    # see the header of common/dip_test.py) because the compiled `diptest`
+    # PyPI package has no pure-Python wheel: a single unavailable wheel
+    # aborts marimo's *entire* batched micropip install, breaking every
+    # other dependency (plotly, scipy, ...) in the WASM/browser build, not
+    # just this feature.
+    from common.dip_test import dip_stat
+    from common.dip_consts import Consts as DipConsts
 
     DATA_DIR = mo.notebook_location() / "public"
     return (
         ConstraintType,
         DATA_DIR,
+        DipConsts,
         JohnsonSB,
         JohnsonSL,
         JohnsonSU,
@@ -58,7 +65,7 @@ def _():
         QFlex,
         QFlexError,
         detect_modes_from_arrays,
-        diptest,
+        dip_stat,
         go,
         make_subplots,
         mo,
@@ -95,12 +102,13 @@ def _(mo):
 @app.cell
 def _(
     ConstraintType,
+    DipConsts,
     Metalog,
     MetalogError,
     QFlex,
     QFlexError,
     detect_modes_from_arrays,
-    diptest,
+    dip_stat,
     go,
     make_subplots,
     np,
@@ -166,12 +174,25 @@ def _(
         return _results, (" · ".join(_errors) if _errors else None)
 
     def hartigan_test(x):
-        """Hartigan dip test for unimodality (diptest package). Cheap (no
-        QPD fitting involved) -- unlike Silverman's test, this is fast
-        enough to run on every replicate of a bootstrap batch, not just the
-        single raw/current sample."""
-        _dip, _pval = diptest.diptest(np.asarray(x, dtype=float))
-        return float(_dip), float(_pval), bool(_pval < 0.05)
+        """Hartigan dip test for unimodality. Uses a vendored pure-Python/
+        NumPy port of the algorithm (common/dip_test.py + common/
+        dip_consts.py, GPLv3 -- see those files' headers) rather than the
+        compiled `diptest` PyPI package, because that package has no
+        pure-Python wheel and its absence would break marimo's WASM/browser
+        build entirely (a single unavailable wheel aborts the whole batched
+        dependency install, not just this feature). Cheap (no QPD fitting
+        involved) -- unlike Silverman's test, this is fast enough to run on
+        every replicate of a bootstrap batch, not just the single raw/
+        current sample."""
+        _x_sorted = np.sort(np.asarray(x, dtype=float))
+        _n = len(_x_sorted)
+        _dip = dip_stat(_x_sorted)
+        # Matches diptest.diptest()'s own convention: the dip test isn't
+        # valid for n <= 3, so the p-value is fixed at 1.0 (never rejects)
+        # rather than extrapolating the critical-value table below its
+        # tabulated range.
+        _pval = 1.0 if _n <= 3 else float(DipConsts.compute_pval_interpolation(_n, _dip))
+        return float(_dip), _pval, bool(_pval < 0.05)
 
     def hartigan_line_md(mo, x):
         """The one-line Hartigan verdict for a single (raw/current) sample:

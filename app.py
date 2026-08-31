@@ -331,10 +331,10 @@ def _(
         aggregate is the *rate* of rejection across a bootstrap batch,
         reported separately by run_replicate_batch below."""
         _dip, _pval, _reject = hartigan_test(x)
-        _verdict = "**rejects**" if _reject else "fails to reject"
+        _verdict = "**rejects** unimodality" if _reject else "**rejects** spurious modes"
         return mo.md(
             f"**Hartigan dip test** (this sample, N={len(x)}): dip = {_dip:.4f}, p = {_pval:.4f} "
-            f"&rarr; {_verdict} unimodality at α=0.05."
+            f"&rarr; {_verdict} at α=0.05."
         )
 
     def fit_metalog_qflex(x_sorted, y_plot_pos, k_metalog_val, k_qflex_val, constraint_label, bounds=None):
@@ -1955,7 +1955,7 @@ def _(mo, section_header_html):
 @app.cell
 def _(mo):
     fish_jitter = mo.ui.slider(
-        start=0.0, stop=0.5, step=0.05, value=0.25,
+        start=0.0, stop=1.0, step=0.05, value=0.25,
         label="Jitter width (lbs)", show_value=True,
     )
     mo.vstack([

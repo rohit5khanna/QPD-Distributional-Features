@@ -39,9 +39,10 @@ def _():
     # Importing this way also works locally, since `common/` sits right next
     # to app.py and _THIS_DIR is on sys.path (namespace package, no
     # common/__init__.py needed).
-    from common.metalog.metalog_v2 import Metalog, MetalogError
+    from common.metalog.metalog_v2 import Metalog, MetalogError, LogMetalog, LogitMetalog
     from common.qflex.core import QFlex, ConstraintType
     from common.qflex.constraints import QFlexError
+    from common.qflex.transforms import LogQFlex, LogitQFlex
     from common.jpse.johnson import JohnsonSU, JohnsonSL, JohnsonSB
     from common.mode_utils import detect_modes_from_arrays
     # Pure-Python/NumPy port of the Hartigan dip test, vendored (GPLv3,
@@ -61,6 +62,10 @@ def _():
         JohnsonSB,
         JohnsonSL,
         JohnsonSU,
+        LogMetalog,
+        LogQFlex,
+        LogitMetalog,
+        LogitQFlex,
         Metalog,
         MetalogError,
         QFlex,
@@ -105,6 +110,10 @@ def _(mo):
 def _(
     ConstraintType,
     DipConsts,
+    LogMetalog,
+    LogQFlex,
+    LogitMetalog,
+    LogitQFlex,
     Metalog,
     MetalogError,
     QFlex,
@@ -145,6 +154,41 @@ def _(
         "QFlex-A+": "#2E8B57",
     }
     _QFLEX_CONSTRAINTS = {"QFlex-U": "NONE", "QFlex-TA+": "TA", "QFlex-A+": "A"}
+
+    # Boundedness support -- matching the paper's own convention of fitting
+    # semi-bounded (Log Metalog / Log QFlex, exponential transform) or
+    # bounded (Logit Metalog / Logit QFlex, logit transform) QPDs wherever
+    # the underlying quantity has a natural domain restriction, rather than
+    # always using the unbounded variant. `bounds` is either None
+    # (unbounded), (lower, None) (semi-bounded), or (lower, upper)
+    # (bounded); every fitting call site below threads a `bounds` argument
+    # through to these three helpers so the boundedness choice is made in
+    # exactly one place per section.
+    def _make_metalog(x, y, k, bounds):
+        if bounds is None:
+            return Metalog(x, y, terms=k)
+        _lo, _hi = bounds
+        if _hi is None:
+            return LogMetalog(x, y, lower_bound=_lo, terms=k)
+        return LogitMetalog(x, y, lower_bound=_lo, upper_bound=_hi, terms=k)
+
+    def _make_qflex(x, y, k, constraint, bounds):
+        if bounds is None:
+            return QFlex(x, y, terms=k, constraint_type=constraint)
+        _lo, _hi = bounds
+        if _hi is None:
+            return LogQFlex(x, y, lower_bound=_lo, terms=k, constraint_type=constraint)
+        return LogitQFlex(x, y, lower_bound=_lo, upper_bound=_hi, terms=k, constraint_type=constraint)
+
+    def _qpd_prefix(bounds):
+        """'' for unbounded, 'Log ' for semi-bounded, 'Logit ' for bounded
+        -- prepended to every displayed Metalog/QFlex model name so the plot
+        legends, mode summaries, and batch tables always say which variant
+        was actually fit, matching the paper's own Log Metalog / Log QFlex
+        naming."""
+        if bounds is None:
+            return ""
+        return "Log " if bounds[1] is None else "Logit "
 
     # Shared look for every figure in the notebook -- clean white
     # background, thin dark-gray box axes, no heavy gridlines, restrained
@@ -221,17 +265,18 @@ def _(
             f'</div>'
         )
 
-    def fit_all_qpds(x_sorted, y_plot_pos, k_metalog_val, k_qflex_val):
+    def fit_all_qpds(x_sorted, y_plot_pos, k_metalog_val, k_qflex_val, bounds=None):
         """Fit all 4 QPDs (Metalog + all 3 QFlex constraint variants) to one
         (x, y) EQF sample. Never raises. Returns a dict keyed by MODEL_ORDER
         label -> {"fit", "curve", "modes"} (same shape per model), plus a
         combined error string (or None). Used wherever a batch/summary needs
         all 4 models at once, rather than just the single QFlex constraint
-        shown in a section's live 2-model panel."""
+        shown in a section's live 2-model panel. `bounds` selects the
+        boundedness variant -- see _qpd_prefix above."""
         _results = {}
         _errors = []
         try:
-            _mf = Metalog(x_sorted, y_plot_pos, terms=k_metalog_val)
+            _mf = _make_metalog(x_sorted, y_plot_pos, k_metalog_val, bounds)
             _xg, _pg = _mf.quantile(FIT_P_GRID), _mf.pdf(FIT_P_GRID)
             _results["Metalog"] = {"fit": _mf, "curve": (_xg, _pg), "modes": detect_modes_from_arrays(_xg, _pg)}
         except MetalogError as e:
@@ -241,7 +286,7 @@ def _(
         for _label in ("QFlex-U", "QFlex-TA+", "QFlex-A+"):
             try:
                 _constraint = ConstraintType[_QFLEX_CONSTRAINTS[_label]]
-                _qf = QFlex(x_sorted, y_plot_pos, terms=k_qflex_val, constraint_type=_constraint)
+                _qf = _make_qflex(x_sorted, y_plot_pos, k_qflex_val, _constraint, bounds)
                 _xg, _pg = _qf.quantile(FIT_P_GRID), _qf.pdf(FIT_P_GRID)
                 _results[_label] = {"fit": _qf, "curve": (_xg, _pg), "modes": detect_modes_from_arrays(_xg, _pg)}
             except QFlexError as e:
@@ -283,15 +328,16 @@ def _(
             f"&rarr; {_verdict} unimodality at α=0.05."
         )
 
-    def fit_metalog_qflex(x_sorted, y_plot_pos, k_metalog_val, k_qflex_val, constraint_label):
-        """Fit Metalog and QFlex to one (x, y) EQF sample. Never raises."""
+    def fit_metalog_qflex(x_sorted, y_plot_pos, k_metalog_val, k_qflex_val, constraint_label, bounds=None):
+        """Fit Metalog and QFlex to one (x, y) EQF sample. Never raises.
+        `bounds` selects the boundedness variant -- see _qpd_prefix above."""
         _fit_error = None
         _metalog_fit = _qflex_fit = None
         _metalog_curve = _qflex_curve = None
         _metalog_modes = _qflex_modes = (None, None, None)
 
         try:
-            _mf = Metalog(x_sorted, y_plot_pos, terms=k_metalog_val)
+            _mf = _make_metalog(x_sorted, y_plot_pos, k_metalog_val, bounds)
             _xg = _mf.quantile(FIT_P_GRID)
             _pg = _mf.pdf(FIT_P_GRID)
             _metalog_fit = _mf
@@ -302,7 +348,7 @@ def _(
 
         try:
             _constraint = ConstraintType[constraint_label]
-            _qf = QFlex(x_sorted, y_plot_pos, terms=k_qflex_val, constraint_type=_constraint)
+            _qf = _make_qflex(x_sorted, y_plot_pos, k_qflex_val, _constraint, bounds)
             _xg = _qf.quantile(FIT_P_GRID)
             _pg = _qf.pdf(FIT_P_GRID)
             _qflex_fit = _qf
@@ -318,8 +364,10 @@ def _(
         }
 
     def mode_summary_md(mo, fit_error, metalog_fit, metalog_modes, qflex_fit, qflex_modes, constraint_label,
-                          metalog_w1=None, qflex_w1=None, w1_label="empirical"):
-        _qflex_name = QFLEX_LABELS[constraint_label]
+                          metalog_w1=None, qflex_w1=None, w1_label="empirical", bounds=None):
+        _prefix = _qpd_prefix(bounds)
+        _metalog_name = f"{_prefix}Metalog"
+        _qflex_name = _prefix + QFLEX_LABELS[constraint_label]
 
         def _line(name, fit, modes, w1):
             if fit is None:
@@ -334,7 +382,7 @@ def _(
             return f"**{name}:** {_feas}, {_shape}{_w1_txt}"
 
         return mo.md(
-            f"{_line('Metalog', metalog_fit, metalog_modes, metalog_w1)}  \n"
+            f"{_line(_metalog_name, metalog_fit, metalog_modes, metalog_w1)}  \n"
             f"{_line(_qflex_name, qflex_fit, qflex_modes, qflex_w1)}"
             + (f"\n\n⚠️ {fit_error}" if fit_error else "")
         )
@@ -354,12 +402,18 @@ def _(
 
     def render_mc_panel(mo, plotly_config, true_dist, x_sample, y_sample, k_metalog_val, k_qflex_val,
                           constraint_label, metalog_curve, metalog_fit, metalog_modes, qflex_curve, qflex_fit,
-                          qflex_modes, fit_error, x_range, y_range):
+                          qflex_modes, fit_error, x_range, y_range, bounds=None):
         """The QF + PDF panel pair shared by the Johnson MC section and the
         bimodal-mixture MC section: true curve, sample, both fits, both
-        fits' true-curve overlay for contrast, and fixed axes."""
+        fits' true-curve overlay for contrast, and fixed axes. `bounds`
+        selects the Metalog/QFlex variant (unbounded / semi-bounded / bounded)
+        and is only used for display-name prefixing here (the actual fitting
+        is done upstream in fit_metalog_qflex)."""
         _qflex_name = QFLEX_LABELS[constraint_label]
         _qflex_color = MODEL_COLORS[_qflex_name]
+        _prefix = _qpd_prefix(bounds)
+        _metalog_display = f"{_prefix}Metalog"
+        _qflex_display = _prefix + _qflex_name
         _fig = make_subplots(
             rows=1, cols=2,
             subplot_titles=("Quantile function", "Probability density"),
@@ -390,19 +444,19 @@ def _(
         if metalog_curve is not None:
             _xg, _pg = metalog_curve
             _fig.add_trace(
-                go.Scatter(x=FIT_P_GRID, y=_xg, mode="lines", name=f"Metalog K={k_metalog_val}",
+                go.Scatter(x=FIT_P_GRID, y=_xg, mode="lines", name=f"{_metalog_display} K={k_metalog_val}",
                             line=dict(color="#3B5FA0", width=2.4)),
                 row=1, col=1,
             )
             _fig.add_trace(
-                go.Scatter(x=_xg, y=_pg, mode="lines", name=f"Metalog K={k_metalog_val}",
+                go.Scatter(x=_xg, y=_pg, mode="lines", name=f"{_metalog_display} K={k_metalog_val}",
                             line=dict(color="#3B5FA0", width=2.4), showlegend=False),
                 row=1, col=2,
             )
             _n_modes, _locs, _hgts = metalog_modes
             if _locs is not None and len(_locs) > 0:
                 _fig.add_trace(
-                    go.Scatter(x=_locs, y=_hgts, mode="markers", name="Metalog modes",
+                    go.Scatter(x=_locs, y=_hgts, mode="markers", name=f"{_metalog_display} modes",
                                 marker=dict(color="#3B5FA0", size=10, symbol="diamond",
                                             line=dict(color="white", width=1))),
                     row=1, col=2,
@@ -411,19 +465,19 @@ def _(
         if qflex_curve is not None:
             _xg, _pg = qflex_curve
             _fig.add_trace(
-                go.Scatter(x=FIT_P_GRID, y=_xg, mode="lines", name=f"{_qflex_name} K={k_qflex_val}",
+                go.Scatter(x=FIT_P_GRID, y=_xg, mode="lines", name=f"{_qflex_display} K={k_qflex_val}",
                             line=dict(color=_qflex_color, width=2.4)),
                 row=1, col=1,
             )
             _fig.add_trace(
-                go.Scatter(x=_xg, y=_pg, mode="lines", name=f"{_qflex_name} K={k_qflex_val}",
+                go.Scatter(x=_xg, y=_pg, mode="lines", name=f"{_qflex_display} K={k_qflex_val}",
                             line=dict(color=_qflex_color, width=2.4), showlegend=False),
                 row=1, col=2,
             )
             _n_modes, _locs, _hgts = qflex_modes
             if _locs is not None and len(_locs) > 0:
                 _fig.add_trace(
-                    go.Scatter(x=_locs, y=_hgts, mode="markers", name=f"{_qflex_name} modes",
+                    go.Scatter(x=_locs, y=_hgts, mode="markers", name=f"{_qflex_display} modes",
                                 marker=dict(color=_qflex_color, size=10, symbol="diamond",
                                             line=dict(color="white", width=1))),
                     row=1, col=2,
@@ -452,18 +506,23 @@ def _(
 
         return mo.vstack([
             mode_summary_md(mo, fit_error, metalog_fit, metalog_modes, qflex_fit, qflex_modes, constraint_label,
-                              metalog_w1=_metalog_w1, qflex_w1=_qflex_w1, w1_label="true"),
+                              metalog_w1=_metalog_w1, qflex_w1=_qflex_w1, w1_label="true", bounds=bounds),
             mo.ui.plotly(_fig, config=plotly_config),
         ])
 
     def render_empirical_panel(mo, plotly_config, title, axis_label, constraint_label, p_grid, eqf_point, eqf_lo,
                                  eqf_hi, x_raw, metalog_curve, metalog_fit, metalog_modes, qflex_curve, qflex_fit,
-                                 qflex_modes, fit_error, value_xlim=None):
+                                 qflex_modes, fit_error, value_xlim=None, bounds=None):
         """The EQF+CI / Metalog / QFlex panel pair shared by the four
         empirical dataset sections. The PDF panel also shows a histogram of
-        the raw data for reference."""
+        the raw data for reference. `bounds` selects the boundedness
+        variant (see _qpd_prefix above) and is reflected in every legend
+        label and the mode summary below the plot."""
         _qflex_name = QFLEX_LABELS[constraint_label]
         _qflex_color = MODEL_COLORS[_qflex_name]
+        _prefix = _qpd_prefix(bounds)
+        _metalog_display = f"{_prefix}Metalog"
+        _qflex_display = _prefix + _qflex_name
         _fig = make_subplots(
             rows=1, cols=2,
             subplot_titles=("Quantile function", "Probability density"),
@@ -495,25 +554,25 @@ def _(
 
         if metalog_curve is not None:
             _xg, _pg = metalog_curve
-            _fig.add_trace(go.Scatter(x=FIT_P_GRID, y=_xg, mode="lines", name="Metalog fit",
+            _fig.add_trace(go.Scatter(x=FIT_P_GRID, y=_xg, mode="lines", name=f"{_metalog_display} fit",
                                         line=dict(color="#3B5FA0", width=2.4)), row=1, col=1)
-            _fig.add_trace(go.Scatter(x=_xg, y=_pg, mode="lines", name="Metalog fit",
+            _fig.add_trace(go.Scatter(x=_xg, y=_pg, mode="lines", name=f"{_metalog_display} fit",
                                         line=dict(color="#3B5FA0", width=2.4), showlegend=False), row=1, col=2)
             _n_modes, _locs, _hgts = metalog_modes
             if _locs is not None and len(_locs) > 0:
-                _fig.add_trace(go.Scatter(x=_locs, y=_hgts, mode="markers", name="Metalog modes",
+                _fig.add_trace(go.Scatter(x=_locs, y=_hgts, mode="markers", name=f"{_metalog_display} modes",
                                             marker=dict(color="#3B5FA0", size=10, symbol="diamond",
                                                         line=dict(color="white", width=1))), row=1, col=2)
 
         if qflex_curve is not None:
             _xg, _pg = qflex_curve
-            _fig.add_trace(go.Scatter(x=FIT_P_GRID, y=_xg, mode="lines", name=f"{_qflex_name} fit",
+            _fig.add_trace(go.Scatter(x=FIT_P_GRID, y=_xg, mode="lines", name=f"{_qflex_display} fit",
                                         line=dict(color=_qflex_color, width=2.4)), row=1, col=1)
-            _fig.add_trace(go.Scatter(x=_xg, y=_pg, mode="lines", name=f"{_qflex_name} fit",
+            _fig.add_trace(go.Scatter(x=_xg, y=_pg, mode="lines", name=f"{_qflex_display} fit",
                                         line=dict(color=_qflex_color, width=2.4), showlegend=False), row=1, col=2)
             _n_modes, _locs, _hgts = qflex_modes
             if _locs is not None and len(_locs) > 0:
-                _fig.add_trace(go.Scatter(x=_locs, y=_hgts, mode="markers", name=f"{_qflex_name} modes",
+                _fig.add_trace(go.Scatter(x=_locs, y=_hgts, mode="markers", name=f"{_qflex_display} modes",
                                             marker=dict(color=_qflex_color, size=10, symbol="diamond",
                                                         line=dict(color="white", width=1))), row=1, col=2)
 
@@ -587,12 +646,12 @@ def _(
 
         return mo.vstack([
             mode_summary_md(mo, fit_error, metalog_fit, metalog_modes, qflex_fit, qflex_modes, constraint_label,
-                              metalog_w1=_metalog_w1, qflex_w1=_qflex_w1),
+                              metalog_w1=_metalog_w1, qflex_w1=_qflex_w1, bounds=bounds),
             mo.ui.plotly(_fig, config=plotly_config),
         ])
 
     def run_replicate_batch(mo, n_reps, k_metalog_val, k_qflex_val, draw_fn, seed, w1_ref=None,
-                              w1_label="W1 vs reference"):
+                              w1_label="W1 vs reference", bounds=None):
         """Run a batch of replicates, fitting all 4 QPDs (Metalog + all 3
         QFlex constraint variants) to each one, then leave a summary behind
         -- feasibility rate, false-modality rate, and (when a reference is
@@ -634,9 +693,9 @@ def _(
                 _w1_ref_arr = _ref_for(_model_name)
                 try:
                     if _model_name == "Metalog":
-                        _fit = Metalog(_x, _y, terms=k_metalog_val)
+                        _fit = _make_metalog(_x, _y, k_metalog_val, bounds)
                     else:
-                        _fit = QFlex(_x, _y, terms=k_qflex_val, constraint_type=ConstraintType[_constraints[_model_name]])
+                        _fit = _make_qflex(_x, _y, k_qflex_val, ConstraintType[_constraints[_model_name]], bounds)
                     _xg = _fit.quantile(FIT_P_GRID)
                     _pg = _fit.pdf(FIT_P_GRID)
                     _n_modes, _, _ = detect_modes_from_arrays(_xg, _pg)
@@ -663,7 +722,8 @@ def _(
             _feas_pct = round(100 * len(_feas) / _n) if _n else 0
             _false_modal_pct = round(100 * (_feas["Modes"] > 1).mean()) if len(_feas) else 0
             _k_used = k_metalog_val if _model == "Metalog" else k_qflex_val
-            _summary = {"Model": _model, "K": _k_used, "Replicates": _n, "Feasibility %": _feas_pct, "False-modality %": _false_modal_pct}
+            _model_display = _qpd_prefix(bounds) + _model
+            _summary = {"Model": _model_display, "K": _k_used, "Replicates": _n, "Feasibility %": _feas_pct, "False-modality %": _false_modal_pct}
             if w1_label in _g.columns:
                 _summary[f"Median {w1_label}"] = round(_feas[w1_label].median(), 4) if len(_feas) else float("nan")
             _summary_rows.append(_summary)
@@ -941,6 +1001,41 @@ def _(family, sb_dist, sl_dist, su_dist):
 
 
 @app.cell
+def _(eta_j, family, kappa_j, mo):
+    # Match the boundedness of the fitted Metalog/QFlex to the support of
+    # whichever Johnson family is currently selected as the true population
+    # -- unbounded (SU) stays unbounded, semi-bounded (SL, domain (eta, inf))
+    # fits Log Metalog/Log QFlex with lower_bound=eta, and bounded (SB,
+    # domain (eta, eta+kappa)) fits Logit Metalog/Logit QFlex with both
+    # bounds. This mirrors the paper's own MC design, which "obtains the
+    # semi-bounded and bounded distributions via exponential and logit
+    # transforms, respectively" to match the reference family's support.
+    if family.value.startswith("Johnson SU"):
+        mc_bounds = None
+        _bounds_note = "**Unbounded fit** — Johnson SU has support on the whole real line, so plain Metalog / QFlex are used."
+    elif family.value.startswith("Johnson SL"):
+        mc_bounds = (eta_j.value, None)
+        _bounds_note = (
+            f"**Semi-bounded fit (Log Metalog / Log QFlex)** — Johnson SL has support "
+            f"(η, ∞) = ({eta_j.value:.2f}, ∞), so the lower bound is set to η = {eta_j.value:.2f}."
+        )
+    else:
+        mc_bounds = (eta_j.value, eta_j.value + kappa_j.value)
+        _bounds_note = (
+            f"**Bounded fit (Logit Metalog / Logit QFlex)** — Johnson SB has support "
+            f"(η, η+κ) = ({eta_j.value:.2f}, {eta_j.value + kappa_j.value:.2f}), so both bounds are set accordingly."
+        )
+    mc_bounds_note = mo.md(_bounds_note)
+    return mc_bounds, mc_bounds_note
+
+
+@app.cell
+def _(mc_bounds_note):
+    mc_bounds_note
+    return
+
+
+@app.cell
 def _(base_seed, new_reference, np, n_effective, true_dist):
     # The "single selected realization" bootstrap resampling is conditioned on.
     # Regenerated when the reference seed changes, the "new reference
@@ -967,8 +1062,8 @@ def _(np, n_effective, reference_sample, redraw, sampling_mode, true_dist):
 
 
 @app.cell
-def _(fit_metalog_qflex, k_metalog, k_qflex, qflex_constraint, x_sample, y_sample):
-    _res = fit_metalog_qflex(x_sample, y_sample, k_metalog.value, k_qflex.value, qflex_constraint.value)
+def _(fit_metalog_qflex, k_metalog, k_qflex, mc_bounds, qflex_constraint, x_sample, y_sample):
+    _res = fit_metalog_qflex(x_sample, y_sample, k_metalog.value, k_qflex.value, qflex_constraint.value, bounds=mc_bounds)
     fit_error = _res["fit_error"]
     metalog_fit, metalog_curve, metalog_modes = _res["metalog_fit"], _res["metalog_curve"], _res["metalog_modes"]
     qflex_fit, qflex_curve, qflex_modes = _res["qflex_fit"], _res["qflex_curve"], _res["qflex_modes"]
@@ -987,6 +1082,7 @@ def _(
     fit_error,
     k_metalog,
     k_qflex,
+    mc_bounds,
     mc_x_range,
     mc_y_range,
     metalog_curve,
@@ -1005,7 +1101,7 @@ def _(
     render_mc_panel(
         mo, PLOTLY_CONFIG, true_dist, x_sample, y_sample, k_metalog.value, k_qflex.value, qflex_constraint.value,
         metalog_curve, metalog_fit, metalog_modes, qflex_curve, qflex_fit, qflex_modes,
-        fit_error, mc_x_range, mc_y_range,
+        fit_error, mc_x_range, mc_y_range, bounds=mc_bounds,
     )
     return
 
@@ -1044,6 +1140,7 @@ def _(
     base_seed,
     k_metalog,
     k_qflex,
+    mc_bounds,
     mc_n_replicates,
     mc_run_batch,
     mo,
@@ -1068,7 +1165,7 @@ def _(
 
         run_replicate_batch(
             mo, mc_n_replicates.value, k_metalog.value, k_qflex.value,
-            _draw, base_seed.value + 777, w1_ref=_x_true_grid,
+            _draw, base_seed.value + 777, w1_ref=_x_true_grid, bounds=mc_bounds,
         )
     else:
         _label = "▶ Run Bootstrap Analysis" if sampling_mode.value.startswith("Bootstrap") else "▶ Run Monte Carlo Analysis"
@@ -1089,7 +1186,9 @@ def _(mo, section_header_html):
         a controllable distance, and combined with a controllable mixture
         weight. This is the paper's motivating case made explorable &mdash;
         watch Metalog/QFlex either recover the real second mode or invent
-        one that isn't there.
+        one that isn't there. Both components are built from Johnson SU,
+        which is unbounded, so plain (unbounded) Metalog / QFlex are used
+        here throughout.
         """
     )
     return
@@ -1550,7 +1649,9 @@ def _(mo, section_header_html):
         positions ($p_i = i/(n+1)$, used there for the river-gauge-height
         example) to assign quantile probabilities to the sorted returns,
         rather than the $(i-0.3)/(n+0.4)$ convention the rest of this page
-        uses.
+        uses. Annual returns can be negative, so this section fits plain
+        (unbounded) Metalog / QFlex throughout, unlike the semi-bounded
+        fits used for the three nonnegative case studies below.
         """
     )
     return
@@ -1697,6 +1798,11 @@ def _(mo, section_header_html):
         traditional domain of extreme-value theory &mdash; the paper's
         case where a stable model fit and the underlying theory both
         point toward unimodal structure.
+
+        **Boundedness:** gauge height can't be negative, so &mdash;
+        matching the paper's own convention &mdash; this section fits
+        **Log Metalog / Log QFlex** (semi-bounded, lower bound = 0)
+        rather than the unbounded variants.
         """
     )
     return
@@ -1737,7 +1843,7 @@ def _(eqf_bootstrap_ci, hydro_x, np):
 
 @app.cell
 def _(fit_metalog_qflex, hydro_k_metalog, hydro_k_qflex, hydro_qflex_constraint, hydro_x, hydro_y):
-    _res = fit_metalog_qflex(hydro_x, hydro_y, hydro_k_metalog.value, hydro_k_qflex.value, hydro_qflex_constraint.value)
+    _res = fit_metalog_qflex(hydro_x, hydro_y, hydro_k_metalog.value, hydro_k_qflex.value, hydro_qflex_constraint.value, bounds=(0, None))
     hydro_fit_error = _res["fit_error"]
     hydro_metalog_fit, hydro_metalog_curve, hydro_metalog_modes = _res["metalog_fit"], _res["metalog_curve"], _res["metalog_modes"]
     hydro_qflex_fit, hydro_qflex_curve, hydro_qflex_modes = _res["qflex_fit"], _res["qflex_curve"], _res["qflex_modes"]
@@ -1767,6 +1873,7 @@ def _(
         mo, PLOTLY_CONFIG, "River gauge height", "Gauge height (ft)", hydro_qflex_constraint.value, hydro_p_grid,
         hydro_eqf_point, hydro_eqf_lo, hydro_eqf_hi, hydro_x, hydro_metalog_curve, hydro_metalog_fit,
         hydro_metalog_modes, hydro_qflex_curve, hydro_qflex_fit, hydro_qflex_modes, hydro_fit_error,
+        bounds=(0, None),
     )
     return
 
@@ -1794,7 +1901,7 @@ def _(
     run_replicate_batch,
 ):
     if hydro_run_batch.value:
-        _all_fits, _ = fit_all_qpds(hydro_x, hydro_y, hydro_k_metalog.value, hydro_k_qflex.value)
+        _all_fits, _ = fit_all_qpds(hydro_x, hydro_y, hydro_k_metalog.value, hydro_k_qflex.value, bounds=(0, None))
         _w1_refs = {_label: (_r["curve"][0] if _r["curve"] is not None else None) for _label, _r in _all_fits.items()}
 
         def _draw(rng):
@@ -1805,7 +1912,7 @@ def _(
 
         run_replicate_batch(
             mo, hydro_n_replicates.value, hydro_k_metalog.value, hydro_k_qflex.value,
-            _draw, 471_002, w1_ref=_w1_refs, w1_label="W1 vs full-sample fit",
+            _draw, 471_002, w1_ref=_w1_refs, w1_label="W1 vs full-sample fit", bounds=(0, None),
         )
     else:
         mo.output.replace(mo.md("*Click **▶ Run Bootstrap Analysis** to bootstrap-resample and refit repeatedly.*"))
@@ -1824,6 +1931,11 @@ def _(mo, section_header_html):
         empirical data. The raw weights are heavily rounded (about 91%
         recorded as whole pounds), making this the paper's case where true
         modality remains genuinely data-dependent and unresolved.
+
+        **Boundedness:** weight can't be negative, so &mdash; matching the
+        paper's own convention &mdash; this section fits **Log Metalog /
+        Log QFlex** (semi-bounded, lower bound = 0) rather than the
+        unbounded variants.
         """
     )
     return
@@ -1889,7 +2001,7 @@ def _(eqf_bootstrap_ci, fish_x, np):
 
 @app.cell
 def _(fish_k_metalog, fish_k_qflex, fish_qflex_constraint, fish_x, fish_y, fit_metalog_qflex):
-    _res = fit_metalog_qflex(fish_x, fish_y, fish_k_metalog.value, fish_k_qflex.value, fish_qflex_constraint.value)
+    _res = fit_metalog_qflex(fish_x, fish_y, fish_k_metalog.value, fish_k_qflex.value, fish_qflex_constraint.value, bounds=(0, None))
     fish_fit_error = _res["fit_error"]
     fish_metalog_fit, fish_metalog_curve, fish_metalog_modes = _res["metalog_fit"], _res["metalog_curve"], _res["metalog_modes"]
     fish_qflex_fit, fish_qflex_curve, fish_qflex_modes = _res["qflex_fit"], _res["qflex_curve"], _res["qflex_modes"]
@@ -1918,7 +2030,7 @@ def _(
     render_empirical_panel(
         mo, PLOTLY_CONFIG, "Fish weights", "Weight (lbs)", fish_qflex_constraint.value, fish_p_grid, fish_eqf_point,
         fish_eqf_lo, fish_eqf_hi, fish_x, fish_metalog_curve, fish_metalog_fit, fish_metalog_modes, fish_qflex_curve,
-        fish_qflex_fit, fish_qflex_modes, fish_fit_error, value_xlim=(None, 30),
+        fish_qflex_fit, fish_qflex_modes, fish_fit_error, value_xlim=(None, 30), bounds=(0, None),
     )
     return
 
@@ -1946,7 +2058,7 @@ def _(
     run_replicate_batch,
 ):
     if fish_run_batch.value:
-        _all_fits, _ = fit_all_qpds(fish_x, fish_y, fish_k_metalog.value, fish_k_qflex.value)
+        _all_fits, _ = fit_all_qpds(fish_x, fish_y, fish_k_metalog.value, fish_k_qflex.value, bounds=(0, None))
         _w1_refs = {_label: (_r["curve"][0] if _r["curve"] is not None else None) for _label, _r in _all_fits.items()}
 
         def _draw(rng):
@@ -1957,7 +2069,7 @@ def _(
 
         run_replicate_batch(
             mo, fish_n_replicates.value, fish_k_metalog.value, fish_k_qflex.value,
-            _draw, 471_001, w1_ref=_w1_refs, w1_label="W1 vs full-sample fit",
+            _draw, 471_001, w1_ref=_w1_refs, w1_label="W1 vs full-sample fit", bounds=(0, None),
         )
     else:
         mo.output.replace(mo.md("*Click **▶ Run Bootstrap Analysis** to bootstrap-resample and refit repeatedly.*"))
@@ -1977,6 +2089,12 @@ def _(mo, section_header_html):
         where bimodality is directly observable and well established, so
         the open question is the stability of the fitted modes rather than
         their existence.
+
+        **Boundedness:** matching the paper, which "tested the
+        semi-bounded QPDs, Log Metalog and Log QFlex-TA+, with lower bound
+        set to zero" for this dataset, this section fits **Log Metalog /
+        Log QFlex** (semi-bounded, lower bound = 0) rather than the
+        unbounded variants.
         """
     )
     return
@@ -2018,7 +2136,8 @@ def _(eqf_bootstrap_ci, geyser_x, np):
 @app.cell
 def _(fit_metalog_qflex, geyser_k_metalog, geyser_k_qflex, geyser_qflex_constraint, geyser_x, geyser_y):
     _res = fit_metalog_qflex(
-        geyser_x, geyser_y, geyser_k_metalog.value, geyser_k_qflex.value, geyser_qflex_constraint.value
+        geyser_x, geyser_y, geyser_k_metalog.value, geyser_k_qflex.value, geyser_qflex_constraint.value,
+        bounds=(0, None),
     )
     geyser_fit_error = _res["fit_error"]
     geyser_metalog_fit, geyser_metalog_curve, geyser_metalog_modes = _res["metalog_fit"], _res["metalog_curve"], _res["metalog_modes"]
@@ -2049,7 +2168,7 @@ def _(
         mo, PLOTLY_CONFIG, "Old Faithful waiting time", "Waiting time (min)", geyser_qflex_constraint.value,
         geyser_p_grid, geyser_eqf_point, geyser_eqf_lo, geyser_eqf_hi, geyser_x, geyser_metalog_curve,
         geyser_metalog_fit, geyser_metalog_modes, geyser_qflex_curve, geyser_qflex_fit, geyser_qflex_modes,
-        geyser_fit_error, value_xlim=(30, None),
+        geyser_fit_error, value_xlim=(30, None), bounds=(0, None),
     )
     return
 
@@ -2077,7 +2196,7 @@ def _(
     run_replicate_batch,
 ):
     if geyser_run_batch.value:
-        _all_fits, _ = fit_all_qpds(geyser_x, geyser_y, geyser_k_metalog.value, geyser_k_qflex.value)
+        _all_fits, _ = fit_all_qpds(geyser_x, geyser_y, geyser_k_metalog.value, geyser_k_qflex.value, bounds=(0, None))
         _w1_refs = {_label: (_r["curve"][0] if _r["curve"] is not None else None) for _label, _r in _all_fits.items()}
 
         def _draw(rng):
@@ -2088,7 +2207,7 @@ def _(
 
         run_replicate_batch(
             mo, geyser_n_replicates.value, geyser_k_metalog.value, geyser_k_qflex.value,
-            _draw, 471_003, w1_ref=_w1_refs, w1_label="W1 vs full-sample fit",
+            _draw, 471_003, w1_ref=_w1_refs, w1_label="W1 vs full-sample fit", bounds=(0, None),
         )
     else:
         mo.output.replace(mo.md("*Click **▶ Run Bootstrap Analysis** to bootstrap-resample and refit repeatedly.*"))

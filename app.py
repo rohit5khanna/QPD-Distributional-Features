@@ -317,10 +317,11 @@ def _(
             "qflex_fit": _qflex_fit, "qflex_curve": _qflex_curve, "qflex_modes": _qflex_modes,
         }
 
-    def mode_summary_md(mo, fit_error, metalog_fit, metalog_modes, qflex_fit, qflex_modes, constraint_label):
+    def mode_summary_md(mo, fit_error, metalog_fit, metalog_modes, qflex_fit, qflex_modes, constraint_label,
+                          metalog_w1=None, qflex_w1=None):
         _qflex_name = QFLEX_LABELS[constraint_label]
 
-        def _line(name, fit, modes):
+        def _line(name, fit, modes, w1):
             if fit is None:
                 return f"**{name}:** fit failed"
             _n_modes = modes[0]
@@ -329,11 +330,12 @@ def _(
                 "unimodal" if _n_modes == 1
                 else (f"**{_n_modes} modes — spurious structure**" if _n_modes and _n_modes > 1 else "no modes detected")
             )
-            return f"**{name}:** {_feas}, {_shape}"
+            _w1_txt = f", W1 vs empirical = {w1:.4f}" if w1 is not None else ""
+            return f"**{name}:** {_feas}, {_shape}{_w1_txt}"
 
         return mo.md(
-            f"{_line('Metalog', metalog_fit, metalog_modes)}  \n"
-            f"{_line(_qflex_name, qflex_fit, qflex_modes)}"
+            f"{_line('Metalog', metalog_fit, metalog_modes, metalog_w1)}  \n"
+            f"{_line(_qflex_name, qflex_fit, qflex_modes, qflex_w1)}"
             + (f"\n\n⚠️ {fit_error}" if fit_error else "")
         )
 
@@ -559,9 +561,23 @@ def _(
         )
         style_fig(_fig)
 
+        # W1 (mean absolute quantile deviation) between each fit's quantile
+        # curve and the empirical quantile function itself -- a per-fit
+        # goodness-of-fit number in the same units/spirit as the "W1 vs
+        # full-sample fit" column reported by the bootstrap batch below,
+        # but here comparing the single current fit against the raw data
+        # rather than against a batch of resampled refits.
+        _dp_fit = FIT_P_GRID[1] - FIT_P_GRID[0]
+        _eqf_on_fit_grid = np.interp(FIT_P_GRID, p_grid, eqf_point)
+        _metalog_w1 = (float(np.sum(np.abs(metalog_curve[0] - _eqf_on_fit_grid)) * _dp_fit)
+                        if metalog_curve is not None else None)
+        _qflex_w1 = (float(np.sum(np.abs(qflex_curve[0] - _eqf_on_fit_grid)) * _dp_fit)
+                      if qflex_curve is not None else None)
+
         return mo.vstack([
+            mode_summary_md(mo, fit_error, metalog_fit, metalog_modes, qflex_fit, qflex_modes, constraint_label,
+                              metalog_w1=_metalog_w1, qflex_w1=_qflex_w1),
             mo.ui.plotly(_fig, config=plotly_config),
-            mode_summary_md(mo, fit_error, metalog_fit, metalog_modes, qflex_fit, qflex_modes, constraint_label),
         ])
 
     def run_replicate_batch(mo, n_reps, k_metalog_val, k_qflex_val, draw_fn, seed, w1_ref=None,
@@ -1529,6 +1545,20 @@ def _(mo, returns_categories):
 
 
 @app.cell
+def _(returns_category, returns_df, np):
+    returns_x = np.sort(returns_df[returns_category.value].dropna().to_numpy(dtype=float))
+    _n = len(returns_x)
+    returns_y = np.arange(1, _n + 1) / (_n + 1)  # Weibull plotting position -- see note above
+    return returns_x, returns_y
+
+
+@app.cell
+def _(hartigan_line_md, mo, returns_x):
+    hartigan_line_md(mo, returns_x)
+    return
+
+
+@app.cell
 def _(mo):
     returns_k_metalog = mo.ui.slider(start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True)
     returns_k_qflex = mo.ui.slider(start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True)
@@ -1538,14 +1568,6 @@ def _(mo):
     )
     mo.vstack([mo.hstack([returns_k_metalog, returns_k_qflex], justify="start", gap=2), returns_qflex_constraint])
     return returns_k_metalog, returns_k_qflex, returns_qflex_constraint
-
-
-@app.cell
-def _(returns_category, returns_df, np):
-    returns_x = np.sort(returns_df[returns_category.value].dropna().to_numpy(dtype=float))
-    _n = len(returns_x)
-    returns_y = np.arange(1, _n + 1) / (_n + 1)  # Weibull plotting position -- see note above
-    return returns_x, returns_y
 
 
 @app.cell
@@ -1591,12 +1613,6 @@ def _(
         returns_eqf_point, returns_eqf_lo, returns_eqf_hi, returns_x, returns_metalog_curve, returns_metalog_fit,
         returns_metalog_modes, returns_qflex_curve, returns_qflex_fit, returns_qflex_modes, returns_fit_error,
     )
-    return
-
-
-@app.cell
-def _(hartigan_line_md, mo, returns_x):
-    hartigan_line_md(mo, returns_x)
     return
 
 
@@ -1659,6 +1675,20 @@ def _(mo, section_header_html):
 
 
 @app.cell
+def _(load_hydrology_raw, np):
+    hydro_x = load_hydrology_raw()
+    _n = len(hydro_x)
+    hydro_y = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)
+    return hydro_x, hydro_y
+
+
+@app.cell
+def _(hartigan_line_md, hydro_x, mo):
+    hartigan_line_md(mo, hydro_x)
+    return
+
+
+@app.cell
 def _(mo):
     hydro_k_metalog = mo.ui.slider(start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True)
     hydro_k_qflex = mo.ui.slider(start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True)
@@ -1668,14 +1698,6 @@ def _(mo):
     )
     mo.vstack([mo.hstack([hydro_k_metalog, hydro_k_qflex], justify="start", gap=2), hydro_qflex_constraint])
     return hydro_k_metalog, hydro_k_qflex, hydro_qflex_constraint
-
-
-@app.cell
-def _(load_hydrology_raw, np):
-    hydro_x = load_hydrology_raw()
-    _n = len(hydro_x)
-    hydro_y = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)
-    return hydro_x, hydro_y
 
 
 @app.cell
@@ -1718,12 +1740,6 @@ def _(
         hydro_eqf_point, hydro_eqf_lo, hydro_eqf_hi, hydro_x, hydro_metalog_curve, hydro_metalog_fit,
         hydro_metalog_modes, hydro_qflex_curve, hydro_qflex_fit, hydro_qflex_modes, hydro_fit_error,
     )
-    return
-
-
-@app.cell
-def _(hartigan_line_md, hydro_x, mo):
-    hartigan_line_md(mo, hydro_x)
     return
 
 
@@ -1805,18 +1821,6 @@ def _(mo):
 
 
 @app.cell
-def _(mo):
-    fish_k_metalog = mo.ui.slider(start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True)
-    fish_k_qflex = mo.ui.slider(start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True)
-    fish_qflex_constraint = mo.ui.dropdown(
-        options={"Unconstrained": "NONE", "A+  (all coefficients ≥ 0)": "A", "TA+  (tail coefficients ≥ 0)": "TA"},
-        value="Unconstrained", label="QFlex constraint",
-    )
-    mo.vstack([mo.hstack([fish_k_metalog, fish_k_qflex], justify="start", gap=2), fish_qflex_constraint])
-    return fish_k_metalog, fish_k_qflex, fish_qflex_constraint
-
-
-@app.cell
 def _(fish_jitter, load_fish_raw, np):
     _raw = load_fish_raw()
     if fish_jitter.value > 0:
@@ -1828,6 +1832,24 @@ def _(fish_jitter, load_fish_raw, np):
     _n = len(fish_x)
     fish_y = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)
     return fish_x, fish_y
+
+
+@app.cell
+def _(fish_x, hartigan_line_md, mo):
+    hartigan_line_md(mo, fish_x)
+    return
+
+
+@app.cell
+def _(mo):
+    fish_k_metalog = mo.ui.slider(start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True)
+    fish_k_qflex = mo.ui.slider(start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True)
+    fish_qflex_constraint = mo.ui.dropdown(
+        options={"Unconstrained": "NONE", "A+  (all coefficients ≥ 0)": "A", "TA+  (tail coefficients ≥ 0)": "TA"},
+        value="Unconstrained", label="QFlex constraint",
+    )
+    mo.vstack([mo.hstack([fish_k_metalog, fish_k_qflex], justify="start", gap=2), fish_qflex_constraint])
+    return fish_k_metalog, fish_k_qflex, fish_qflex_constraint
 
 
 @app.cell
@@ -1870,12 +1892,6 @@ def _(
         fish_eqf_lo, fish_eqf_hi, fish_x, fish_metalog_curve, fish_metalog_fit, fish_metalog_modes, fish_qflex_curve,
         fish_qflex_fit, fish_qflex_modes, fish_fit_error, value_xlim=(None, 30),
     )
-    return
-
-
-@app.cell
-def _(fish_x, hartigan_line_md, mo):
-    hartigan_line_md(mo, fish_x)
     return
 
 
@@ -1939,6 +1955,20 @@ def _(mo, section_header_html):
 
 
 @app.cell
+def _(load_geyser_raw, np):
+    geyser_x = load_geyser_raw()
+    _n = len(geyser_x)
+    geyser_y = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)
+    return geyser_x, geyser_y
+
+
+@app.cell
+def _(geyser_x, hartigan_line_md, mo):
+    hartigan_line_md(mo, geyser_x)
+    return
+
+
+@app.cell
 def _(mo):
     geyser_k_metalog = mo.ui.slider(start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True)
     geyser_k_qflex = mo.ui.slider(start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True)
@@ -1948,14 +1978,6 @@ def _(mo):
     )
     mo.vstack([mo.hstack([geyser_k_metalog, geyser_k_qflex], justify="start", gap=2), geyser_qflex_constraint])
     return geyser_k_metalog, geyser_k_qflex, geyser_qflex_constraint
-
-
-@app.cell
-def _(load_geyser_raw, np):
-    geyser_x = load_geyser_raw()
-    _n = len(geyser_x)
-    geyser_y = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)
-    return geyser_x, geyser_y
 
 
 @app.cell
@@ -2001,12 +2023,6 @@ def _(
         geyser_metalog_fit, geyser_metalog_modes, geyser_qflex_curve, geyser_qflex_fit, geyser_qflex_modes,
         geyser_fit_error, value_xlim=(30, None),
     )
-    return
-
-
-@app.cell
-def _(geyser_x, hartigan_line_md, mo):
-    hartigan_line_md(mo, geyser_x)
     return
 
 

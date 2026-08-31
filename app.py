@@ -330,7 +330,7 @@ def _(
                 "unimodal" if _n_modes == 1
                 else (f"**{_n_modes} modes — spurious structure**" if _n_modes and _n_modes > 1 else "no modes detected")
             )
-            _w1_txt = f", **W1 vs {w1_label} = {w1:.4f}**" if w1 is not None else ""
+            _w1_txt = f" | ***W1 vs {w1_label} = {w1:.4f}***" if w1 is not None else ""
             return f"**{name}:** {_feas}, {_shape}{_w1_txt}"
 
         return mo.md(
@@ -1082,7 +1082,7 @@ def _(
 def _(mo, section_header_html):
     mo.md(
         rf"""
-        {section_header_html("Bimodal mixture playground", level=2)}
+        {section_header_html("Bimodal Johnson distribution", level=2)}
 
         A two-component mixture built from the **Johnson SU panel above**:
         both components share that panel's shape, offset from each other by

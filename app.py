@@ -318,7 +318,7 @@ def _(
         }
 
     def mode_summary_md(mo, fit_error, metalog_fit, metalog_modes, qflex_fit, qflex_modes, constraint_label,
-                          metalog_w1=None, qflex_w1=None):
+                          metalog_w1=None, qflex_w1=None, w1_label="empirical"):
         _qflex_name = QFLEX_LABELS[constraint_label]
 
         def _line(name, fit, modes, w1):
@@ -330,7 +330,7 @@ def _(
                 "unimodal" if _n_modes == 1
                 else (f"**{_n_modes} modes — spurious structure**" if _n_modes and _n_modes > 1 else "no modes detected")
             )
-            _w1_txt = f", W1 vs empirical = {w1:.4f}" if w1 is not None else ""
+            _w1_txt = f", **W1 vs {w1_label} = {w1:.4f}**" if w1 is not None else ""
             return f"**{name}:** {_feas}, {_shape}{_w1_txt}"
 
         return mo.md(
@@ -439,9 +439,21 @@ def _(
         )
         style_fig(_fig, dense_ticks=True)
 
+        # W1 vs the known true distribution's own quantile function -- the
+        # ground-truth analog of the "W1 vs empirical" number shown in the
+        # empirical-dataset sections, since here the true generating
+        # distribution (rather than just an empirical sample) is known.
+        _dp_fit = FIT_P_GRID[1] - FIT_P_GRID[0]
+        _true_on_fit_grid = true_dist.quantile(FIT_P_GRID)
+        _metalog_w1 = (float(np.sum(np.abs(metalog_curve[0] - _true_on_fit_grid)) * _dp_fit)
+                        if metalog_curve is not None else None)
+        _qflex_w1 = (float(np.sum(np.abs(qflex_curve[0] - _true_on_fit_grid)) * _dp_fit)
+                      if qflex_curve is not None else None)
+
         return mo.vstack([
+            mode_summary_md(mo, fit_error, metalog_fit, metalog_modes, qflex_fit, qflex_modes, constraint_label,
+                              metalog_w1=_metalog_w1, qflex_w1=_qflex_w1, w1_label="true"),
             mo.ui.plotly(_fig, config=plotly_config),
-            mode_summary_md(mo, fit_error, metalog_fit, metalog_modes, qflex_fit, qflex_modes, constraint_label),
         ])
 
     def render_empirical_panel(mo, plotly_config, title, axis_label, constraint_label, p_grid, eqf_point, eqf_lo,
@@ -555,8 +567,7 @@ def _(
             _fig.update_xaxes(range=[_v_lo, _v_hi], row=1, col=2)
 
         _fig.update_layout(
-            title=f"{title} — N={_n_raw}",
-            height=460, margin=dict(l=55, r=25, t=70, b=75),
+            height=460, margin=dict(l=55, r=25, t=45, b=75),
             legend=dict(orientation="h", y=-0.22), dragmode="zoom", barmode="overlay",
         )
         style_fig(_fig)
@@ -832,34 +843,16 @@ def _(mo):
     n_slider = mo.ui.slider(
         start=15, stop=500, step=5, value=200, label="Sample size N", show_value=True
     )
-    k_metalog = mo.ui.slider(
-        start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True
-    )
-    k_qflex = mo.ui.slider(
-        start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True
-    )
-    qflex_constraint = mo.ui.dropdown(
-        options={
-            "Unconstrained": "NONE",
-            "A+  (all coefficients ≥ 0)": "A",
-            "TA+  (tail coefficients ≥ 0)": "TA",
-        },
-        value="Unconstrained",
-        label="QFlex constraint",
-    )
-    return k_metalog, k_qflex, n_slider, qflex_constraint
+    return (n_slider,)
 
 
 @app.cell
 def _(
     base_seed,
     family,
-    k_metalog,
-    k_qflex,
     mo,
     n_slider,
     new_reference,
-    qflex_constraint,
     redraw,
     sampling_mode,
 ):
@@ -875,11 +868,42 @@ def _(
                 "mode (it redraws the one fixed sample bootstrap resamples from); \"Draw new sample\" "
                 "always redraws the sample shown in the plot below.*"
             ),
-            mo.hstack([n_slider, k_metalog, k_qflex], justify="start", gap=2),
-            qflex_constraint,
+            n_slider,
         ],
         gap=1,
     )
+    return
+
+
+@app.cell
+def _(hartigan_line_md, mo, x_sample):
+    hartigan_line_md(mo, x_sample)
+    return
+
+
+@app.cell
+def _(mo):
+    k_metalog = mo.ui.slider(
+        start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True
+    )
+    k_qflex = mo.ui.slider(
+        start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True
+    )
+    qflex_constraint = mo.ui.dropdown(
+        options={
+            "Unconstrained": "NONE",
+            "A+  (all coefficients ≥ 0)": "A",
+            "TA+  (tail coefficients ≥ 0)": "TA",
+        },
+        value="Unconstrained",
+        label="QFlex constraint",
+    )
+    return k_metalog, k_qflex, qflex_constraint
+
+
+@app.cell
+def _(k_metalog, k_qflex, mo, qflex_constraint):
+    mo.vstack([mo.hstack([k_metalog, k_qflex], justify="start", gap=2), qflex_constraint], gap=1)
     return
 
 
@@ -987,12 +1011,6 @@ def _(
 
 
 @app.cell
-def _(hartigan_line_md, mo, x_sample):
-    hartigan_line_md(mo, x_sample)
-    return
-
-
-@app.cell
 def _(mo):
     mc_n_replicates = mo.ui.slider(
         start=5, stop=100, step=5, value=30, label="Replicates", show_value=True
@@ -1095,22 +1113,7 @@ def _(mo):
     bimodal_n_slider = mo.ui.slider(
         start=15, stop=500, step=5, value=200, label="Sample size N", show_value=True
     )
-    bimodal_k_metalog = mo.ui.slider(
-        start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True
-    )
-    bimodal_k_qflex = mo.ui.slider(
-        start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True
-    )
-    bimodal_qflex_constraint = mo.ui.dropdown(
-        options={
-            "Unconstrained": "NONE",
-            "A+  (all coefficients ≥ 0)": "A",
-            "TA+  (tail coefficients ≥ 0)": "TA",
-        },
-        value="Unconstrained",
-        label="QFlex constraint",
-    )
-    return bimodal_k_metalog, bimodal_k_qflex, bimodal_n_slider, bimodal_qflex_constraint
+    return (bimodal_n_slider,)
 
 
 @app.cell
@@ -1136,11 +1139,8 @@ def _(mo):
 
 @app.cell
 def _(
-    bimodal_k_metalog,
-    bimodal_k_qflex,
     bimodal_n_slider,
     bimodal_new_reference,
-    bimodal_qflex_constraint,
     bimodal_redraw,
     bimodal_sampling_mode,
     bimodal_seed,
@@ -1151,8 +1151,7 @@ def _(
     mo.vstack(
         [
             mo.hstack([delta_sd, mixture_ratio], justify="start", gap=2),
-            mo.hstack([bimodal_n_slider, bimodal_k_metalog, bimodal_k_qflex], justify="start", gap=2),
-            bimodal_qflex_constraint,
+            bimodal_n_slider,
             mo.hstack([bimodal_sampling_mode], justify="start", gap=2),
             mo.hstack([bimodal_seed, bimodal_new_reference, bimodal_redraw], justify="start", gap=2),
             mo.md(
@@ -1160,6 +1159,41 @@ def _(
                 f"🎲 Draw new sample: **#{bimodal_redraw.value + 1}***"
             ),
         ],
+        gap=1,
+    )
+    return
+
+
+@app.cell
+def _(bimodal_x_sample, hartigan_line_md, mo):
+    hartigan_line_md(mo, bimodal_x_sample)
+    return
+
+
+@app.cell
+def _(mo):
+    bimodal_k_metalog = mo.ui.slider(
+        start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True
+    )
+    bimodal_k_qflex = mo.ui.slider(
+        start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True
+    )
+    bimodal_qflex_constraint = mo.ui.dropdown(
+        options={
+            "Unconstrained": "NONE",
+            "A+  (all coefficients ≥ 0)": "A",
+            "TA+  (tail coefficients ≥ 0)": "TA",
+        },
+        value="Unconstrained",
+        label="QFlex constraint",
+    )
+    return bimodal_k_metalog, bimodal_k_qflex, bimodal_qflex_constraint
+
+
+@app.cell
+def _(bimodal_k_metalog, bimodal_k_qflex, bimodal_qflex_constraint, mo):
+    mo.vstack(
+        [mo.hstack([bimodal_k_metalog, bimodal_k_qflex], justify="start", gap=2), bimodal_qflex_constraint],
         gap=1,
     )
     return
@@ -1327,12 +1361,6 @@ def _(
         bimodal_metalog_modes, bimodal_qflex_curve, bimodal_qflex_fit, bimodal_qflex_modes,
         bimodal_fit_error, bimodal_x_range, bimodal_y_range,
     )
-    return
-
-
-@app.cell
-def _(bimodal_x_sample, hartigan_line_md, mo):
-    hartigan_line_md(mo, bimodal_x_sample)
     return
 
 

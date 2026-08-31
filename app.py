@@ -128,7 +128,16 @@ def _(
     # Shared helpers used by every fitting/plotting/batch-simulation section
     # below, so the core logic exists in exactly one place instead of being
     # copy-pasted per section.
-    FIT_P_GRID = np.linspace(0.01, 0.99, 1000)
+    #
+    # Deliberately stops short of p=0/1 exactly (numerical blowup there for
+    # unbounded/unconstrained fits) but reaches much closer to the edges
+    # than an earlier, more conservative (0.01, 0.99) grid did -- that
+    # narrower grid left every fitted curve visibly short of the data's own
+    # min/max, making PDFs look like they don't extend to the ends of the
+    # plots. QFlex-U in particular can still spike or go infeasible out
+    # here; render_empirical_panel's PDF-axis guard (below) keeps a single
+    # spike from blowing out the whole y-axis when that happens.
+    FIT_P_GRID = np.linspace(0.001, 0.999, 1000)
 
     # Paper convention: the constrained variants of QFlex get their own name,
     # not a generic "QFlex" label that hides which constraint was actually

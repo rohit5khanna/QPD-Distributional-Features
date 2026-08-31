@@ -868,6 +868,12 @@ def _(mo, section_header_html):
         QFlex refit live &mdash; the mechanism the whole paper is about,
         made tangible. Axes are fixed to the true distribution's own range,
         so a K or N change never rescales the plot out from under you.
+
+        **Note:** every section on this page assigns quantile probabilities
+        to sorted samples using the paper's own Weibull plotting positions,
+        $p_i = i/(n+1)$ (its Equation 3) &mdash; defined here for the Monte
+        Carlo simulation study and reused, unchanged, for the empirical
+        case studies further down the page.
         """
     )
     return
@@ -1654,14 +1660,9 @@ def _(mo, section_header_html):
         same Metalog/QFlex fit, EQF+CI plot, Hartigan dip test, and
         bootstrap batch analysis as the sections that follow.
 
-        **Note:** every section on this page, including this one, assigns
-        quantile probabilities to sorted samples using the paper's own
-        Weibull plotting positions, $p_i = i/(n+1)$ (its Equation 3) &mdash;
-        used there for both the Monte Carlo simulation study and the
-        empirical case studies. Annual returns can be negative, so this
-        section fits plain (unbounded) Metalog / QFlex throughout, unlike
-        the semi-bounded fits used for the three nonnegative case studies
-        below.
+        Annual returns can be negative, so this section fits plain
+        (unbounded) Metalog / QFlex throughout, unlike the semi-bounded
+        fits used for the three nonnegative case studies below.
         """
     )
     return

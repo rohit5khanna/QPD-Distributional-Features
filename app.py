@@ -385,9 +385,9 @@ def _(
             _feas = "valid" if fit.is_feasible else "⚠️ infeasible (PDF goes negative)"
             _shape = (
                 "unimodal" if _n_modes == 1
-                else (f"**{_n_modes} modes — spurious structure**" if _n_modes and _n_modes > 1 else "no modes detected")
+                else (f"{_n_modes} modes — spurious structure" if _n_modes and _n_modes > 1 else "no modes detected")
             )
-            _w1_txt = f" | ***W1 vs {w1_label} = {w1:.4f}***" if w1 is not None else ""
+            _w1_txt = f" | **W1 vs {w1_label}** = {w1:.4f}" if w1 is not None else ""
             return f"**{name}:** {_feas}, {_shape}{_w1_txt}"
 
         return mo.md(
@@ -549,7 +549,7 @@ def _(
             line=dict(color="#9AA3B8", width=1.8, dash="dot"),
         ), row=1, col=1)
         _n_raw = len(x_raw)
-        _p_raw = (np.arange(1, _n_raw + 1) - 0.3) / (_n_raw + 0.4)
+        _p_raw = np.arange(1, _n_raw + 1) / (_n_raw + 1)
         _stride = max(1, _n_raw // 400)
         _fig.add_trace(go.Scatter(
             x=_p_raw[::_stride], y=x_raw[::_stride], mode="markers", name="Raw data",
@@ -1066,7 +1066,7 @@ def _(np, n_effective, reference_sample, redraw, sampling_mode, true_dist):
         x_sample = np.sort(_rng.choice(reference_sample, size=n_effective, replace=True))
 
     _n = len(x_sample)
-    y_sample = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)  # Weibull-type plotting position
+    y_sample = np.arange(1, _n + 1) / (_n + 1)  # Weibull plotting position, matching the paper's Equation 3
     return x_sample, y_sample
 
 
@@ -1169,7 +1169,7 @@ def _(
             else:
                 _x = np.sort(rng.choice(reference_sample, size=n_effective, replace=True))
             _n = len(_x)
-            _y = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)
+            _y = np.arange(1, _n + 1) / (_n + 1)
             return _x, _y
 
         run_replicate_batch(
@@ -1413,7 +1413,7 @@ def _(
         bimodal_x_sample = np.sort(_rng.choice(bimodal_reference_sample, size=bimodal_n_effective, replace=True))
 
     _n = len(bimodal_x_sample)
-    bimodal_y_sample = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)
+    bimodal_y_sample = np.arange(1, _n + 1) / (_n + 1)
     return bimodal_x_sample, bimodal_y_sample
 
 
@@ -1522,7 +1522,7 @@ def _(
             else:
                 _x = np.sort(rng.choice(bimodal_reference_sample, size=bimodal_n_effective, replace=True))
             _n = len(_x)
-            _y = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)
+            _y = np.arange(1, _n + 1) / (_n + 1)
             return _x, _y
 
         run_replicate_batch(
@@ -1654,13 +1654,14 @@ def _(mo, section_header_html):
         same Metalog/QFlex fit, EQF+CI plot, Hartigan dip test, and
         bootstrap batch analysis as the sections that follow.
 
-        **Note:** this section borrows the paper's own Weibull plotting
-        positions ($p_i = i/(n+1)$, used there for the river-gauge-height
-        example) to assign quantile probabilities to the sorted returns,
-        rather than the $(i-0.3)/(n+0.4)$ convention the rest of this page
-        uses. Annual returns can be negative, so this section fits plain
-        (unbounded) Metalog / QFlex throughout, unlike the semi-bounded
-        fits used for the three nonnegative case studies below.
+        **Note:** every section on this page, including this one, assigns
+        quantile probabilities to sorted samples using the paper's own
+        Weibull plotting positions, $p_i = i/(n+1)$ (its Equation 3) &mdash;
+        used there for both the Monte Carlo simulation study and the
+        empirical case studies. Annual returns can be negative, so this
+        section fits plain (unbounded) Metalog / QFlex throughout, unlike
+        the semi-bounded fits used for the three nonnegative case studies
+        below.
         """
     )
     return
@@ -1686,7 +1687,7 @@ def _(mo, returns_categories):
 def _(returns_category, returns_df, np):
     returns_x = np.sort(returns_df[returns_category.value].dropna().to_numpy(dtype=float))
     _n = len(returns_x)
-    returns_y = np.arange(1, _n + 1) / (_n + 1)  # Weibull plotting position -- see note above
+    returns_y = np.arange(1, _n + 1) / (_n + 1)  # Weibull plotting position, matching the paper's Equation 3
     return returns_x, returns_y
 
 
@@ -1782,7 +1783,7 @@ def _(
         def _draw(rng):
             _n = len(returns_x)
             _x = np.sort(rng.choice(returns_x, size=_n, replace=True))
-            _y = np.arange(1, _n + 1) / (_n + 1)  # Weibull, matching this section's convention
+            _y = np.arange(1, _n + 1) / (_n + 1)  # Weibull, matching this page's convention
             return _x, _y
 
         run_replicate_batch(
@@ -1821,7 +1822,7 @@ def _(mo, section_header_html):
 def _(load_hydrology_raw, np):
     hydro_x = load_hydrology_raw()
     _n = len(hydro_x)
-    hydro_y = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)
+    hydro_y = np.arange(1, _n + 1) / (_n + 1)
     return hydro_x, hydro_y
 
 
@@ -1916,7 +1917,7 @@ def _(
         def _draw(rng):
             _n = len(hydro_x)
             _x = np.sort(rng.choice(hydro_x, size=_n, replace=True))
-            _y = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)
+            _y = np.arange(1, _n + 1) / (_n + 1)
             return _x, _y
 
         run_replicate_batch(
@@ -1979,7 +1980,7 @@ def _(fish_jitter, load_fish_raw, np):
     else:
         fish_x = _raw
     _n = len(fish_x)
-    fish_y = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)
+    fish_y = np.arange(1, _n + 1) / (_n + 1)
     return fish_x, fish_y
 
 
@@ -2073,7 +2074,7 @@ def _(
         def _draw(rng):
             _n = len(fish_x)
             _x = np.sort(rng.choice(fish_x, size=_n, replace=True))
-            _y = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)
+            _y = np.arange(1, _n + 1) / (_n + 1)
             return _x, _y
 
         run_replicate_batch(
@@ -2113,7 +2114,7 @@ def _(mo, section_header_html):
 def _(load_geyser_raw, np):
     geyser_x = load_geyser_raw()
     _n = len(geyser_x)
-    geyser_y = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)
+    geyser_y = np.arange(1, _n + 1) / (_n + 1)
     return geyser_x, geyser_y
 
 
@@ -2211,7 +2212,7 @@ def _(
         def _draw(rng):
             _n = len(geyser_x)
             _x = np.sort(rng.choice(geyser_x, size=_n, replace=True))
-            _y = (np.arange(1, _n + 1) - 0.3) / (_n + 0.4)
+            _y = np.arange(1, _n + 1) / (_n + 1)
             return _x, _y
 
         run_replicate_batch(

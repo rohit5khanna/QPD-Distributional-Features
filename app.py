@@ -635,7 +635,8 @@ def _(
             _feas = _g[_g["Feasible"]]
             _feas_pct = round(100 * len(_feas) / _n) if _n else 0
             _false_modal_pct = round(100 * (_feas["Modes"] > 1).mean()) if len(_feas) else 0
-            _summary = {"Model": _model, "Replicates": _n, "Feasibility %": _feas_pct, "False-modality %": _false_modal_pct}
+            _k_used = k_metalog_val if _model == "Metalog" else k_qflex_val
+            _summary = {"Model": _model, "K": _k_used, "Replicates": _n, "Feasibility %": _feas_pct, "False-modality %": _false_modal_pct}
             if w1_label in _g.columns:
                 _summary[f"Median {w1_label}"] = round(_feas[w1_label].median(), 4) if len(_feas) else float("nan")
             _summary_rows.append(_summary)
@@ -816,10 +817,10 @@ def _(mo):
         start=15, stop=500, step=5, value=200, label="Sample size N", show_value=True
     )
     k_metalog = mo.ui.slider(
-        start=2, stop=15, step=1, value=9, label="Metalog K", show_value=True
+        start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True
     )
     k_qflex = mo.ui.slider(
-        start=2, stop=15, step=1, value=9, label="QFlex K", show_value=True
+        start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True
     )
     qflex_constraint = mo.ui.dropdown(
         options={
@@ -1079,10 +1080,10 @@ def _(mo):
         start=15, stop=500, step=5, value=200, label="Sample size N", show_value=True
     )
     bimodal_k_metalog = mo.ui.slider(
-        start=2, stop=15, step=1, value=9, label="Metalog K", show_value=True
+        start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True
     )
     bimodal_k_qflex = mo.ui.slider(
-        start=2, stop=15, step=1, value=9, label="QFlex K", show_value=True
+        start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True
     )
     bimodal_qflex_constraint = mo.ui.dropdown(
         options={
@@ -1529,8 +1530,8 @@ def _(mo, returns_categories):
 
 @app.cell
 def _(mo):
-    returns_k_metalog = mo.ui.slider(start=2, stop=15, step=1, value=9, label="Metalog K", show_value=True)
-    returns_k_qflex = mo.ui.slider(start=2, stop=15, step=1, value=9, label="QFlex K", show_value=True)
+    returns_k_metalog = mo.ui.slider(start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True)
+    returns_k_qflex = mo.ui.slider(start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True)
     returns_qflex_constraint = mo.ui.dropdown(
         options={"Unconstrained": "NONE", "A+  (all coefficients ≥ 0)": "A", "TA+  (tail coefficients ≥ 0)": "TA"},
         value="Unconstrained", label="QFlex constraint",
@@ -1659,8 +1660,8 @@ def _(mo, section_header_html):
 
 @app.cell
 def _(mo):
-    hydro_k_metalog = mo.ui.slider(start=2, stop=15, step=1, value=9, label="Metalog K", show_value=True)
-    hydro_k_qflex = mo.ui.slider(start=2, stop=15, step=1, value=9, label="QFlex K", show_value=True)
+    hydro_k_metalog = mo.ui.slider(start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True)
+    hydro_k_qflex = mo.ui.slider(start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True)
     hydro_qflex_constraint = mo.ui.dropdown(
         options={"Unconstrained": "NONE", "A+  (all coefficients ≥ 0)": "A", "TA+  (tail coefficients ≥ 0)": "TA"},
         value="Unconstrained", label="QFlex constraint",
@@ -1805,8 +1806,8 @@ def _(mo):
 
 @app.cell
 def _(mo):
-    fish_k_metalog = mo.ui.slider(start=2, stop=15, step=1, value=9, label="Metalog K", show_value=True)
-    fish_k_qflex = mo.ui.slider(start=2, stop=15, step=1, value=9, label="QFlex K", show_value=True)
+    fish_k_metalog = mo.ui.slider(start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True)
+    fish_k_qflex = mo.ui.slider(start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True)
     fish_qflex_constraint = mo.ui.dropdown(
         options={"Unconstrained": "NONE", "A+  (all coefficients ≥ 0)": "A", "TA+  (tail coefficients ≥ 0)": "TA"},
         value="Unconstrained", label="QFlex constraint",
@@ -1939,8 +1940,8 @@ def _(mo, section_header_html):
 
 @app.cell
 def _(mo):
-    geyser_k_metalog = mo.ui.slider(start=2, stop=15, step=1, value=9, label="Metalog K", show_value=True)
-    geyser_k_qflex = mo.ui.slider(start=2, stop=15, step=1, value=9, label="QFlex K", show_value=True)
+    geyser_k_metalog = mo.ui.slider(start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True)
+    geyser_k_qflex = mo.ui.slider(start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True)
     geyser_qflex_constraint = mo.ui.dropdown(
         options={"Unconstrained": "NONE", "A+  (all coefficients ≥ 0)": "A", "TA+  (tail coefficients ≥ 0)": "TA"},
         value="Unconstrained", label="QFlex constraint",

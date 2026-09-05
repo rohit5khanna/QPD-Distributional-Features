@@ -1073,14 +1073,23 @@ def _(mo):
         )
         return _family, _n, _km, _kq, _cons
 
-    def render_scenario_controls(mo_ref, family_ui, n_ui, km_ui, kq_ui, cons_ui, heading):
+    def render_scenario_controls(mo_ref, family_ui, n_ui, heading):
+        """Only the *data* scenario -- which population, how many points.
+        The QPD order/constraint controls are rendered separately by
+        render_model_controls, immediately above the plot they change, so
+        you are not reaching back up past the draw button and the dip test
+        to move a K slider."""
         return mo_ref.vstack(
-            [
-                mo_ref.md(heading),
-                mo_ref.hstack([family_ui, n_ui], justify="start", gap=2),
-                mo_ref.hstack([km_ui, kq_ui], justify="start", gap=2),
-                cons_ui,
-            ],
+            [mo_ref.md(heading), mo_ref.hstack([family_ui, n_ui], justify="start", gap=2)],
+            gap=1,
+        )
+
+    def render_model_controls(mo_ref, km_ui, kq_ui, cons_ui):
+        """The QPD order sliders and the QFlex constraint, placed right
+        above the panel they drive (matching the empirical sections' own
+        layout) so the control and the curve it moves are in view together."""
+        return mo_ref.vstack(
+            [mo_ref.hstack([km_ui, kq_ui], justify="start", gap=2), cons_ui],
             gap=1,
         )
 
@@ -1131,7 +1140,7 @@ def _(mo):
             "Johnson SB (bounded)": sb,
         }[family_value]
 
-    return effective_n, johnson_bounds, johnson_dist_for, make_scenario_controls, render_scenario_controls
+    return effective_n, johnson_bounds, johnson_dist_for, make_scenario_controls, render_model_controls, render_scenario_controls
 
 
 @app.cell
@@ -1159,9 +1168,9 @@ def _(make_scenario_controls, mo):
 
 
 @app.cell
-def _(mc_family, mc_k_metalog, mc_k_qflex, mc_n_slider, mc_qflex_constraint, mo, render_scenario_controls):
+def _(mc_family, mc_n_slider, mo, render_scenario_controls):
     render_scenario_controls(
-        mo, mc_family, mc_n_slider, mc_k_metalog, mc_k_qflex, mc_qflex_constraint,
+        mo, mc_family, mc_n_slider,
         "**Monte Carlo scenario controls** — independent of the bootstrap experiment below.",
     )
     return
@@ -1225,6 +1234,12 @@ def _(mc_n_effective, mc_redraw, mc_true_dist, np):
 @app.cell
 def _(hartigan_line_md, mc_x_sample, mo):
     hartigan_line_md(mo, mc_x_sample)
+    return
+
+
+@app.cell
+def _(mc_k_metalog, mc_k_qflex, mc_qflex_constraint, mo, render_model_controls):
+    render_model_controls(mo, mc_k_metalog, mc_k_qflex, mc_qflex_constraint)
     return
 
 
@@ -1353,9 +1368,9 @@ def _(make_scenario_controls, mo):
 
 
 @app.cell
-def _(boot_family, boot_k_metalog, boot_k_qflex, boot_n_slider, boot_qflex_constraint, mo, render_scenario_controls):
+def _(boot_family, boot_n_slider, mo, render_scenario_controls):
     render_scenario_controls(
-        mo, boot_family, boot_n_slider, boot_k_metalog, boot_k_qflex, boot_qflex_constraint,
+        mo, boot_family, boot_n_slider,
         "**Bootstrap scenario controls** — independent of the Monte Carlo experiment above.",
     )
     return
@@ -1443,6 +1458,12 @@ def _(boot_n_effective, boot_redraw, np, reference_sample):
 @app.cell
 def _(boot_x_sample, hartigan_line_md, mo):
     hartigan_line_md(mo, boot_x_sample)
+    return
+
+
+@app.cell
+def _(boot_k_metalog, boot_k_qflex, boot_qflex_constraint, mo, render_model_controls):
+    render_model_controls(mo, boot_k_metalog, boot_k_qflex, boot_qflex_constraint)
     return
 
 
@@ -1601,13 +1622,15 @@ def _(detect_modes_from_arrays, mo, np, su_dist):
         )
         return _delta, _ratio, _n, _km, _kq, _cons
 
-    def render_bimodal_controls(delta_ui, ratio_ui, n_ui, km_ui, kq_ui, cons_ui, heading):
+    def render_bimodal_controls(delta_ui, ratio_ui, n_ui, heading):
+        """Mixture shape and sample size only -- the K sliders and QFlex
+        constraint are rendered next to the plot instead (see
+        render_model_controls)."""
         return mo.vstack(
             [
                 mo.md(heading),
                 mo.hstack([delta_ui, ratio_ui], justify="start", gap=2),
-                mo.hstack([n_ui, km_ui, kq_ui], justify="start", gap=2),
-                cons_ui,
+                n_ui,
             ],
             gap=1,
         )
@@ -1705,17 +1728,13 @@ def _(make_bimodal_controls):
 
 @app.cell
 def _(
-    bimodal_mc_constraint,
     bimodal_mc_delta,
-    bimodal_mc_k_metalog,
-    bimodal_mc_k_qflex,
     bimodal_mc_n_slider,
     bimodal_mc_ratio,
     render_bimodal_controls,
 ):
     render_bimodal_controls(
         bimodal_mc_delta, bimodal_mc_ratio, bimodal_mc_n_slider,
-        bimodal_mc_k_metalog, bimodal_mc_k_qflex, bimodal_mc_constraint,
         "**Monte Carlo scenario controls** — independent of the bootstrap experiment below.",
     )
     return
@@ -1769,6 +1788,12 @@ def _(bimodal_mc_n_effective, bimodal_mc_scenario, bimodal_redraw, draw_mixture,
 @app.cell
 def _(bimodal_mc_x_sample, hartigan_line_md, mo):
     hartigan_line_md(mo, bimodal_mc_x_sample)
+    return
+
+
+@app.cell
+def _(bimodal_mc_constraint, bimodal_mc_k_metalog, bimodal_mc_k_qflex, mo, render_model_controls):
+    render_model_controls(mo, bimodal_mc_k_metalog, bimodal_mc_k_qflex, bimodal_mc_constraint)
     return
 
 
@@ -1905,17 +1930,13 @@ def _(make_bimodal_controls):
 
 @app.cell
 def _(
-    bimodal_boot_constraint,
     bimodal_boot_delta,
-    bimodal_boot_k_metalog,
-    bimodal_boot_k_qflex,
     bimodal_boot_n_slider,
     bimodal_boot_ratio,
     render_bimodal_controls,
 ):
     render_bimodal_controls(
         bimodal_boot_delta, bimodal_boot_ratio, bimodal_boot_n_slider,
-        bimodal_boot_k_metalog, bimodal_boot_k_qflex, bimodal_boot_constraint,
         "**Bootstrap scenario controls** — independent of the Monte Carlo experiment above.",
     )
     return
@@ -1988,6 +2009,12 @@ def _(bimodal_boot_n_effective, bimodal_boot_redraw, bimodal_reference_sample, n
 @app.cell
 def _(bimodal_boot_x_sample, hartigan_line_md, mo):
     hartigan_line_md(mo, bimodal_boot_x_sample)
+    return
+
+
+@app.cell
+def _(bimodal_boot_constraint, bimodal_boot_k_metalog, bimodal_boot_k_qflex, mo, render_model_controls):
+    render_model_controls(mo, bimodal_boot_k_metalog, bimodal_boot_k_qflex, bimodal_boot_constraint)
     return
 
 

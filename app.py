@@ -1007,9 +1007,10 @@ def _(mo, section_header_html):
 
         The mechanism the whole paper is about, made tangible: draw a
         sample, fit Metalog and QFlex to it, and watch what the fits claim
-        about the population. The scenario controls below (family, N, K,
-        constraint) are shared by the **two separate experiments** that
-        follow, so you can run the same settings through both and compare:
+        about the population. Two **independent experiments** follow, each
+        with its own complete set of scenario controls, so you can either
+        match their settings and compare like for like, or set them
+        differently and probe one without disturbing the other:
 
         - **A. Monte Carlo** &mdash; every draw is a fresh, independent
           sample from the true distribution. This isolates *sampling
@@ -1020,8 +1021,9 @@ def _(mo, section_header_html):
           you are actually in with real data, where the population is out
           of reach and one sample is all you have.
 
-        Axes are fixed to the true distribution's own range, so a K or N
-        change never rescales the plot out from under you.
+        Axes in each experiment are fixed to its own true-distribution
+        range, so a K or N change never rescales the plot out from under
+        you.
 
         **Note:** every section on this page assigns quantile probabilities
         to sorted samples using the paper's own Weibull plotting positions,
@@ -1035,135 +1037,101 @@ def _(mo, section_header_html):
 
 @app.cell
 def _(mo):
-    family = mo.ui.dropdown(
-        options=[
-            "Johnson SU (unbounded)",
-            "Johnson SL (semi-bounded)",
-            "Johnson SB (bounded)",
-        ],
-        value="Johnson SU (unbounded)",
-        label="Reference distribution (uses the η/κ/c/d panel above)",
-    )
-    return (family,)
-
-
-@app.cell
-def _(mo):
-    n_slider = mo.ui.slider(
-        start=15, stop=500, step=5, value=200, label="Sample size N", show_value=True
-    )
-    return (n_slider,)
-
-
-@app.cell
-def _(mo):
-    k_metalog = mo.ui.slider(
-        start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True
-    )
-    k_qflex = mo.ui.slider(
-        start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True
-    )
-    qflex_constraint = mo.ui.dropdown(
-        options={
-            "Unconstrained": "NONE",
-            "A+  (all coefficients ≥ 0)": "A",
-            "TA+  (tail coefficients ≥ 0)": "TA",
-        },
-        value="Unconstrained",
-        label="QFlex constraint",
-    )
-    return k_metalog, k_qflex, qflex_constraint
-
-
-@app.cell
-def _(family, k_metalog, k_qflex, mo, n_slider, qflex_constraint):
-    # One shared scenario block for both experiments below, so A and B are
-    # always run at identical settings and any difference between them is
-    # the resampling scheme rather than a stray slider.
-    mo.vstack(
-        [
-            mo.md("**Scenario controls** — shared by both experiments below."),
-            mo.hstack([family, n_slider], justify="start", gap=2),
-            mo.hstack([k_metalog, k_qflex], justify="start", gap=2),
-            qflex_constraint,
-        ],
-        gap=1,
-    )
-    return
-
-
-@app.cell
-def _(k_metalog, k_qflex, mo, n_slider):
-    # Feature 04 — playground sample size, with a K-aware floor: a fit needs at
-    # least K distinct points, so N can never be allowed to drop below the
-    # larger of the two chosen K's, or the fit crashes instead of failing
-    # gracefully.
-    _floor = max(k_metalog.value, k_qflex.value, 8)
-    n_effective = max(n_slider.value, _floor)
-
-    n_floor_notice = (
-        mo.callout(
-            f"N={n_slider.value} is below the current max K ({_floor}); "
-            f"using N={n_effective} so both fits stay solvable.",
-            kind="warn",
+    def make_scenario_controls(mo_ref, family_label):
+        """Build one complete, independent set of scenario controls
+        (reference family, N, both K's, QFlex constraint). Each experiment
+        below owns its own set rather than sharing one block, so changing
+        the Monte Carlo scenario never silently moves the bootstrap
+        experiment's settings underneath it -- and the two can be set
+        differently on purpose."""
+        _family = mo_ref.ui.dropdown(
+            options=[
+                "Johnson SU (unbounded)",
+                "Johnson SL (semi-bounded)",
+                "Johnson SB (bounded)",
+            ],
+            value="Johnson SU (unbounded)",
+            label=family_label,
         )
-        if n_slider.value < _floor
-        else None
-    )
-    n_floor_notice
-    return (n_effective,)
-
-
-@app.cell
-def _(family, sb_dist, sl_dist, su_dist):
-    _dist_by_name = {
-        "Johnson SU (unbounded)": su_dist,
-        "Johnson SL (semi-bounded)": sl_dist,
-        "Johnson SB (bounded)": sb_dist,
-    }
-    true_dist = _dist_by_name[family.value]
-    return (true_dist,)
-
-
-@app.cell
-def _(eta_j, family, kappa_j, mo):
-    # Match the boundedness of the fitted Metalog/QFlex to the support of
-    # whichever Johnson family is currently selected as the true population
-    # -- unbounded (SU) stays unbounded, semi-bounded (SL, domain (eta, inf))
-    # fits Log Metalog/Log QFlex with lower_bound=eta, and bounded (SB,
-    # domain (eta, eta+kappa)) fits Logit Metalog/Logit QFlex with both
-    # bounds. This mirrors the paper's own MC design, which "obtains the
-    # semi-bounded and bounded distributions via exponential and logit
-    # transforms, respectively" to match the reference family's support.
-    if family.value.startswith("Johnson SU"):
-        mc_bounds = None
-        _bounds_note = "**Unbounded fit** — Johnson SU has support on the whole real line, so plain Metalog / QFlex are used."
-    elif family.value.startswith("Johnson SL"):
-        mc_bounds = (eta_j.value, None)
-        _bounds_note = (
-            f"**Semi-bounded fit (Log Metalog / Log QFlex)** — Johnson SL has support "
-            f"(η, ∞) = ({eta_j.value:.2f}, ∞), so the lower bound is set to η = {eta_j.value:.2f}."
+        _n = mo_ref.ui.slider(
+            start=15, stop=500, step=5, value=200, label="Sample size N", show_value=True
         )
-    else:
-        mc_bounds = (eta_j.value, eta_j.value + kappa_j.value)
-        _bounds_note = (
+        _km = mo_ref.ui.slider(
+            start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True
+        )
+        _kq = mo_ref.ui.slider(
+            start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True
+        )
+        _cons = mo_ref.ui.dropdown(
+            options={
+                "Unconstrained": "NONE",
+                "A+  (all coefficients ≥ 0)": "A",
+                "TA+  (tail coefficients ≥ 0)": "TA",
+            },
+            value="Unconstrained",
+            label="QFlex constraint",
+        )
+        return _family, _n, _km, _kq, _cons
+
+    def render_scenario_controls(mo_ref, family_ui, n_ui, km_ui, kq_ui, cons_ui, heading):
+        return mo_ref.vstack(
+            [
+                mo_ref.md(heading),
+                mo_ref.hstack([family_ui, n_ui], justify="start", gap=2),
+                mo_ref.hstack([km_ui, kq_ui], justify="start", gap=2),
+                cons_ui,
+            ],
+            gap=1,
+        )
+
+    def effective_n(mo_ref, n_ui, km_ui, kq_ui):
+        """K-aware floor on N: a fit needs at least K distinct points, so N
+        can never drop below the larger of the two chosen K's or the fit
+        crashes instead of failing gracefully. Returns (n_effective,
+        notice_or_None)."""
+        _floor = max(km_ui.value, kq_ui.value, 8)
+        _n_eff = max(n_ui.value, _floor)
+        _notice = (
+            mo_ref.callout(
+                f"N={n_ui.value} is below the current max K ({_floor}); "
+                f"using N={_n_eff} so both fits stay solvable.",
+                kind="warn",
+            )
+            if n_ui.value < _floor
+            else None
+        )
+        return _n_eff, _notice
+
+    def johnson_bounds(family_value, eta_value, kappa_value):
+        """Match the boundedness of the fitted Metalog/QFlex to the support
+        of whichever Johnson family is selected as the true population --
+        unbounded (SU) stays unbounded, semi-bounded (SL, domain
+        (eta, inf)) fits Log Metalog/Log QFlex with lower_bound=eta, and
+        bounded (SB, domain (eta, eta+kappa)) fits Logit Metalog/Logit
+        QFlex with both bounds. Mirrors the paper's own MC design, which
+        obtains "the semi-bounded and bounded distributions via exponential
+        and logit transforms, respectively" to match the reference family's
+        support. Returns (bounds, note_markdown_text)."""
+        if family_value.startswith("Johnson SU"):
+            return None, "**Unbounded fit** — Johnson SU has support on the whole real line, so plain Metalog / QFlex are used."
+        if family_value.startswith("Johnson SL"):
+            return (eta_value, None), (
+                f"**Semi-bounded fit (Log Metalog / Log QFlex)** — Johnson SL has support "
+                f"(η, ∞) = ({eta_value:.2f}, ∞), so the lower bound is set to η = {eta_value:.2f}."
+            )
+        return (eta_value, eta_value + kappa_value), (
             f"**Bounded fit (Logit Metalog / Logit QFlex)** — Johnson SB has support "
-            f"(η, η+κ) = ({eta_j.value:.2f}, {eta_j.value + kappa_j.value:.2f}), so both bounds are set accordingly."
+            f"(η, η+κ) = ({eta_value:.2f}, {eta_value + kappa_value:.2f}), so both bounds are set accordingly."
         )
-    mc_bounds_note = mo.md(_bounds_note)
-    return mc_bounds, mc_bounds_note
 
+    def johnson_dist_for(family_value, su, sl, sb):
+        return {
+            "Johnson SU (unbounded)": su,
+            "Johnson SL (semi-bounded)": sl,
+            "Johnson SB (bounded)": sb,
+        }[family_value]
 
-@app.cell
-def _(mc_bounds_note):
-    mc_bounds_note
-    return
-
-
-@app.cell
-def _(true_dist, true_dist_ranges):
-    mc_x_range, mc_y_range = true_dist_ranges(true_dist)
-    return mc_x_range, mc_y_range
+    return effective_n, johnson_bounds, johnson_dist_for, make_scenario_controls, render_scenario_controls
 
 
 @app.cell
@@ -1180,6 +1148,49 @@ def _(mo, section_header_html):
         """
     )
     return
+
+
+@app.cell
+def _(make_scenario_controls, mo):
+    mc_family, mc_n_slider, mc_k_metalog, mc_k_qflex, mc_qflex_constraint = make_scenario_controls(
+        mo, "Reference distribution (uses the η/κ/c/d panel above)"
+    )
+    return mc_family, mc_k_metalog, mc_k_qflex, mc_n_slider, mc_qflex_constraint
+
+
+@app.cell
+def _(mc_family, mc_k_metalog, mc_k_qflex, mc_n_slider, mc_qflex_constraint, mo, render_scenario_controls):
+    render_scenario_controls(
+        mo, mc_family, mc_n_slider, mc_k_metalog, mc_k_qflex, mc_qflex_constraint,
+        "**Monte Carlo scenario controls** — independent of the bootstrap experiment below.",
+    )
+    return
+
+
+@app.cell
+def _(effective_n, mc_k_metalog, mc_k_qflex, mc_n_slider, mo):
+    mc_n_effective, mc_n_notice = effective_n(mo, mc_n_slider, mc_k_metalog, mc_k_qflex)
+    mc_n_notice
+    return (mc_n_effective,)
+
+
+@app.cell
+def _(johnson_dist_for, mc_family, sb_dist, sl_dist, su_dist):
+    mc_true_dist = johnson_dist_for(mc_family.value, su_dist, sl_dist, sb_dist)
+    return (mc_true_dist,)
+
+
+@app.cell
+def _(eta_j, johnson_bounds, kappa_j, mc_family, mo):
+    mc_bounds, _note = johnson_bounds(mc_family.value, eta_j.value, kappa_j.value)
+    mo.md(_note)
+    return (mc_bounds,)
+
+
+@app.cell
+def _(mc_true_dist, true_dist_ranges):
+    mc_x_range, mc_y_range = true_dist_ranges(mc_true_dist)
+    return mc_x_range, mc_y_range
 
 
 @app.cell
@@ -1201,11 +1212,11 @@ def _(mc_redraw, mo):
 
 
 @app.cell
-def _(mc_redraw, n_effective, np, true_dist):
+def _(mc_n_effective, mc_redraw, mc_true_dist, np):
     # A fresh IID Monte Carlo sample: new pseudo-random draws from the true
     # distribution's own quantile function every time the button is clicked.
     _rng = np.random.default_rng(10_000 + mc_redraw.value)
-    mc_x_sample = np.sort(true_dist.quantile(_rng.random(n_effective)))
+    mc_x_sample = np.sort(mc_true_dist.quantile(_rng.random(mc_n_effective)))
     _n = len(mc_x_sample)
     mc_y_sample = np.arange(1, _n + 1) / (_n + 1)  # Weibull plotting position, matching the paper's Equation 3
     return mc_x_sample, mc_y_sample
@@ -1218,8 +1229,8 @@ def _(hartigan_line_md, mc_x_sample, mo):
 
 
 @app.cell
-def _(fit_metalog_qflex, k_metalog, k_qflex, mc_bounds, mc_x_sample, mc_y_sample, qflex_constraint):
-    _res = fit_metalog_qflex(mc_x_sample, mc_y_sample, k_metalog.value, k_qflex.value, qflex_constraint.value, bounds=mc_bounds)
+def _(fit_metalog_qflex, mc_bounds, mc_k_metalog, mc_k_qflex, mc_qflex_constraint, mc_x_sample, mc_y_sample):
+    _res = fit_metalog_qflex(mc_x_sample, mc_y_sample, mc_k_metalog.value, mc_k_qflex.value, mc_qflex_constraint.value, bounds=mc_bounds)
     mc_fit_error = _res["fit_error"]
     mc_metalog_fit, mc_metalog_curve, mc_metalog_modes = _res["metalog_fit"], _res["metalog_curve"], _res["metalog_modes"]
     mc_qflex_fit, mc_qflex_curve, mc_qflex_modes = _res["qflex_fit"], _res["qflex_curve"], _res["qflex_modes"]
@@ -1229,29 +1240,29 @@ def _(fit_metalog_qflex, k_metalog, k_qflex, mc_bounds, mc_x_sample, mc_y_sample
 @app.cell
 def _(
     PLOTLY_CONFIG,
-    k_metalog,
-    k_qflex,
     mc_bounds,
     mc_fit_error,
+    mc_k_metalog,
+    mc_k_qflex,
     mc_metalog_curve,
     mc_metalog_fit,
     mc_metalog_modes,
+    mc_qflex_constraint,
     mc_qflex_curve,
     mc_qflex_fit,
     mc_qflex_modes,
+    mc_true_dist,
     mc_x_range,
     mc_x_sample,
     mc_y_range,
     mc_y_sample,
     mo,
-    qflex_constraint,
     render_mc_panel,
-    true_dist,
 ):
     render_mc_panel(
-        mo, PLOTLY_CONFIG, true_dist, mc_x_sample, mc_y_sample, k_metalog.value, k_qflex.value, qflex_constraint.value,
-        mc_metalog_curve, mc_metalog_fit, mc_metalog_modes, mc_qflex_curve, mc_qflex_fit, mc_qflex_modes,
-        mc_fit_error, mc_x_range, mc_y_range, bounds=mc_bounds,
+        mo, PLOTLY_CONFIG, mc_true_dist, mc_x_sample, mc_y_sample, mc_k_metalog.value, mc_k_qflex.value,
+        mc_qflex_constraint.value, mc_metalog_curve, mc_metalog_fit, mc_metalog_modes, mc_qflex_curve,
+        mc_qflex_fit, mc_qflex_modes, mc_fit_error, mc_x_range, mc_y_range, bounds=mc_bounds,
     )
     return
 
@@ -1269,7 +1280,7 @@ def _(mo):
 def _(mc_n_replicates, mc_run_batch, mo):
     mo.vstack([
         mo.md(
-            "**Full Monte Carlo simulation** — same family, N, and K's as the scenario controls above; "
+            "**Full Monte Carlo simulation** — uses this experiment's own family, N, and K's; "
             "each replicate draws a brand-new sample from the true distribution. W1 is measured against "
             "the **true** quantile function, which is known here."
         ),
@@ -1281,28 +1292,28 @@ def _(mc_n_replicates, mc_run_batch, mo):
 @app.cell
 def _(
     FIT_P_GRID,
-    k_metalog,
-    k_qflex,
     mc_bounds,
+    mc_k_metalog,
+    mc_k_qflex,
+    mc_n_effective,
     mc_n_replicates,
     mc_run_batch,
+    mc_true_dist,
     mo,
-    n_effective,
     np,
     run_replicate_batch,
-    true_dist,
 ):
     if mc_run_batch.value:
-        _x_true_grid = true_dist.quantile(FIT_P_GRID)
+        _x_true_grid = mc_true_dist.quantile(FIT_P_GRID)
 
         def _draw(rng):
-            _x = np.sort(true_dist.quantile(rng.random(n_effective)))
+            _x = np.sort(mc_true_dist.quantile(rng.random(mc_n_effective)))
             _n = len(_x)
             _y = np.arange(1, _n + 1) / (_n + 1)
             return _x, _y
 
         run_replicate_batch(
-            mo, mc_n_replicates.value, k_metalog.value, k_qflex.value,
+            mo, mc_n_replicates.value, mc_k_metalog.value, mc_k_qflex.value,
             _draw, 424_242, w1_ref=_x_true_grid, w1_label="W1 vs true", bounds=mc_bounds,
         )
     else:
@@ -1324,9 +1335,56 @@ def _(mo, section_header_html):
         situation real data puts you in, and the spread you see is what a
         bootstrap can actually tell you about a fit's stability — measured
         against the reference sample rather than a truth you would not have.
+
+        This experiment has its own controls: set them to match the Monte
+        Carlo scenario above for a like-for-like comparison, or differently
+        to explore the bootstrap on its own terms.
         """
     )
     return
+
+
+@app.cell
+def _(make_scenario_controls, mo):
+    boot_family, boot_n_slider, boot_k_metalog, boot_k_qflex, boot_qflex_constraint = make_scenario_controls(
+        mo, "Reference distribution (uses the η/κ/c/d panel above)"
+    )
+    return boot_family, boot_k_metalog, boot_k_qflex, boot_n_slider, boot_qflex_constraint
+
+
+@app.cell
+def _(boot_family, boot_k_metalog, boot_k_qflex, boot_n_slider, boot_qflex_constraint, mo, render_scenario_controls):
+    render_scenario_controls(
+        mo, boot_family, boot_n_slider, boot_k_metalog, boot_k_qflex, boot_qflex_constraint,
+        "**Bootstrap scenario controls** — independent of the Monte Carlo experiment above.",
+    )
+    return
+
+
+@app.cell
+def _(boot_k_metalog, boot_k_qflex, boot_n_slider, effective_n, mo):
+    boot_n_effective, boot_n_notice = effective_n(mo, boot_n_slider, boot_k_metalog, boot_k_qflex)
+    boot_n_notice
+    return (boot_n_effective,)
+
+
+@app.cell
+def _(boot_family, johnson_dist_for, sb_dist, sl_dist, su_dist):
+    boot_true_dist = johnson_dist_for(boot_family.value, su_dist, sl_dist, sb_dist)
+    return (boot_true_dist,)
+
+
+@app.cell
+def _(boot_family, eta_j, johnson_bounds, kappa_j, mo):
+    boot_bounds, _note = johnson_bounds(boot_family.value, eta_j.value, kappa_j.value)
+    mo.md(_note)
+    return (boot_bounds,)
+
+
+@app.cell
+def _(boot_true_dist, true_dist_ranges):
+    boot_x_range, boot_y_range = true_dist_ranges(boot_true_dist)
+    return boot_x_range, boot_y_range
 
 
 @app.cell
@@ -1362,21 +1420,21 @@ def _(base_seed, boot_redraw, mo, new_reference):
 
 
 @app.cell
-def _(base_seed, n_effective, new_reference, np, true_dist):
+def _(base_seed, boot_n_effective, boot_true_dist, new_reference, np):
     # The "single selected realization" the bootstrap is conditioned on.
     # Regenerated when the reference seed changes, the "new reference
     # realization" button is clicked, or N changes (so it always matches the
     # current sample-size setting).
     _rng = np.random.default_rng(base_seed.value + new_reference.value)
-    reference_sample = np.sort(true_dist.quantile(_rng.random(n_effective)))
+    reference_sample = np.sort(boot_true_dist.quantile(_rng.random(boot_n_effective)))
     return (reference_sample,)
 
 
 @app.cell
-def _(boot_redraw, n_effective, np, reference_sample):
+def _(boot_n_effective, boot_redraw, np, reference_sample):
     # One bootstrap resample of that fixed reference realization.
     _rng = np.random.default_rng(90_000 + boot_redraw.value)
-    boot_x_sample = np.sort(_rng.choice(reference_sample, size=n_effective, replace=True))
+    boot_x_sample = np.sort(_rng.choice(reference_sample, size=boot_n_effective, replace=True))
     _n = len(boot_x_sample)
     boot_y_sample = np.arange(1, _n + 1) / (_n + 1)
     return boot_x_sample, boot_y_sample
@@ -1389,8 +1447,8 @@ def _(boot_x_sample, hartigan_line_md, mo):
 
 
 @app.cell
-def _(boot_x_sample, boot_y_sample, fit_metalog_qflex, k_metalog, k_qflex, mc_bounds, qflex_constraint):
-    _res = fit_metalog_qflex(boot_x_sample, boot_y_sample, k_metalog.value, k_qflex.value, qflex_constraint.value, bounds=mc_bounds)
+def _(boot_bounds, boot_k_metalog, boot_k_qflex, boot_qflex_constraint, boot_x_sample, boot_y_sample, fit_metalog_qflex):
+    _res = fit_metalog_qflex(boot_x_sample, boot_y_sample, boot_k_metalog.value, boot_k_qflex.value, boot_qflex_constraint.value, bounds=boot_bounds)
     boot_fit_error = _res["fit_error"]
     boot_metalog_fit, boot_metalog_curve, boot_metalog_modes = _res["metalog_fit"], _res["metalog_curve"], _res["metalog_modes"]
     boot_qflex_fit, boot_qflex_curve, boot_qflex_modes = _res["qflex_fit"], _res["qflex_curve"], _res["qflex_modes"]
@@ -1400,29 +1458,29 @@ def _(boot_x_sample, boot_y_sample, fit_metalog_qflex, k_metalog, k_qflex, mc_bo
 @app.cell
 def _(
     PLOTLY_CONFIG,
+    boot_bounds,
     boot_fit_error,
+    boot_k_metalog,
+    boot_k_qflex,
     boot_metalog_curve,
     boot_metalog_fit,
     boot_metalog_modes,
+    boot_qflex_constraint,
     boot_qflex_curve,
     boot_qflex_fit,
     boot_qflex_modes,
+    boot_true_dist,
+    boot_x_range,
     boot_x_sample,
+    boot_y_range,
     boot_y_sample,
-    k_metalog,
-    k_qflex,
-    mc_bounds,
-    mc_x_range,
-    mc_y_range,
     mo,
-    qflex_constraint,
     render_mc_panel,
-    true_dist,
 ):
     render_mc_panel(
-        mo, PLOTLY_CONFIG, true_dist, boot_x_sample, boot_y_sample, k_metalog.value, k_qflex.value, qflex_constraint.value,
-        boot_metalog_curve, boot_metalog_fit, boot_metalog_modes, boot_qflex_curve, boot_qflex_fit, boot_qflex_modes,
-        boot_fit_error, mc_x_range, mc_y_range, bounds=mc_bounds,
+        mo, PLOTLY_CONFIG, boot_true_dist, boot_x_sample, boot_y_sample, boot_k_metalog.value, boot_k_qflex.value,
+        boot_qflex_constraint.value, boot_metalog_curve, boot_metalog_fit, boot_metalog_modes, boot_qflex_curve,
+        boot_qflex_fit, boot_qflex_modes, boot_fit_error, boot_x_range, boot_y_range, bounds=boot_bounds,
     )
     return
 
@@ -1440,7 +1498,7 @@ def _(mo):
 def _(boot_n_replicates, boot_run_batch, mo):
     mo.vstack([
         mo.md(
-            "**Full bootstrap simulation** — same family, N, and K's as the scenario controls above; "
+            "**Full bootstrap simulation** — uses this experiment's own family, N, and K's; "
             "each replicate resamples the fixed reference realization. W1 is measured against that "
             "**reference sample's own EQF**, since in a real bootstrap the truth is exactly what you "
             "do not have."
@@ -1454,13 +1512,13 @@ def _(boot_n_replicates, boot_run_batch, mo):
 def _(
     FIT_P_GRID,
     base_seed,
+    boot_bounds,
+    boot_k_metalog,
+    boot_k_qflex,
+    boot_n_effective,
     boot_n_replicates,
     boot_run_batch,
-    k_metalog,
-    k_qflex,
-    mc_bounds,
     mo,
-    n_effective,
     np,
     reference_sample,
     run_replicate_batch,
@@ -1473,21 +1531,23 @@ def _(
         _x_ref_grid = np.interp(FIT_P_GRID, _p_ref, reference_sample)
 
         def _draw(rng):
-            _x = np.sort(rng.choice(reference_sample, size=n_effective, replace=True))
+            _x = np.sort(rng.choice(reference_sample, size=boot_n_effective, replace=True))
             _n = len(_x)
             _y = np.arange(1, _n + 1) / (_n + 1)
             return _x, _y
 
         run_replicate_batch(
-            mo, boot_n_replicates.value, k_metalog.value, k_qflex.value,
+            mo, boot_n_replicates.value, boot_k_metalog.value, boot_k_qflex.value,
             _draw, base_seed.value + 777, w1_ref=_x_ref_grid,
-            w1_label="W1 vs reference sample", bounds=mc_bounds,
+            w1_label="W1 vs reference sample", bounds=boot_bounds,
         )
     else:
         mo.output.replace(
             mo.md("*Click **▶ Run Bootstrap Analysis** to resample the fixed reference repeatedly and summarize all 4 QPDs.*")
         )
     return
+
+
 
 
 @app.cell
@@ -1506,125 +1566,51 @@ def _(mo, section_header_html):
         here throughout.
 
         As above, the Monte Carlo and bootstrap experiments are kept
-        **separate**: **A** redraws the mixture from scratch each time,
-        **B** fixes one realization and resamples it.
+        **separate**, each with its own full set of controls: **A** redraws
+        the mixture from scratch each time, **B** fixes one realization and
+        resamples it. Set the two to the same separation, weight, N and K
+        to compare them like for like, or differently to probe one on its
+        own.
         """
     )
     return
 
 
 @app.cell
-def _(mo):
-    delta_sd = mo.ui.slider(
-        start=0.0, stop=6.0, step=0.1, value=2.5,
-        label="Mean separation (in SDs of the base SU)", show_value=True,
-    )
-    mixture_ratio = mo.ui.slider(
-        start=0.05, stop=0.95, step=0.05, value=0.5,
-        label="Mixture weight (share on component A)", show_value=True,
-    )
-    return delta_sd, mixture_ratio
-
-
-@app.cell
-def _(mo):
-    bimodal_n_slider = mo.ui.slider(
-        start=15, stop=500, step=5, value=200, label="Sample size N", show_value=True
-    )
-    return (bimodal_n_slider,)
-
-
-@app.cell
-def _(mo):
-    bimodal_seed = mo.ui.number(
-        start=0, stop=999_999, step=1, value=531_204,
-        label="Reference-sample seed",
-    )
-    bimodal_redraw = mo.ui.button(label="🎲 Draw a new Monte Carlo sample", value=0, on_click=lambda v: v + 1)
-    bimodal_new_reference = mo.ui.button(
-        label="↻ Draw a new reference realization", value=0, on_click=lambda v: v + 1
-    )
-    bimodal_boot_redraw = mo.ui.button(label="🎲 Resample the reference", value=0, on_click=lambda v: v + 1)
-    return bimodal_boot_redraw, bimodal_new_reference, bimodal_redraw, bimodal_seed
-
-
-@app.cell
-def _(
-    bimodal_n_slider,
-    delta_sd,
-    mixture_ratio,
-    mo,
-):
-    # Shared scenario controls only -- the Monte Carlo and bootstrap
-    # experiments each carry their own draw buttons, in their own
-    # subsections below, rather than being folded into one mode switch.
-    mo.vstack(
-        [
-            mo.md("**Scenario controls** — shared by both experiments below."),
-            mo.hstack([delta_sd, mixture_ratio], justify="start", gap=2),
-            bimodal_n_slider,
-        ],
-        gap=1,
-    )
-    return
-
-
-
-@app.cell
-def _(mo):
-    bimodal_k_metalog = mo.ui.slider(
-        start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True
-    )
-    bimodal_k_qflex = mo.ui.slider(
-        start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True
-    )
-    bimodal_qflex_constraint = mo.ui.dropdown(
-        options={
-            "Unconstrained": "NONE",
-            "A+  (all coefficients ≥ 0)": "A",
-            "TA+  (tail coefficients ≥ 0)": "TA",
-        },
-        value="Unconstrained",
-        label="QFlex constraint",
-    )
-    return bimodal_k_metalog, bimodal_k_qflex, bimodal_qflex_constraint
-
-
-@app.cell
-def _(bimodal_k_metalog, bimodal_k_qflex, bimodal_qflex_constraint, mo):
-    mo.vstack(
-        [mo.hstack([bimodal_k_metalog, bimodal_k_qflex], justify="start", gap=2), bimodal_qflex_constraint],
-        gap=1,
-    )
-    return
-
-
-@app.cell
-def _(bimodal_k_metalog, bimodal_k_qflex, bimodal_n_slider, mo):
-    _floor = max(bimodal_k_metalog.value, bimodal_k_qflex.value, 8)
-    bimodal_n_effective = max(bimodal_n_slider.value, _floor)
-
-    _notice = (
-        mo.callout(
-            f"N={bimodal_n_slider.value} is below the current max K ({_floor}); "
-            f"using N={bimodal_n_effective} so both fits stay solvable.",
-            kind="warn",
+def _(detect_modes_from_arrays, mo, np, su_dist):
+    def make_bimodal_controls():
+        """One complete, independent set of controls for a bimodal
+        experiment. Each of A and B owns its own set, so retuning the
+        separation or K for one never moves the other underneath it."""
+        _delta = mo.ui.slider(
+            start=0.0, stop=6.0, step=0.1, value=2.5,
+            label="Mean separation (in SDs of the base SU)", show_value=True,
         )
-        if bimodal_n_slider.value < _floor
-        else None
-    )
-    _notice
-    return (bimodal_n_effective,)
+        _ratio = mo.ui.slider(
+            start=0.05, stop=0.95, step=0.05, value=0.5,
+            label="Mixture weight (share on component A)", show_value=True,
+        )
+        _n = mo.ui.slider(
+            start=15, stop=500, step=5, value=200, label="Sample size N", show_value=True
+        )
+        _km = mo.ui.slider(start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True)
+        _kq = mo.ui.slider(start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True)
+        _cons = mo.ui.dropdown(
+            options={"Unconstrained": "NONE", "A+  (all coefficients ≥ 0)": "A", "TA+  (tail coefficients ≥ 0)": "TA"},
+            value="Unconstrained", label="QFlex constraint",
+        )
+        return _delta, _ratio, _n, _km, _kq, _cons
 
-
-@app.cell
-def _(delta_sd, mixture_ratio, np, su_dist):
-    # Component A is exactly the Johnson SU panel above. Component B is the
-    # same shape, shifted by delta_sd * sigma, where sigma is su_dist's own
-    # standard deviation, estimated numerically off a fine quantile grid
-    # (Johnson quantile functions have no closed-form variance).
-    _p_grid = np.linspace(0.0005, 0.9995, 5000)
-    _su_sigma = float(np.std(su_dist.quantile(_p_grid)))
+    def render_bimodal_controls(delta_ui, ratio_ui, n_ui, km_ui, kq_ui, cons_ui, heading):
+        return mo.vstack(
+            [
+                mo.md(heading),
+                mo.hstack([delta_ui, ratio_ui], justify="start", gap=2),
+                mo.hstack([n_ui, km_ui, kq_ui], justify="start", gap=2),
+                cons_ui,
+            ],
+            gap=1,
+        )
 
     class _ShiftedSU:
         """su_dist translated by a fixed offset -- same shape, new eta."""
@@ -1638,33 +1624,11 @@ def _(delta_sd, mixture_ratio, np, su_dist):
         def pdf(self, x):
             return self._base.pdf(np.asarray(x) - self._offset)
 
-    bimodal_comp_a = su_dist
-    bimodal_comp_b = _ShiftedSU(su_dist, delta_sd.value * _su_sigma)
-    bimodal_weight_a = mixture_ratio.value
-    return bimodal_comp_a, bimodal_comp_b, bimodal_weight_a
-
-
-@app.cell
-def _(bimodal_dist, detect_modes_from_arrays, np):
-    # How many modes the mixture *actually* has at the current separation,
-    # read off the true density itself rather than assumed: at small
-    # separations the two components merge into a single peak, so hard-coding
-    # "2" would mislabel a correct unimodal fit as having missed a mode.
-    # This is what decides whether a fit's extra mode is spurious or right.
-    _p = np.linspace(0.0005, 0.9995, 2000)
-    _xg = bimodal_dist.quantile(_p)
-    _pg = bimodal_dist.pdf(_xg)
-    _n_true, _, _ = detect_modes_from_arrays(_xg, _pg)
-    bimodal_true_modes = int(_n_true) if _n_true else 1
-    return (bimodal_true_modes,)
-
-
-@app.cell
-def _(bimodal_comp_a, bimodal_comp_b, bimodal_weight_a, np):
     class _MixtureDist:
         """Numeric PDF + quantile for the mixture, used only for the "true
-        curve" overlay -- actual sampling below inverts each component's
-        exact quantile function directly, not this numeric approximation."""
+        curve" overlay and the true-mode count -- actual sampling inverts
+        each component's exact quantile function directly, not this
+        numeric approximation."""
         def __init__(self, comp_a, comp_b, weight_a):
             _lo = min(comp_a.quantile(0.0005), comp_b.quantile(0.0005))
             _hi = max(comp_a.quantile(0.9995), comp_b.quantile(0.9995))
@@ -1676,8 +1640,7 @@ def _(bimodal_comp_a, bimodal_comp_b, bimodal_weight_a, np):
             _cdf = np.cumsum(self._pdf_grid)
             _dx = self._x_grid[1] - self._x_grid[0]
             _cdf = _cdf * _dx
-            _cdf = _cdf / _cdf[-1]
-            self._cdf_grid = _cdf
+            self._cdf_grid = _cdf / _cdf[-1]
 
         def pdf(self, x):
             return np.interp(x, self._x_grid, self._pdf_grid, left=0.0, right=0.0)
@@ -1685,14 +1648,37 @@ def _(bimodal_comp_a, bimodal_comp_b, bimodal_weight_a, np):
         def quantile(self, p):
             return np.interp(np.asarray(p), self._cdf_grid, self._x_grid)
 
-    bimodal_dist = _MixtureDist(bimodal_comp_a, bimodal_comp_b, bimodal_weight_a)
-    return (bimodal_dist,)
+    def build_mixture(delta_value, ratio_value):
+        """Assemble one mixture scenario: component A is exactly the Johnson
+        SU panel above, component B is the same shape shifted by
+        delta * sigma (sigma estimated numerically off a fine quantile grid,
+        since Johnson quantile functions have no closed-form variance).
+        Also reports how many modes the mixture *actually* has at this
+        separation, read off the true density rather than assumed -- at
+        small separations the two components merge into one peak, so
+        hard-coding 2 would mislabel a correct unimodal fit as having
+        missed a mode."""
+        _p_grid = np.linspace(0.0005, 0.9995, 5000)
+        _sigma = float(np.std(su_dist.quantile(_p_grid)))
+        _a = su_dist
+        _b = _ShiftedSU(su_dist, delta_value * _sigma)
+        _dist = _MixtureDist(_a, _b, ratio_value)
+        _p = np.linspace(0.0005, 0.9995, 2000)
+        _xg = _dist.quantile(_p)
+        _n_true, _, _ = detect_modes_from_arrays(_xg, _dist.pdf(_xg))
+        return {
+            "comp_a": _a, "comp_b": _b, "weight_a": ratio_value,
+            "dist": _dist, "true_modes": int(_n_true) if _n_true else 1,
+        }
 
+    def draw_mixture(rng, scenario, n):
+        """Exact mixture sampling: pick a component per draw, then invert
+        that component's own quantile function."""
+        _which = rng.random(n) < scenario["weight_a"]
+        _u = rng.random(n)
+        return np.sort(np.where(_which, scenario["comp_a"].quantile(_u), scenario["comp_b"].quantile(_u)))
 
-@app.cell
-def _(bimodal_dist, true_dist_ranges):
-    bimodal_x_range, bimodal_y_range = true_dist_ranges(bimodal_dist, p_lo=0.0005, p_hi=0.9995)
-    return bimodal_x_range, bimodal_y_range
+    return build_mixture, draw_mixture, make_bimodal_controls, render_bimodal_controls
 
 
 @app.cell
@@ -1711,6 +1697,58 @@ def _(mo, section_header_html):
 
 
 @app.cell
+def _(make_bimodal_controls):
+    (bimodal_mc_delta, bimodal_mc_ratio, bimodal_mc_n_slider,
+     bimodal_mc_k_metalog, bimodal_mc_k_qflex, bimodal_mc_constraint) = make_bimodal_controls()
+    return bimodal_mc_constraint, bimodal_mc_delta, bimodal_mc_k_metalog, bimodal_mc_k_qflex, bimodal_mc_n_slider, bimodal_mc_ratio
+
+
+@app.cell
+def _(
+    bimodal_mc_constraint,
+    bimodal_mc_delta,
+    bimodal_mc_k_metalog,
+    bimodal_mc_k_qflex,
+    bimodal_mc_n_slider,
+    bimodal_mc_ratio,
+    render_bimodal_controls,
+):
+    render_bimodal_controls(
+        bimodal_mc_delta, bimodal_mc_ratio, bimodal_mc_n_slider,
+        bimodal_mc_k_metalog, bimodal_mc_k_qflex, bimodal_mc_constraint,
+        "**Monte Carlo scenario controls** — independent of the bootstrap experiment below.",
+    )
+    return
+
+
+@app.cell
+def _(bimodal_mc_k_metalog, bimodal_mc_k_qflex, bimodal_mc_n_slider, effective_n, mo):
+    bimodal_mc_n_effective, _notice = effective_n(mo, bimodal_mc_n_slider, bimodal_mc_k_metalog, bimodal_mc_k_qflex)
+    _notice
+    return (bimodal_mc_n_effective,)
+
+
+@app.cell
+def _(bimodal_mc_delta, bimodal_mc_ratio, build_mixture):
+    bimodal_mc_scenario = build_mixture(bimodal_mc_delta.value, bimodal_mc_ratio.value)
+    return (bimodal_mc_scenario,)
+
+
+@app.cell
+def _(bimodal_mc_scenario, true_dist_ranges):
+    bimodal_mc_x_range, bimodal_mc_y_range = true_dist_ranges(
+        bimodal_mc_scenario["dist"], p_lo=0.0005, p_hi=0.9995
+    )
+    return bimodal_mc_x_range, bimodal_mc_y_range
+
+
+@app.cell
+def _(mo):
+    bimodal_redraw = mo.ui.button(label="🎲 Draw a new Monte Carlo sample", value=0, on_click=lambda v: v + 1)
+    return (bimodal_redraw,)
+
+
+@app.cell
 def _(bimodal_redraw, mo):
     mo.vstack([
         bimodal_redraw,
@@ -1720,15 +1758,9 @@ def _(bimodal_redraw, mo):
 
 
 @app.cell
-def _(bimodal_comp_a, bimodal_comp_b, bimodal_n_effective, bimodal_redraw, bimodal_weight_a, np):
-    # Exact mixture sampling: pick a component per draw, then invert that
-    # component's own quantile function. (Deliberately not sampling through
-    # _MixtureDist.quantile, which is a 4000-point interpolation built only
-    # for the "true curve" overlay.)
+def _(bimodal_mc_n_effective, bimodal_mc_scenario, bimodal_redraw, draw_mixture, np):
     _rng = np.random.default_rng(20_000 + bimodal_redraw.value)
-    _which_a = _rng.random(bimodal_n_effective) < bimodal_weight_a
-    _u = _rng.random(bimodal_n_effective)
-    bimodal_mc_x_sample = np.sort(np.where(_which_a, bimodal_comp_a.quantile(_u), bimodal_comp_b.quantile(_u)))
+    bimodal_mc_x_sample = draw_mixture(_rng, bimodal_mc_scenario, bimodal_mc_n_effective)
     _n = len(bimodal_mc_x_sample)
     bimodal_mc_y_sample = np.arange(1, _n + 1) / (_n + 1)
     return bimodal_mc_x_sample, bimodal_mc_y_sample
@@ -1742,16 +1774,16 @@ def _(bimodal_mc_x_sample, hartigan_line_md, mo):
 
 @app.cell
 def _(
-    bimodal_k_metalog,
-    bimodal_k_qflex,
+    bimodal_mc_constraint,
+    bimodal_mc_k_metalog,
+    bimodal_mc_k_qflex,
     bimodal_mc_x_sample,
     bimodal_mc_y_sample,
-    bimodal_qflex_constraint,
     fit_metalog_qflex,
 ):
     _res = fit_metalog_qflex(
-        bimodal_mc_x_sample, bimodal_mc_y_sample, bimodal_k_metalog.value, bimodal_k_qflex.value,
-        bimodal_qflex_constraint.value,
+        bimodal_mc_x_sample, bimodal_mc_y_sample, bimodal_mc_k_metalog.value,
+        bimodal_mc_k_qflex.value, bimodal_mc_constraint.value,
     )
     bimodal_mc_fit_error = _res["fit_error"]
     bimodal_mc_metalog_fit, bimodal_mc_metalog_curve, bimodal_mc_metalog_modes = _res["metalog_fit"], _res["metalog_curve"], _res["metalog_modes"]
@@ -1762,39 +1794,38 @@ def _(
 @app.cell
 def _(
     PLOTLY_CONFIG,
-    bimodal_dist,
-    bimodal_k_metalog,
-    bimodal_k_qflex,
+    bimodal_mc_constraint,
     bimodal_mc_fit_error,
+    bimodal_mc_k_metalog,
+    bimodal_mc_k_qflex,
     bimodal_mc_metalog_curve,
     bimodal_mc_metalog_fit,
     bimodal_mc_metalog_modes,
     bimodal_mc_qflex_curve,
     bimodal_mc_qflex_fit,
     bimodal_mc_qflex_modes,
+    bimodal_mc_scenario,
+    bimodal_mc_x_range,
     bimodal_mc_x_sample,
+    bimodal_mc_y_range,
     bimodal_mc_y_sample,
-    bimodal_qflex_constraint,
-    bimodal_true_modes,
-    bimodal_x_range,
-    bimodal_y_range,
     mo,
     render_mc_panel,
 ):
     render_mc_panel(
-        mo, PLOTLY_CONFIG, bimodal_dist, bimodal_mc_x_sample, bimodal_mc_y_sample, bimodal_k_metalog.value,
-        bimodal_k_qflex.value, bimodal_qflex_constraint.value, bimodal_mc_metalog_curve, bimodal_mc_metalog_fit,
-        bimodal_mc_metalog_modes, bimodal_mc_qflex_curve, bimodal_mc_qflex_fit, bimodal_mc_qflex_modes,
-        bimodal_mc_fit_error, bimodal_x_range, bimodal_y_range, true_n_modes=bimodal_true_modes,
+        mo, PLOTLY_CONFIG, bimodal_mc_scenario["dist"], bimodal_mc_x_sample, bimodal_mc_y_sample,
+        bimodal_mc_k_metalog.value, bimodal_mc_k_qflex.value, bimodal_mc_constraint.value,
+        bimodal_mc_metalog_curve, bimodal_mc_metalog_fit, bimodal_mc_metalog_modes,
+        bimodal_mc_qflex_curve, bimodal_mc_qflex_fit, bimodal_mc_qflex_modes,
+        bimodal_mc_fit_error, bimodal_mc_x_range, bimodal_mc_y_range,
+        true_n_modes=bimodal_mc_scenario["true_modes"],
     )
     return
 
 
 @app.cell
 def _(mo):
-    bimodal_n_replicates = mo.ui.slider(
-        start=5, stop=100, step=5, value=30, label="Replicates", show_value=True
-    )
+    bimodal_n_replicates = mo.ui.slider(start=5, stop=100, step=5, value=30, label="Replicates", show_value=True)
     bimodal_run_batch = mo.ui.run_button(label="▶ Run Monte Carlo Analysis")
     return bimodal_n_replicates, bimodal_run_batch
 
@@ -1803,7 +1834,7 @@ def _(mo):
 def _(bimodal_n_replicates, bimodal_run_batch, mo):
     mo.vstack([
         mo.md(
-            "**Full Monte Carlo simulation** — same mixture, N, and K's as the scenario controls above; "
+            "**Full Monte Carlo simulation** — uses this experiment's own mixture, N, and K's; "
             "each replicate draws a brand-new sample from the true mixture. W1 is measured against the "
             "**true** quantile function."
         ),
@@ -1815,38 +1846,30 @@ def _(bimodal_n_replicates, bimodal_run_batch, mo):
 @app.cell
 def _(
     FIT_P_GRID,
-    bimodal_comp_a,
-    bimodal_comp_b,
-    bimodal_dist,
-    bimodal_k_metalog,
-    bimodal_k_qflex,
-    bimodal_n_effective,
+    bimodal_mc_k_metalog,
+    bimodal_mc_k_qflex,
+    bimodal_mc_n_effective,
+    bimodal_mc_scenario,
     bimodal_n_replicates,
     bimodal_run_batch,
-    bimodal_true_modes,
-    bimodal_weight_a,
+    draw_mixture,
     mo,
     np,
     run_replicate_batch,
 ):
     if bimodal_run_batch.value:
-        _x_true_grid = bimodal_dist.quantile(FIT_P_GRID)
+        _x_true_grid = bimodal_mc_scenario["dist"].quantile(FIT_P_GRID)
 
         def _draw(rng):
-            # Exact component-wise inversion, matching the live panel above
-            # (the batch previously sampled through _MixtureDist's
-            # interpolated CDF, which is only meant for the overlay curve).
-            _which = rng.random(bimodal_n_effective) < bimodal_weight_a
-            _u = rng.random(bimodal_n_effective)
-            _x = np.sort(np.where(_which, bimodal_comp_a.quantile(_u), bimodal_comp_b.quantile(_u)))
+            _x = draw_mixture(rng, bimodal_mc_scenario, bimodal_mc_n_effective)
             _n = len(_x)
             _y = np.arange(1, _n + 1) / (_n + 1)
             return _x, _y
 
         run_replicate_batch(
-            mo, bimodal_n_replicates.value, bimodal_k_metalog.value, bimodal_k_qflex.value,
+            mo, bimodal_n_replicates.value, bimodal_mc_k_metalog.value, bimodal_mc_k_qflex.value,
             _draw, 606_060, w1_ref=_x_true_grid, w1_label="W1 vs true",
-            true_n_modes=bimodal_true_modes,
+            true_n_modes=bimodal_mc_scenario["true_modes"],
         )
     else:
         mo.output.replace(
@@ -1865,9 +1888,71 @@ def _(mo, section_header_html):
         replicate resamples *it*. This is the honest version of the modality
         question: given a single finite sample, how stable is the second
         mode a fit reports — its existence, its location, and its height?
+
+        This experiment has its own controls, so the mixture it bootstraps
+        can be set independently of the Monte Carlo one above.
         """
     )
     return
+
+
+@app.cell
+def _(make_bimodal_controls):
+    (bimodal_boot_delta, bimodal_boot_ratio, bimodal_boot_n_slider,
+     bimodal_boot_k_metalog, bimodal_boot_k_qflex, bimodal_boot_constraint) = make_bimodal_controls()
+    return bimodal_boot_constraint, bimodal_boot_delta, bimodal_boot_k_metalog, bimodal_boot_k_qflex, bimodal_boot_n_slider, bimodal_boot_ratio
+
+
+@app.cell
+def _(
+    bimodal_boot_constraint,
+    bimodal_boot_delta,
+    bimodal_boot_k_metalog,
+    bimodal_boot_k_qflex,
+    bimodal_boot_n_slider,
+    bimodal_boot_ratio,
+    render_bimodal_controls,
+):
+    render_bimodal_controls(
+        bimodal_boot_delta, bimodal_boot_ratio, bimodal_boot_n_slider,
+        bimodal_boot_k_metalog, bimodal_boot_k_qflex, bimodal_boot_constraint,
+        "**Bootstrap scenario controls** — independent of the Monte Carlo experiment above.",
+    )
+    return
+
+
+@app.cell
+def _(bimodal_boot_k_metalog, bimodal_boot_k_qflex, bimodal_boot_n_slider, effective_n, mo):
+    bimodal_boot_n_effective, _notice = effective_n(mo, bimodal_boot_n_slider, bimodal_boot_k_metalog, bimodal_boot_k_qflex)
+    _notice
+    return (bimodal_boot_n_effective,)
+
+
+@app.cell
+def _(bimodal_boot_delta, bimodal_boot_ratio, build_mixture):
+    bimodal_boot_scenario = build_mixture(bimodal_boot_delta.value, bimodal_boot_ratio.value)
+    return (bimodal_boot_scenario,)
+
+
+@app.cell
+def _(bimodal_boot_scenario, true_dist_ranges):
+    bimodal_boot_x_range, bimodal_boot_y_range = true_dist_ranges(
+        bimodal_boot_scenario["dist"], p_lo=0.0005, p_hi=0.9995
+    )
+    return bimodal_boot_x_range, bimodal_boot_y_range
+
+
+@app.cell
+def _(mo):
+    bimodal_seed = mo.ui.number(
+        start=0, stop=999_999, step=1, value=531_204,
+        label="Reference-sample seed",
+    )
+    bimodal_new_reference = mo.ui.button(
+        label="↻ Draw a new reference realization", value=0, on_click=lambda v: v + 1
+    )
+    bimodal_boot_redraw = mo.ui.button(label="🎲 Resample the reference", value=0, on_click=lambda v: v + 1)
+    return bimodal_boot_redraw, bimodal_new_reference, bimodal_seed
 
 
 @app.cell
@@ -1885,19 +1970,16 @@ def _(bimodal_boot_redraw, bimodal_new_reference, bimodal_seed, mo):
 
 
 @app.cell
-def _(bimodal_comp_a, bimodal_comp_b, bimodal_n_effective, bimodal_new_reference, bimodal_seed, bimodal_weight_a, np):
+def _(bimodal_boot_n_effective, bimodal_boot_scenario, bimodal_new_reference, bimodal_seed, draw_mixture, np):
     _rng = np.random.default_rng(bimodal_seed.value + bimodal_new_reference.value)
-    _which_a = _rng.random(bimodal_n_effective) < bimodal_weight_a
-    _u = _rng.random(bimodal_n_effective)
-    _vals = np.where(_which_a, bimodal_comp_a.quantile(_u), bimodal_comp_b.quantile(_u))
-    bimodal_reference_sample = np.sort(_vals)
+    bimodal_reference_sample = draw_mixture(_rng, bimodal_boot_scenario, bimodal_boot_n_effective)
     return (bimodal_reference_sample,)
 
 
 @app.cell
-def _(bimodal_boot_redraw, bimodal_n_effective, bimodal_reference_sample, np):
+def _(bimodal_boot_n_effective, bimodal_boot_redraw, bimodal_reference_sample, np):
     _rng = np.random.default_rng(70_000 + bimodal_boot_redraw.value)
-    bimodal_boot_x_sample = np.sort(_rng.choice(bimodal_reference_sample, size=bimodal_n_effective, replace=True))
+    bimodal_boot_x_sample = np.sort(_rng.choice(bimodal_reference_sample, size=bimodal_boot_n_effective, replace=True))
     _n = len(bimodal_boot_x_sample)
     bimodal_boot_y_sample = np.arange(1, _n + 1) / (_n + 1)
     return bimodal_boot_x_sample, bimodal_boot_y_sample
@@ -1911,16 +1993,16 @@ def _(bimodal_boot_x_sample, hartigan_line_md, mo):
 
 @app.cell
 def _(
+    bimodal_boot_constraint,
+    bimodal_boot_k_metalog,
+    bimodal_boot_k_qflex,
     bimodal_boot_x_sample,
     bimodal_boot_y_sample,
-    bimodal_k_metalog,
-    bimodal_k_qflex,
-    bimodal_qflex_constraint,
     fit_metalog_qflex,
 ):
     _res = fit_metalog_qflex(
-        bimodal_boot_x_sample, bimodal_boot_y_sample, bimodal_k_metalog.value, bimodal_k_qflex.value,
-        bimodal_qflex_constraint.value,
+        bimodal_boot_x_sample, bimodal_boot_y_sample, bimodal_boot_k_metalog.value,
+        bimodal_boot_k_qflex.value, bimodal_boot_constraint.value,
     )
     bimodal_boot_fit_error = _res["fit_error"]
     bimodal_boot_metalog_fit, bimodal_boot_metalog_curve, bimodal_boot_metalog_modes = _res["metalog_fit"], _res["metalog_curve"], _res["metalog_modes"]
@@ -1931,39 +2013,38 @@ def _(
 @app.cell
 def _(
     PLOTLY_CONFIG,
+    bimodal_boot_constraint,
     bimodal_boot_fit_error,
+    bimodal_boot_k_metalog,
+    bimodal_boot_k_qflex,
     bimodal_boot_metalog_curve,
     bimodal_boot_metalog_fit,
     bimodal_boot_metalog_modes,
     bimodal_boot_qflex_curve,
     bimodal_boot_qflex_fit,
     bimodal_boot_qflex_modes,
+    bimodal_boot_scenario,
+    bimodal_boot_x_range,
     bimodal_boot_x_sample,
+    bimodal_boot_y_range,
     bimodal_boot_y_sample,
-    bimodal_dist,
-    bimodal_k_metalog,
-    bimodal_k_qflex,
-    bimodal_qflex_constraint,
-    bimodal_true_modes,
-    bimodal_x_range,
-    bimodal_y_range,
     mo,
     render_mc_panel,
 ):
     render_mc_panel(
-        mo, PLOTLY_CONFIG, bimodal_dist, bimodal_boot_x_sample, bimodal_boot_y_sample, bimodal_k_metalog.value,
-        bimodal_k_qflex.value, bimodal_qflex_constraint.value, bimodal_boot_metalog_curve, bimodal_boot_metalog_fit,
-        bimodal_boot_metalog_modes, bimodal_boot_qflex_curve, bimodal_boot_qflex_fit, bimodal_boot_qflex_modes,
-        bimodal_boot_fit_error, bimodal_x_range, bimodal_y_range, true_n_modes=bimodal_true_modes,
+        mo, PLOTLY_CONFIG, bimodal_boot_scenario["dist"], bimodal_boot_x_sample, bimodal_boot_y_sample,
+        bimodal_boot_k_metalog.value, bimodal_boot_k_qflex.value, bimodal_boot_constraint.value,
+        bimodal_boot_metalog_curve, bimodal_boot_metalog_fit, bimodal_boot_metalog_modes,
+        bimodal_boot_qflex_curve, bimodal_boot_qflex_fit, bimodal_boot_qflex_modes,
+        bimodal_boot_fit_error, bimodal_boot_x_range, bimodal_boot_y_range,
+        true_n_modes=bimodal_boot_scenario["true_modes"],
     )
     return
 
 
 @app.cell
 def _(mo):
-    bimodal_boot_n_replicates = mo.ui.slider(
-        start=5, stop=100, step=5, value=30, label="Replicates", show_value=True
-    )
+    bimodal_boot_n_replicates = mo.ui.slider(start=5, stop=100, step=5, value=30, label="Replicates", show_value=True)
     bimodal_boot_run_batch = mo.ui.run_button(label="▶ Run Bootstrap Analysis")
     return bimodal_boot_n_replicates, bimodal_boot_run_batch
 
@@ -1972,7 +2053,7 @@ def _(mo):
 def _(bimodal_boot_n_replicates, bimodal_boot_run_batch, mo):
     mo.vstack([
         mo.md(
-            "**Full bootstrap simulation** — same mixture, N, and K's as the scenario controls above; "
+            "**Full bootstrap simulation** — uses this experiment's own mixture, N, and K's; "
             "each replicate resamples the fixed reference realization. W1 is measured against that "
             "**reference sample's own EQF**."
         ),
@@ -1984,14 +2065,14 @@ def _(bimodal_boot_n_replicates, bimodal_boot_run_batch, mo):
 @app.cell
 def _(
     FIT_P_GRID,
+    bimodal_boot_k_metalog,
+    bimodal_boot_k_qflex,
+    bimodal_boot_n_effective,
     bimodal_boot_n_replicates,
     bimodal_boot_run_batch,
-    bimodal_k_metalog,
-    bimodal_k_qflex,
-    bimodal_n_effective,
+    bimodal_boot_scenario,
     bimodal_reference_sample,
     bimodal_seed,
-    bimodal_true_modes,
     mo,
     np,
     run_replicate_batch,
@@ -2002,21 +2083,23 @@ def _(
         _x_ref_grid = np.interp(FIT_P_GRID, _p_ref, bimodal_reference_sample)
 
         def _draw(rng):
-            _x = np.sort(rng.choice(bimodal_reference_sample, size=bimodal_n_effective, replace=True))
+            _x = np.sort(rng.choice(bimodal_reference_sample, size=bimodal_boot_n_effective, replace=True))
             _n = len(_x)
             _y = np.arange(1, _n + 1) / (_n + 1)
             return _x, _y
 
         run_replicate_batch(
-            mo, bimodal_boot_n_replicates.value, bimodal_k_metalog.value, bimodal_k_qflex.value,
+            mo, bimodal_boot_n_replicates.value, bimodal_boot_k_metalog.value, bimodal_boot_k_qflex.value,
             _draw, bimodal_seed.value + 777, w1_ref=_x_ref_grid,
-            w1_label="W1 vs reference sample", true_n_modes=bimodal_true_modes,
+            w1_label="W1 vs reference sample", true_n_modes=bimodal_boot_scenario["true_modes"],
         )
     else:
         mo.output.replace(
             mo.md("*Click **▶ Run Bootstrap Analysis** to resample the fixed reference repeatedly and summarize all 4 QPDs.*")
         )
     return
+
+
 
 
 

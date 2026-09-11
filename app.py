@@ -2209,14 +2209,14 @@ def _(DATA_DIR, io, np, pd):
         _df.columns = [c.strip() for c in _df.columns]
         return _df
 
-    def eqf_bootstrap_ci(x_raw, p_grid, n_boot, seed=42, boot_source=None, jitter_width=0.0):
+    def eqf_bootstrap_ci(x_raw, p_grid, n_boot, seed=42, boot_source=None, jitter=0.0):
         # Pointwise 95% percentile bootstrap CI on the EQF, matching the
         # method used for the paper's own EQF+CI figures (e.g. Figure 10,
         # hydrology): resample the raw data with replacement, interpolate
         # each resample's EQF onto a common probability grid, and take the
         # 2.5th/97.5th percentiles at each grid point across resamples.
         #
-        # `boot_source` / `jitter_width` exist for the fish-weight case,
+        # `boot_source` / `jitter` exist for the fish-weight case,
         # where the recorded values are heavily rounded and the quantity of
         # interest is the *latent* (pre-rounding) weight. The paper handles
         # this by adding "±0.5 lb uniform jitter to the bootstrap
@@ -2227,6 +2227,15 @@ def _(DATA_DIR, io, np, pd):
         # shortcut) is a different and wrong procedure: it freezes one
         # arbitrary tie-breaking into every replicate and reports the noise
         # as if it were data.
+        #
+        # JITTER CONVENTION: `jitter` is the HALF-WIDTH (amplitude), so the
+        # noise is Uniform(-jitter, +jitter) and jitter=0.5 is the paper's
+        # "±0.5 lb". This matches every script in the repro repo
+        # (bootstrap_curve_store.py, fish_median_w1_bootstrap_ci.py,
+        # fish_mode_scatter_k10.py, ...), so a number set here means the same
+        # thing as the same number there. An earlier version of this notebook
+        # took the argument as the FULL width and halved it internally, which
+        # made "0.5" here only half the noise of "0.5" in the repo.
         _N = len(x_raw)
         _p_emp = np.arange(1, _N + 1) / (_N + 1)
         _src = x_raw if boot_source is None else np.asarray(boot_source, dtype=float)
@@ -2234,8 +2243,8 @@ def _(DATA_DIR, io, np, pd):
         _boot = np.empty((n_boot, len(p_grid)))
         for _b in range(n_boot):
             _draw = _rng.choice(_src, size=_N, replace=True)
-            if jitter_width > 0:
-                _draw = _draw + _rng.uniform(-jitter_width / 2, jitter_width / 2, size=_N)
+            if jitter > 0:
+                _draw = _draw + _rng.uniform(-jitter, jitter, size=_N)
             _x_boot = np.sort(_draw)
             _boot[_b] = np.interp(p_grid, _p_emp, _x_boot)
         _point = np.interp(p_grid, _p_emp, x_raw)
@@ -2610,8 +2619,8 @@ def _(mo, section_header_html):
 @app.cell
 def _(mo):
     fish_jitter = mo.ui.slider(
-        start=0.0, stop=1.0, step=0.05, value=0.25,
-        label="Jitter width (lbs)", show_value=True,
+        start=0.0, stop=1.0, step=0.05, value=0.5,
+        label="Jitter half-width j (± lbs)", show_value=True,
     )
     mo.vstack([
         fish_jitter,
@@ -2620,8 +2629,10 @@ def _(mo):
             "the rest fall on half-pounds, giving only 56 distinct values "
             "across 3,474 observations. Treating the quantity of interest as "
             "the **latent** (pre-rounding) weight, this slider adds "
-            "`Uniform(-width/2, +width/2)` noise to undo that rounding; "
-            "width 0 uses the raw, recorded data.*  \n"
+            "`Uniform(-j, +j)` noise to undo that rounding; j = 0 uses the "
+            "raw, recorded data. The slider is the **half-width**, so j = 0.5 "
+            "spans a full pound — the paper's «±0.5 lb», and the same meaning "
+            "`jitter=0.5` has in the repro scripts.*  \n"
             "*The fit shown below uses one fixed jitter realization, but the "
             "bootstrap CI and the batch analysis resample the **raw** weights "
             "and re-jitter every replicate independently — matching the "
@@ -2642,7 +2653,7 @@ def _(fish_jitter, load_fish_raw, np):
     fish_raw = load_fish_raw()
     if fish_jitter.value > 0:
         _rng = np.random.default_rng(20260828)
-        _jittered = fish_raw + _rng.uniform(-fish_jitter.value / 2, fish_jitter.value / 2, size=len(fish_raw))
+        _jittered = fish_raw + _rng.uniform(-fish_jitter.value, fish_jitter.value, size=len(fish_raw))
         fish_x = np.sort(_jittered)
     else:
         fish_x = fish_raw
@@ -2677,7 +2688,7 @@ def _(eqf_bootstrap_ci, fish_jitter, fish_raw, fish_x, np):
     # band reflects de-rounding uncertainty rather than one frozen tie-break.
     fish_eqf_point, fish_eqf_lo, fish_eqf_hi = eqf_bootstrap_ci(
         fish_x, fish_p_grid, n_boot=300, seed=42,
-        boot_source=fish_raw, jitter_width=fish_jitter.value,
+        boot_source=fish_raw, jitter=fish_jitter.value,
     )
     return fish_eqf_hi, fish_eqf_lo, fish_eqf_point, fish_p_grid
 
@@ -2756,7 +2767,7 @@ def _(
             _n = len(fish_raw)
             _d = rng.choice(fish_raw, size=_n, replace=True)
             if fish_jitter.value > 0:
-                _d = _d + rng.uniform(-fish_jitter.value / 2, fish_jitter.value / 2, size=_n)
+                _d = _d + rng.uniform(-fish_jitter.value, fish_jitter.value, size=_n)
             _x = np.sort(_d)
             _y = np.arange(1, _n + 1) / (_n + 1)
             return _x, _y

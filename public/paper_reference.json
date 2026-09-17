@@ -1,0 +1,2500 @@
+{
+  "_meta": {
+    "generated": "2026-09-17T08:47:41",
+    "source": "QPD_Overfitting_Repro/reproduction",
+    "basis": "REGENERATED values, not the current draft's printed ones; see reproduction/OPEN_ITEMS.md for where they differ",
+    "conventions": {
+      "w1": "Equation 6: mean|Q_F - Q_T| over [0.01,0.99] / (Q_T(0.9)-Q_T(0.1))",
+      "plotting_positions": "Weibull i/(N+1)",
+      "grid": "linspace(0.01, 0.99, 1000)",
+      "n_bootstrap": 1000,
+      "jitter": "half-width: j means Uniform(-j, +j)"
+    }
+  },
+  "table3_mc_n200": {
+    "script": "mc_johnson_tables.py",
+    "w1_reference": "each replicate's OWN sample EQF (Weibull positions), NOT the true distribution -- this is the stored w1_normalized field",
+    "rows": [
+      {
+        "distribution": "Johnson SU",
+        "model": "Metalog",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0485,
+        "median_w1_unnormalized": 0.1348,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "Metalog",
+        "K": 7,
+        "feasibility_pct": 96.3,
+        "false_modality_pct": 28.3,
+        "median_w1_eq6": 0.019,
+        "median_w1_unnormalized": 0.0529,
+        "n_feasible": 963
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "Metalog",
+        "K": 10,
+        "feasibility_pct": 81.1,
+        "false_modality_pct": 59.8,
+        "median_w1_eq6": 0.0145,
+        "median_w1_unnormalized": 0.0411,
+        "n_feasible": 811
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-U",
+        "K": 3,
+        "feasibility_pct": 99.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0475,
+        "median_w1_unnormalized": 0.1332,
+        "n_feasible": 990
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-U",
+        "K": 7,
+        "feasibility_pct": 83.2,
+        "false_modality_pct": 10.0,
+        "median_w1_eq6": 0.019,
+        "median_w1_unnormalized": 0.0533,
+        "n_feasible": 832
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-U",
+        "K": 10,
+        "feasibility_pct": 49.7,
+        "false_modality_pct": 43.3,
+        "median_w1_eq6": 0.0142,
+        "median_w1_unnormalized": 0.0406,
+        "n_feasible": 497
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-TA+",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0479,
+        "median_w1_unnormalized": 0.1347,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-TA+",
+        "K": 7,
+        "feasibility_pct": 99.4,
+        "false_modality_pct": 16.2,
+        "median_w1_eq6": 0.02,
+        "median_w1_unnormalized": 0.0562,
+        "n_feasible": 994
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-TA+",
+        "K": 10,
+        "feasibility_pct": 99.4,
+        "false_modality_pct": 18.9,
+        "median_w1_eq6": 0.0176,
+        "median_w1_unnormalized": 0.0492,
+        "n_feasible": 994
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-A+",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0479,
+        "median_w1_unnormalized": 0.1347,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-A+",
+        "K": 7,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0212,
+        "median_w1_unnormalized": 0.0602,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-A+",
+        "K": 10,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0188,
+        "median_w1_unnormalized": 0.0532,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "Metalog",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.028,
+        "median_w1_unnormalized": 0.0479,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "Metalog",
+        "K": 7,
+        "feasibility_pct": 96.1,
+        "false_modality_pct": 2.3,
+        "median_w1_eq6": 0.0155,
+        "median_w1_unnormalized": 0.0263,
+        "n_feasible": 961
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "Metalog",
+        "K": 10,
+        "feasibility_pct": 69.4,
+        "false_modality_pct": 44.8,
+        "median_w1_eq6": 0.0124,
+        "median_w1_unnormalized": 0.0211,
+        "n_feasible": 694
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-U",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0281,
+        "median_w1_unnormalized": 0.0483,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-U",
+        "K": 7,
+        "feasibility_pct": 71.0,
+        "false_modality_pct": 8.2,
+        "median_w1_eq6": 0.016,
+        "median_w1_unnormalized": 0.0273,
+        "n_feasible": 710
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-U",
+        "K": 10,
+        "feasibility_pct": 43.5,
+        "false_modality_pct": 48.7,
+        "median_w1_eq6": 0.0131,
+        "median_w1_unnormalized": 0.0225,
+        "n_feasible": 435
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-TA+",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0281,
+        "median_w1_unnormalized": 0.0483,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-TA+",
+        "K": 7,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 1.8,
+        "median_w1_eq6": 0.0171,
+        "median_w1_unnormalized": 0.029,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-TA+",
+        "K": 10,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 12.7,
+        "median_w1_eq6": 0.0157,
+        "median_w1_unnormalized": 0.0268,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-A+",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0281,
+        "median_w1_unnormalized": 0.0483,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-A+",
+        "K": 7,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 1.8,
+        "median_w1_eq6": 0.0173,
+        "median_w1_unnormalized": 0.0292,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-A+",
+        "K": 10,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 2.9,
+        "median_w1_eq6": 0.0164,
+        "median_w1_unnormalized": 0.0281,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "Metalog",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.02,
+        "median_w1_unnormalized": 0.0095,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "Metalog",
+        "K": 7,
+        "feasibility_pct": 96.1,
+        "false_modality_pct": 18.1,
+        "median_w1_eq6": 0.0111,
+        "median_w1_unnormalized": 0.0053,
+        "n_feasible": 961
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "Metalog",
+        "K": 10,
+        "feasibility_pct": 69.4,
+        "false_modality_pct": 71.0,
+        "median_w1_eq6": 0.009,
+        "median_w1_unnormalized": 0.0043,
+        "n_feasible": 694
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-U",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0202,
+        "median_w1_unnormalized": 0.0095,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-U",
+        "K": 7,
+        "feasibility_pct": 71.0,
+        "false_modality_pct": 9.4,
+        "median_w1_eq6": 0.0117,
+        "median_w1_unnormalized": 0.0056,
+        "n_feasible": 710
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-U",
+        "K": 10,
+        "feasibility_pct": 43.5,
+        "false_modality_pct": 71.7,
+        "median_w1_eq6": 0.0098,
+        "median_w1_unnormalized": 0.0047,
+        "n_feasible": 435
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-TA+",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0202,
+        "median_w1_unnormalized": 0.0095,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-TA+",
+        "K": 7,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 2.5,
+        "median_w1_eq6": 0.0124,
+        "median_w1_unnormalized": 0.0059,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-TA+",
+        "K": 10,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 26.1,
+        "median_w1_eq6": 0.0113,
+        "median_w1_unnormalized": 0.0054,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-A+",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0202,
+        "median_w1_unnormalized": 0.0095,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-A+",
+        "K": 7,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0125,
+        "median_w1_unnormalized": 0.0059,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-A+",
+        "K": 10,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.012,
+        "median_w1_unnormalized": 0.0057,
+        "n_feasible": 1000
+      }
+    ]
+  },
+  "tableA1_mc_n50": {
+    "script": "mc_johnson_tables.py",
+    "w1_reference": "each replicate's OWN sample EQF (Weibull positions), NOT the true distribution -- this is the stored w1_normalized field",
+    "rows": [
+      {
+        "distribution": "Johnson SU",
+        "model": "Metalog",
+        "K": 3,
+        "feasibility_pct": 98.6,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0518,
+        "median_w1_unnormalized": 0.1558,
+        "n_feasible": 986
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "Metalog",
+        "K": 7,
+        "feasibility_pct": 61.5,
+        "false_modality_pct": 37.9,
+        "median_w1_eq6": 0.0269,
+        "median_w1_unnormalized": 0.0783,
+        "n_feasible": 615
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "Metalog",
+        "K": 10,
+        "feasibility_pct": 41.2,
+        "false_modality_pct": 90.5,
+        "median_w1_eq6": 0.0238,
+        "median_w1_unnormalized": 0.0718,
+        "n_feasible": 412
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-U",
+        "K": 3,
+        "feasibility_pct": 92.2,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0493,
+        "median_w1_unnormalized": 0.1488,
+        "n_feasible": 922
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-U",
+        "K": 7,
+        "feasibility_pct": 51.1,
+        "false_modality_pct": 31.3,
+        "median_w1_eq6": 0.0308,
+        "median_w1_unnormalized": 0.0918,
+        "n_feasible": 511
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-U",
+        "K": 10,
+        "feasibility_pct": 28.9,
+        "false_modality_pct": 87.2,
+        "median_w1_eq6": 0.0304,
+        "median_w1_unnormalized": 0.0898,
+        "n_feasible": 289
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-TA+",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0519,
+        "median_w1_unnormalized": 0.1578,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-TA+",
+        "K": 7,
+        "feasibility_pct": 97.9,
+        "false_modality_pct": 18.3,
+        "median_w1_eq6": 0.0305,
+        "median_w1_unnormalized": 0.0906,
+        "n_feasible": 979
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-TA+",
+        "K": 10,
+        "feasibility_pct": 97.1,
+        "false_modality_pct": 33.3,
+        "median_w1_eq6": 0.0275,
+        "median_w1_unnormalized": 0.0819,
+        "n_feasible": 971
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-A+",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0519,
+        "median_w1_unnormalized": 0.1578,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-A+",
+        "K": 7,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0321,
+        "median_w1_unnormalized": 0.0973,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-A+",
+        "K": 10,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0298,
+        "median_w1_unnormalized": 0.0883,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "Metalog",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0448,
+        "median_w1_unnormalized": 0.0791,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "Metalog",
+        "K": 7,
+        "feasibility_pct": 53.8,
+        "false_modality_pct": 23.0,
+        "median_w1_eq6": 0.0275,
+        "median_w1_unnormalized": 0.0466,
+        "n_feasible": 538
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "Metalog",
+        "K": 10,
+        "feasibility_pct": 36.0,
+        "false_modality_pct": 89.2,
+        "median_w1_eq6": 0.0258,
+        "median_w1_unnormalized": 0.0486,
+        "n_feasible": 360
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-U",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0447,
+        "median_w1_unnormalized": 0.0789,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-U",
+        "K": 7,
+        "feasibility_pct": 52.4,
+        "false_modality_pct": 36.8,
+        "median_w1_eq6": 0.0318,
+        "median_w1_unnormalized": 0.0552,
+        "n_feasible": 524
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-U",
+        "K": 10,
+        "feasibility_pct": 24.8,
+        "false_modality_pct": 83.9,
+        "median_w1_eq6": 0.0397,
+        "median_w1_unnormalized": 0.0669,
+        "n_feasible": 248
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-TA+",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0447,
+        "median_w1_unnormalized": 0.0789,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-TA+",
+        "K": 7,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 7.3,
+        "median_w1_eq6": 0.0298,
+        "median_w1_unnormalized": 0.0543,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-TA+",
+        "K": 10,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 31.8,
+        "median_w1_eq6": 0.0279,
+        "median_w1_unnormalized": 0.0509,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-A+",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0447,
+        "median_w1_unnormalized": 0.0789,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-A+",
+        "K": 7,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 6.5,
+        "median_w1_eq6": 0.0296,
+        "median_w1_unnormalized": 0.0542,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-A+",
+        "K": 10,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 6.8,
+        "median_w1_eq6": 0.029,
+        "median_w1_unnormalized": 0.0532,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "Metalog",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0295,
+        "median_w1_unnormalized": 0.0143,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "Metalog",
+        "K": 7,
+        "feasibility_pct": 53.8,
+        "false_modality_pct": 52.4,
+        "median_w1_eq6": 0.0184,
+        "median_w1_unnormalized": 0.0086,
+        "n_feasible": 538
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "Metalog",
+        "K": 10,
+        "feasibility_pct": 36.0,
+        "false_modality_pct": 95.8,
+        "median_w1_eq6": 0.0147,
+        "median_w1_unnormalized": 0.0072,
+        "n_feasible": 360
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-U",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0299,
+        "median_w1_unnormalized": 0.0144,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-U",
+        "K": 7,
+        "feasibility_pct": 52.4,
+        "false_modality_pct": 61.6,
+        "median_w1_eq6": 0.0194,
+        "median_w1_unnormalized": 0.0092,
+        "n_feasible": 524
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-U",
+        "K": 10,
+        "feasibility_pct": 24.8,
+        "false_modality_pct": 95.6,
+        "median_w1_eq6": 0.016,
+        "median_w1_unnormalized": 0.0077,
+        "n_feasible": 248
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-TA+",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0299,
+        "median_w1_unnormalized": 0.0144,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-TA+",
+        "K": 7,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 15.6,
+        "median_w1_eq6": 0.0215,
+        "median_w1_unnormalized": 0.0104,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-TA+",
+        "K": 10,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 55.7,
+        "median_w1_eq6": 0.019,
+        "median_w1_unnormalized": 0.0091,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-A+",
+        "K": 3,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0299,
+        "median_w1_unnormalized": 0.0144,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-A+",
+        "K": 7,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 2.9,
+        "median_w1_eq6": 0.0219,
+        "median_w1_unnormalized": 0.0107,
+        "n_feasible": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-A+",
+        "K": 10,
+        "feasibility_pct": 100.0,
+        "false_modality_pct": 4.4,
+        "median_w1_eq6": 0.0211,
+        "median_w1_unnormalized": 0.0103,
+        "n_feasible": 1000
+      }
+    ]
+  },
+  "table4_bootstrap": {
+    "script": "run_hartigan_table4.py",
+    "realization": "Johnson SU, N=200, seed 200043",
+    "hartigan_reject_pct_at_005": 21.2,
+    "hartigan_median_p": 0.1976,
+    "n_resamples": 1000,
+    "note": "the draft prints 4%; the regenerated value is 21.2%"
+  },
+  "figures5_7_bootstrap": {
+    "script": "bootstrap_sweep.py + bootstrap_figures.py",
+    "population_mode": {
+      "location": -0.2501,
+      "height": 0.455
+    },
+    "persist": [
+      {
+        "model": "Metalog",
+        "K": 3,
+        "original_n_modes": 1,
+        "n_valid": 1000,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "Metalog",
+        "K": 4,
+        "original_n_modes": 1,
+        "n_valid": 1000,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "Metalog",
+        "K": 5,
+        "original_n_modes": 1,
+        "n_valid": 999,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "Metalog",
+        "K": 6,
+        "original_n_modes": 2,
+        "n_valid": 997,
+        "persist_pct": 58.1,
+        "max_modes": 2
+      },
+      {
+        "model": "Metalog",
+        "K": 7,
+        "original_n_modes": 2,
+        "n_valid": 976,
+        "persist_pct": 66.3,
+        "max_modes": 2
+      },
+      {
+        "model": "Metalog",
+        "K": 8,
+        "original_n_modes": 1,
+        "n_valid": 867,
+        "persist_pct": 42.0,
+        "max_modes": 3
+      },
+      {
+        "model": "Metalog",
+        "K": 9,
+        "original_n_modes": 2,
+        "n_valid": 831,
+        "persist_pct": 56.4,
+        "max_modes": 3
+      },
+      {
+        "model": "Metalog",
+        "K": 10,
+        "original_n_modes": 2,
+        "n_valid": 565,
+        "persist_pct": 37.9,
+        "max_modes": 4
+      },
+      {
+        "model": "QFlex-U",
+        "K": 3,
+        "original_n_modes": 1,
+        "n_valid": 1000,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "QFlex-U",
+        "K": 4,
+        "original_n_modes": 1,
+        "n_valid": 1000,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "QFlex-U",
+        "K": 5,
+        "original_n_modes": 1,
+        "n_valid": 670,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "QFlex-U",
+        "K": 6,
+        "original_n_modes": 1,
+        "n_valid": 921,
+        "persist_pct": 93.5,
+        "max_modes": 2
+      },
+      {
+        "model": "QFlex-U",
+        "K": 7,
+        "original_n_modes": 1,
+        "n_valid": 723,
+        "persist_pct": 61.4,
+        "max_modes": 3
+      },
+      {
+        "model": "QFlex-U",
+        "K": 8,
+        "original_n_modes": 2,
+        "n_valid": 524,
+        "persist_pct": 47.9,
+        "max_modes": 3
+      },
+      {
+        "model": "QFlex-U",
+        "K": 9,
+        "original_n_modes": null,
+        "n_valid": 198,
+        "persist_pct": null,
+        "max_modes": 4
+      },
+      {
+        "model": "QFlex-U",
+        "K": 10,
+        "original_n_modes": null,
+        "n_valid": 186,
+        "persist_pct": null,
+        "max_modes": 4
+      },
+      {
+        "model": "QFlex-A+",
+        "K": 3,
+        "original_n_modes": 1,
+        "n_valid": 1000,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "QFlex-A+",
+        "K": 4,
+        "original_n_modes": 1,
+        "n_valid": 1000,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "QFlex-A+",
+        "K": 5,
+        "original_n_modes": 1,
+        "n_valid": 1000,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "QFlex-A+",
+        "K": 6,
+        "original_n_modes": 1,
+        "n_valid": 1000,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "QFlex-A+",
+        "K": 7,
+        "original_n_modes": 1,
+        "n_valid": 1000,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "QFlex-A+",
+        "K": 8,
+        "original_n_modes": 1,
+        "n_valid": 1000,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "QFlex-A+",
+        "K": 9,
+        "original_n_modes": 1,
+        "n_valid": 1000,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "QFlex-A+",
+        "K": 10,
+        "original_n_modes": 1,
+        "n_valid": 1000,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 3,
+        "original_n_modes": 1,
+        "n_valid": 1000,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 4,
+        "original_n_modes": 1,
+        "n_valid": 1000,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 5,
+        "original_n_modes": 1,
+        "n_valid": 1000,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 6,
+        "original_n_modes": 1,
+        "n_valid": 1000,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 7,
+        "original_n_modes": 2,
+        "n_valid": 1000,
+        "persist_pct": 54.9,
+        "max_modes": 2
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 8,
+        "original_n_modes": 2,
+        "n_valid": 1000,
+        "persist_pct": 51.0,
+        "max_modes": 2
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 9,
+        "original_n_modes": 2,
+        "n_valid": 1000,
+        "persist_pct": 36.8,
+        "max_modes": 2
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 10,
+        "original_n_modes": 1,
+        "n_valid": 995,
+        "persist_pct": 52.2,
+        "max_modes": 3
+      }
+    ]
+  },
+  "table5_bimodal": {
+    "script": "bimodal_mc.py + bimodal_table5.py",
+    "design": "1000 INDEPENDENT draws of N=200 from the analytic 60/40 mixture",
+    "rows": [
+      {
+        "model": "Metalog",
+        "K": 4,
+        "valid_pct": 54.1,
+        "max_modes": 1,
+        "unimodal_pct": 100.0,
+        "zero_mode_pct": 0.0,
+        "bimodal_pct": 0.0,
+        "gt2_pct": 0.0,
+        "median_w1_vs_sample": 0.0644,
+        "median_w1_vs_truth": 0.0706
+      },
+      {
+        "model": "Metalog",
+        "K": 5,
+        "valid_pct": 60.7,
+        "max_modes": 2,
+        "unimodal_pct": 97.7,
+        "zero_mode_pct": 0.0,
+        "bimodal_pct": 2.3,
+        "gt2_pct": 0.0,
+        "median_w1_vs_sample": 0.0576,
+        "median_w1_vs_truth": 0.0636
+      },
+      {
+        "model": "Metalog",
+        "K": 6,
+        "valid_pct": 48.3,
+        "max_modes": 2,
+        "unimodal_pct": 27.5,
+        "zero_mode_pct": 0.0,
+        "bimodal_pct": 72.5,
+        "gt2_pct": 0.0,
+        "median_w1_vs_sample": 0.0379,
+        "median_w1_vs_truth": 0.0457
+      },
+      {
+        "model": "Metalog",
+        "K": 7,
+        "valid_pct": 87.3,
+        "max_modes": 2,
+        "unimodal_pct": 0.6,
+        "zero_mode_pct": 0.0,
+        "bimodal_pct": 99.4,
+        "gt2_pct": 0.0,
+        "median_w1_vs_sample": 0.0322,
+        "median_w1_vs_truth": 0.0394
+      },
+      {
+        "model": "Metalog",
+        "K": 8,
+        "valid_pct": 32.7,
+        "max_modes": 2,
+        "unimodal_pct": 1.2,
+        "zero_mode_pct": 0.0,
+        "bimodal_pct": 98.8,
+        "gt2_pct": 0.0,
+        "median_w1_vs_sample": 0.0291,
+        "median_w1_vs_truth": 0.0399
+      },
+      {
+        "model": "Metalog",
+        "K": 9,
+        "valid_pct": 44.1,
+        "max_modes": 3,
+        "unimodal_pct": 0.0,
+        "zero_mode_pct": 0.0,
+        "bimodal_pct": 86.6,
+        "gt2_pct": 13.4,
+        "median_w1_vs_sample": 0.0241,
+        "median_w1_vs_truth": 0.0355
+      },
+      {
+        "model": "Metalog",
+        "K": 10,
+        "valid_pct": 60.1,
+        "max_modes": 4,
+        "unimodal_pct": 0.7,
+        "zero_mode_pct": 0.0,
+        "bimodal_pct": 36.6,
+        "gt2_pct": 62.7,
+        "median_w1_vs_sample": 0.0218,
+        "median_w1_vs_truth": 0.0336
+      },
+      {
+        "model": "Metalog",
+        "K": 11,
+        "valid_pct": 49.2,
+        "max_modes": 4,
+        "unimodal_pct": 0.4,
+        "zero_mode_pct": 0.0,
+        "bimodal_pct": 37.2,
+        "gt2_pct": 62.4,
+        "median_w1_vs_sample": 0.0184,
+        "median_w1_vs_truth": 0.0323
+      },
+      {
+        "model": "Metalog",
+        "K": 12,
+        "valid_pct": 30.9,
+        "max_modes": 5,
+        "unimodal_pct": 0.0,
+        "zero_mode_pct": 0.0,
+        "bimodal_pct": 12.3,
+        "gt2_pct": 87.7,
+        "median_w1_vs_sample": 0.0166,
+        "median_w1_vs_truth": 0.0321
+      },
+      {
+        "model": "Metalog",
+        "K": 13,
+        "valid_pct": 32.8,
+        "max_modes": 5,
+        "unimodal_pct": 0.0,
+        "zero_mode_pct": 0.0,
+        "bimodal_pct": 6.4,
+        "gt2_pct": 93.6,
+        "median_w1_vs_sample": 0.0146,
+        "median_w1_vs_truth": 0.0304
+      },
+      {
+        "model": "Metalog",
+        "K": 14,
+        "valid_pct": 32.4,
+        "max_modes": 6,
+        "unimodal_pct": 0.0,
+        "zero_mode_pct": 0.0,
+        "bimodal_pct": 1.2,
+        "gt2_pct": 98.8,
+        "median_w1_vs_sample": 0.0139,
+        "median_w1_vs_truth": 0.0312
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 4,
+        "valid_pct": 100.0,
+        "max_modes": 1,
+        "unimodal_pct": 100.0,
+        "zero_mode_pct": 68.8,
+        "bimodal_pct": 0.0,
+        "gt2_pct": 0.0,
+        "median_w1_vs_sample": 0.0669,
+        "median_w1_vs_truth": 0.0698
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 5,
+        "valid_pct": 100.0,
+        "max_modes": 1,
+        "unimodal_pct": 100.0,
+        "zero_mode_pct": 54.9,
+        "bimodal_pct": 0.0,
+        "gt2_pct": 0.0,
+        "median_w1_vs_sample": 0.067,
+        "median_w1_vs_truth": 0.0701
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 6,
+        "valid_pct": 100.0,
+        "max_modes": 1,
+        "unimodal_pct": 100.0,
+        "zero_mode_pct": 61.6,
+        "bimodal_pct": 0.0,
+        "gt2_pct": 0.0,
+        "median_w1_vs_sample": 0.0672,
+        "median_w1_vs_truth": 0.0706
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 7,
+        "valid_pct": 99.4,
+        "max_modes": 2,
+        "unimodal_pct": 78.4,
+        "zero_mode_pct": 13.6,
+        "bimodal_pct": 21.6,
+        "gt2_pct": 0.0,
+        "median_w1_vs_sample": 0.0635,
+        "median_w1_vs_truth": 0.0682
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 8,
+        "valid_pct": 99.4,
+        "max_modes": 2,
+        "unimodal_pct": 72.1,
+        "zero_mode_pct": 10.0,
+        "bimodal_pct": 27.9,
+        "gt2_pct": 0.0,
+        "median_w1_vs_sample": 0.0634,
+        "median_w1_vs_truth": 0.0681
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 9,
+        "valid_pct": 99.6,
+        "max_modes": 2,
+        "unimodal_pct": 74.8,
+        "zero_mode_pct": 5.6,
+        "bimodal_pct": 25.2,
+        "gt2_pct": 0.0,
+        "median_w1_vs_sample": 0.063,
+        "median_w1_vs_truth": 0.068
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 10,
+        "valid_pct": 81.5,
+        "max_modes": 3,
+        "unimodal_pct": 1.8,
+        "zero_mode_pct": 0.0,
+        "bimodal_pct": 97.3,
+        "gt2_pct": 0.9,
+        "median_w1_vs_sample": 0.0363,
+        "median_w1_vs_truth": 0.0469
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 11,
+        "valid_pct": 82.1,
+        "max_modes": 3,
+        "unimodal_pct": 1.1,
+        "zero_mode_pct": 0.0,
+        "bimodal_pct": 98.4,
+        "gt2_pct": 0.5,
+        "median_w1_vs_sample": 0.0361,
+        "median_w1_vs_truth": 0.0463
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 12,
+        "valid_pct": 82.8,
+        "max_modes": 3,
+        "unimodal_pct": 1.3,
+        "zero_mode_pct": 0.0,
+        "bimodal_pct": 98.2,
+        "gt2_pct": 0.5,
+        "median_w1_vs_sample": 0.036,
+        "median_w1_vs_truth": 0.0463
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 13,
+        "valid_pct": 88.0,
+        "max_modes": 3,
+        "unimodal_pct": 1.1,
+        "zero_mode_pct": 0.0,
+        "bimodal_pct": 94.8,
+        "gt2_pct": 4.1,
+        "median_w1_vs_sample": 0.0298,
+        "median_w1_vs_truth": 0.0429
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 14,
+        "valid_pct": 88.1,
+        "max_modes": 3,
+        "unimodal_pct": 1.1,
+        "zero_mode_pct": 0.0,
+        "bimodal_pct": 94.3,
+        "gt2_pct": 4.5,
+        "median_w1_vs_sample": 0.0296,
+        "median_w1_vs_truth": 0.0427
+      }
+    ]
+  },
+  "table6_hydrology": {
+    "script": "hydrology_sweep.py + hydrology_tables.py",
+    "interdecile_L_ft": 3.7108,
+    "rows": [
+      {
+        "model": "GEV",
+        "valid_pct": 100.0,
+        "mode_loc_iqr_ft": 0.2625,
+        "mode_ht_iqr_perft": 0.0462,
+        "median_w1_eq6": 0.05044,
+        "median_w1_ft": 0.1872,
+        "modes_1_pct": 100.0,
+        "modes_2_pct": 0.0,
+        "modes_gt2_pct": 0.0,
+        "n_flat": 0
+      },
+      {
+        "model": "Log Metalog-4",
+        "valid_pct": 99.1,
+        "mode_loc_iqr_ft": 0.4037,
+        "mode_ht_iqr_perft": 0.0574,
+        "median_w1_eq6": 0.0463,
+        "median_w1_ft": 0.1718,
+        "modes_1_pct": 100.0,
+        "modes_2_pct": 0.0,
+        "modes_gt2_pct": 0.0,
+        "n_flat": 0
+      },
+      {
+        "model": "Log Metalog-7",
+        "valid_pct": 86.1,
+        "mode_loc_iqr_ft": 0.183,
+        "mode_ht_iqr_perft": 0.2456,
+        "median_w1_eq6": 0.04492,
+        "median_w1_ft": 0.1667,
+        "modes_1_pct": 66.7,
+        "modes_2_pct": 33.3,
+        "modes_gt2_pct": 0.0,
+        "n_flat": 0
+      },
+      {
+        "model": "Log Metalog-10",
+        "valid_pct": 37.2,
+        "mode_loc_iqr_ft": 0.2403,
+        "mode_ht_iqr_perft": 0.3355,
+        "median_w1_eq6": 0.04532,
+        "median_w1_ft": 0.1682,
+        "modes_1_pct": 19.1,
+        "modes_2_pct": 46.2,
+        "modes_gt2_pct": 34.7,
+        "n_flat": 0
+      },
+      {
+        "model": "Log QFlex-A+-4",
+        "valid_pct": 100.0,
+        "mode_loc_iqr_ft": NaN,
+        "mode_ht_iqr_perft": NaN,
+        "median_w1_eq6": 0.04533,
+        "median_w1_ft": 0.1682,
+        "modes_1_pct": 100.0,
+        "modes_2_pct": 0.0,
+        "modes_gt2_pct": 0.0,
+        "n_flat": 47
+      },
+      {
+        "model": "Log QFlex-A+-7",
+        "valid_pct": 100.0,
+        "mode_loc_iqr_ft": NaN,
+        "mode_ht_iqr_perft": NaN,
+        "median_w1_eq6": 0.0465,
+        "median_w1_ft": 0.1726,
+        "modes_1_pct": 100.0,
+        "modes_2_pct": 0.0,
+        "modes_gt2_pct": 0.0,
+        "n_flat": 35
+      },
+      {
+        "model": "Log QFlex-A+-10",
+        "valid_pct": 100.0,
+        "mode_loc_iqr_ft": NaN,
+        "mode_ht_iqr_perft": NaN,
+        "median_w1_eq6": 0.04675,
+        "median_w1_ft": 0.1735,
+        "modes_1_pct": 100.0,
+        "modes_2_pct": 0.0,
+        "modes_gt2_pct": 0.0,
+        "n_flat": 33
+      }
+    ],
+    "modality_tests": {
+      "Hartigan dip": 0.5515,
+      "Silverman (k=1, uncalibrated)": 0.3103
+    }
+  },
+  "table7_fish": {
+    "script": "fish_table7.py",
+    "interdecile_L_lb": 10.0,
+    "note": "Hartigan is on the canonical replicates; Silverman comes from an independent 1000x100 sweep and is NOT paired with it",
+    "rows": [
+      {
+        "jitter": 0.0,
+        "hartigan_p_mean": 0.0,
+        "hartigan_reject_05": 1.0,
+        "silverman_reject_05": null
+      },
+      {
+        "jitter": 0.4,
+        "hartigan_p_mean": 0.0,
+        "hartigan_reject_05": 1.0,
+        "silverman_reject_05": 1.0
+      },
+      {
+        "jitter": 0.5,
+        "hartigan_p_mean": 0.00062,
+        "hartigan_reject_05": 1.0,
+        "silverman_reject_05": 0.988
+      },
+      {
+        "jitter": 0.6,
+        "hartigan_p_mean": 0.00014,
+        "hartigan_reject_05": 1.0,
+        "silverman_reject_05": 0.938
+      },
+      {
+        "jitter": 0.75,
+        "hartigan_p_mean": 0.00254,
+        "hartigan_reject_05": 1.0,
+        "silverman_reject_05": 0.795
+      },
+      {
+        "jitter": 0.8,
+        "hartigan_p_mean": 0.0123,
+        "hartigan_reject_05": 0.974,
+        "silverman_reject_05": 0.706
+      },
+      {
+        "jitter": 0.9,
+        "hartigan_p_mean": 0.20701,
+        "hartigan_reject_05": 0.2,
+        "silverman_reject_05": 0.575
+      },
+      {
+        "jitter": 1.0,
+        "hartigan_p_mean": 0.69004,
+        "hartigan_reject_05": 0.009,
+        "silverman_reject_05": 0.36
+      }
+    ]
+  },
+  "figure13_fish_persistence": {
+    "script": "fish_fig13_bimodal_vs_jitter.py",
+    "rows": [
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.0,
+        "pct_bimodal": 92.6,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.05,
+        "pct_bimodal": 91.1,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.1,
+        "pct_bimodal": 89.3,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.15,
+        "pct_bimodal": 84.9,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.2,
+        "pct_bimodal": 83.4,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.25,
+        "pct_bimodal": 82.9,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.3,
+        "pct_bimodal": 75.3,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.35,
+        "pct_bimodal": 70.3,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.4,
+        "pct_bimodal": 66.2,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.45,
+        "pct_bimodal": 64.9,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.5,
+        "pct_bimodal": 56.8,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.55,
+        "pct_bimodal": 51.7,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.6,
+        "pct_bimodal": 47.3,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.65,
+        "pct_bimodal": 41.2,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.7,
+        "pct_bimodal": 35.8,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.75,
+        "pct_bimodal": 29.5,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.8,
+        "pct_bimodal": 20.9,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.85,
+        "pct_bimodal": 19.3,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.9,
+        "pct_bimodal": 12.2,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 0.95,
+        "pct_bimodal": 9.1,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "jitter": 1.0,
+        "pct_bimodal": 5.3,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.0,
+        "pct_bimodal": 98.7,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.05,
+        "pct_bimodal": 97.4,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.1,
+        "pct_bimodal": 98.2,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.15,
+        "pct_bimodal": 94.9,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.2,
+        "pct_bimodal": 95.2,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.25,
+        "pct_bimodal": 94.5,
+        "n_feasible": 999
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.3,
+        "pct_bimodal": 91.6,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.35,
+        "pct_bimodal": 89.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.4,
+        "pct_bimodal": 87.5,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.45,
+        "pct_bimodal": 84.1,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.5,
+        "pct_bimodal": 82.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.55,
+        "pct_bimodal": 78.1,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.6,
+        "pct_bimodal": 74.9,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.65,
+        "pct_bimodal": 68.4,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.7,
+        "pct_bimodal": 62.3,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.75,
+        "pct_bimodal": 59.8,
+        "n_feasible": 999
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.8,
+        "pct_bimodal": 47.5,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.85,
+        "pct_bimodal": 44.1,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.9,
+        "pct_bimodal": 35.7,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 0.95,
+        "pct_bimodal": 29.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "jitter": 1.0,
+        "pct_bimodal": 20.2,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.0,
+        "pct_bimodal": 99.9,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.05,
+        "pct_bimodal": 99.6,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.1,
+        "pct_bimodal": 99.9,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.15,
+        "pct_bimodal": 99.9,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.2,
+        "pct_bimodal": 99.7,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.25,
+        "pct_bimodal": 99.3,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.3,
+        "pct_bimodal": 98.7,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.35,
+        "pct_bimodal": 98.5,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.4,
+        "pct_bimodal": 98.4,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.45,
+        "pct_bimodal": 98.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.5,
+        "pct_bimodal": 95.7,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.55,
+        "pct_bimodal": 95.7,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.6,
+        "pct_bimodal": 94.2,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.65,
+        "pct_bimodal": 90.5,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.7,
+        "pct_bimodal": 90.1,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.75,
+        "pct_bimodal": 84.8,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.8,
+        "pct_bimodal": 80.7,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.85,
+        "pct_bimodal": 76.1,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.9,
+        "pct_bimodal": 70.4,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 0.95,
+        "pct_bimodal": 62.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "jitter": 1.0,
+        "pct_bimodal": 53.2,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.0,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.05,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.1,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.15,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.2,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.25,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.3,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.35,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.4,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.45,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.5,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.55,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.6,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.65,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.7,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.75,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.8,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.85,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.9,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 0.95,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "jitter": 1.0,
+        "pct_bimodal": 0.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.0,
+        "pct_bimodal": 46.1,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.05,
+        "pct_bimodal": 43.8,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.1,
+        "pct_bimodal": 40.5,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.15,
+        "pct_bimodal": 36.6,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.2,
+        "pct_bimodal": 36.8,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.25,
+        "pct_bimodal": 37.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.3,
+        "pct_bimodal": 35.3,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.35,
+        "pct_bimodal": 31.9,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.4,
+        "pct_bimodal": 32.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.45,
+        "pct_bimodal": 28.8,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.5,
+        "pct_bimodal": 28.2,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.55,
+        "pct_bimodal": 25.3,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.6,
+        "pct_bimodal": 24.6,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.65,
+        "pct_bimodal": 21.1,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.7,
+        "pct_bimodal": 17.8,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.75,
+        "pct_bimodal": 18.8,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.8,
+        "pct_bimodal": 12.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.85,
+        "pct_bimodal": 10.4,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.9,
+        "pct_bimodal": 7.7,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 0.95,
+        "pct_bimodal": 7.4,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "jitter": 1.0,
+        "pct_bimodal": 3.1,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.0,
+        "pct_bimodal": 46.1,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.05,
+        "pct_bimodal": 43.8,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.1,
+        "pct_bimodal": 40.5,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.15,
+        "pct_bimodal": 36.6,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.2,
+        "pct_bimodal": 36.8,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.25,
+        "pct_bimodal": 37.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.3,
+        "pct_bimodal": 35.3,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.35,
+        "pct_bimodal": 31.9,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.4,
+        "pct_bimodal": 32.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.45,
+        "pct_bimodal": 28.8,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.5,
+        "pct_bimodal": 28.2,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.55,
+        "pct_bimodal": 25.3,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.6,
+        "pct_bimodal": 24.6,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.65,
+        "pct_bimodal": 21.1,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.7,
+        "pct_bimodal": 17.8,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.75,
+        "pct_bimodal": 18.8,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.8,
+        "pct_bimodal": 12.0,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.85,
+        "pct_bimodal": 10.4,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.9,
+        "pct_bimodal": 7.7,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 0.95,
+        "pct_bimodal": 7.4,
+        "n_feasible": 1000
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "jitter": 1.0,
+        "pct_bimodal": 3.1,
+        "n_feasible": 1000
+      }
+    ]
+  },
+  "table8_geyser": {
+    "script": "geyser_sweep.py + geyser_tables.py",
+    "data": "geyser_299.csv (299 obs; the 298-row file was defective)",
+    "jitter_min": 0.5,
+    "rows": [
+      {
+        "model": "Log Metalog",
+        "K": 5,
+        "valid_pct": 12.2,
+        "unimodal_pct": 76.2,
+        "bimodal_pct": 23.8,
+        "gt2_pct": 0.0,
+        "median_w1_eq6": 0.0396,
+        "median_w1_min": 1.4661
+      },
+      {
+        "model": "Log Metalog",
+        "K": 6,
+        "valid_pct": 14.6,
+        "unimodal_pct": 7.5,
+        "bimodal_pct": 92.5,
+        "gt2_pct": 0.0,
+        "median_w1_eq6": 0.0405,
+        "median_w1_min": 1.4984
+      },
+      {
+        "model": "Log Metalog",
+        "K": 7,
+        "valid_pct": 36.1,
+        "unimodal_pct": 1.1,
+        "bimodal_pct": 98.9,
+        "gt2_pct": 0.0,
+        "median_w1_eq6": 0.0305,
+        "median_w1_min": 1.1282
+      },
+      {
+        "model": "Log Metalog",
+        "K": 8,
+        "valid_pct": 72.5,
+        "unimodal_pct": 0.8,
+        "bimodal_pct": 80.6,
+        "gt2_pct": 18.6,
+        "median_w1_eq6": 0.025,
+        "median_w1_min": 0.9233
+      },
+      {
+        "model": "Log Metalog",
+        "K": 9,
+        "valid_pct": 88.1,
+        "unimodal_pct": 0.0,
+        "bimodal_pct": 16.8,
+        "gt2_pct": 83.2,
+        "median_w1_eq6": 0.0245,
+        "median_w1_min": 0.9052
+      },
+      {
+        "model": "Log Metalog",
+        "K": 10,
+        "valid_pct": 40.8,
+        "unimodal_pct": 0.2,
+        "bimodal_pct": 19.6,
+        "gt2_pct": 80.1,
+        "median_w1_eq6": 0.0246,
+        "median_w1_min": 0.9116
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 5,
+        "valid_pct": 100.0,
+        "unimodal_pct": 99.7,
+        "bimodal_pct": 0.0,
+        "gt2_pct": 0.0,
+        "median_w1_eq6": 0.0619,
+        "median_w1_min": 2.2918
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 6,
+        "valid_pct": 100.0,
+        "unimodal_pct": 99.7,
+        "bimodal_pct": 0.0,
+        "gt2_pct": 0.0,
+        "median_w1_eq6": 0.0619,
+        "median_w1_min": 2.2918
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 7,
+        "valid_pct": 100.0,
+        "unimodal_pct": 100.0,
+        "bimodal_pct": 0.0,
+        "gt2_pct": 0.0,
+        "median_w1_eq6": 0.0395,
+        "median_w1_min": 1.4632
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 8,
+        "valid_pct": 100.0,
+        "unimodal_pct": 100.0,
+        "bimodal_pct": 0.0,
+        "gt2_pct": 0.0,
+        "median_w1_eq6": 0.0392,
+        "median_w1_min": 1.449
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 9,
+        "valid_pct": 100.0,
+        "unimodal_pct": 100.0,
+        "bimodal_pct": 0.0,
+        "gt2_pct": 0.0,
+        "median_w1_eq6": 0.0392,
+        "median_w1_min": 1.449
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "valid_pct": 99.7,
+        "unimodal_pct": 3.2,
+        "bimodal_pct": 96.8,
+        "gt2_pct": 0.0,
+        "median_w1_eq6": 0.0278,
+        "median_w1_min": 1.0273
+      }
+    ],
+    "kde_modes": [
+      {
+        "loc_min": 79.74174174174175,
+        "height": 0.032414217261303835
+      },
+      {
+        "loc_min": 53.390390390390394,
+        "height": 0.018230317968833436
+      }
+    ]
+  },
+  "table9_geyser": {
+    "script": "geyser_tables.py",
+    "rows": [
+      {
+        "model": "Log Metalog",
+        "K": 7,
+        "n_valid": 361,
+        "n_bimodal": 357,
+        "rank_flip_pct": 8.7,
+        "primary_loc_iqr": 0.855,
+        "primary_ht_iqr": 0.0189,
+        "secondary_loc_iqr": 0.9173,
+        "secondary_ht_iqr": 0.0167
+      },
+      {
+        "model": "Log Metalog",
+        "K": 8,
+        "n_valid": 725,
+        "n_bimodal": 584,
+        "rank_flip_pct": 77.2,
+        "primary_loc_iqr": 1.4038,
+        "primary_ht_iqr": 0.0098,
+        "secondary_loc_iqr": 0.6628,
+        "secondary_ht_iqr": 0.0951
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 10,
+        "n_valid": 997,
+        "n_bimodal": 965,
+        "rank_flip_pct": 22.4,
+        "primary_loc_iqr": 1.1743,
+        "primary_ht_iqr": 0.0142,
+        "secondary_loc_iqr": 0.8468,
+        "secondary_ht_iqr": 0.0216
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "generated": "2026-09-17T08:47:41",
+    "generated": "2026-09-19T03:40:13",
     "source": "QPD_Overfitting_Repro/reproduction",
     "basis": "REGENERATED values, not the current draft's printed ones; see reproduction/OPEN_ITEMS.md for where they differ",
     "conventions": {
@@ -12,734 +12,988 @@
     }
   },
   "table3_mc_n200": {
-    "script": "mc_johnson_tables.py",
-    "w1_reference": "each replicate's OWN sample EQF (Weibull positions), NOT the true distribution -- this is the stored w1_normalized field",
+    "script": "mc_tables_rebuild.py",
+    "w1_reference": "each replicate's OWN sample EQF (Weibull positions), NOT the true distribution",
+    "w1_integration": "plain mean over [0.01, 0.99], divided by that replicate's interdecile range",
+    "orders": [
+      4,
+      7,
+      10,
+      13
+    ],
     "rows": [
       {
-        "distribution": "Johnson SU",
-        "model": "Metalog",
-        "K": 3,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0485,
-        "median_w1_unnormalized": 0.1348,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "Metalog",
-        "K": 7,
-        "feasibility_pct": 96.3,
-        "false_modality_pct": 28.3,
-        "median_w1_eq6": 0.019,
-        "median_w1_unnormalized": 0.0529,
-        "n_feasible": 963
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "Metalog",
-        "K": 10,
-        "feasibility_pct": 81.1,
-        "false_modality_pct": 59.8,
-        "median_w1_eq6": 0.0145,
-        "median_w1_unnormalized": 0.0411,
-        "n_feasible": 811
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "QFlex-U",
-        "K": 3,
-        "feasibility_pct": 99.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0475,
-        "median_w1_unnormalized": 0.1332,
-        "n_feasible": 990
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "QFlex-U",
-        "K": 7,
-        "feasibility_pct": 83.2,
-        "false_modality_pct": 10.0,
-        "median_w1_eq6": 0.019,
-        "median_w1_unnormalized": 0.0533,
-        "n_feasible": 832
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "QFlex-U",
-        "K": 10,
-        "feasibility_pct": 49.7,
-        "false_modality_pct": 43.3,
-        "median_w1_eq6": 0.0142,
-        "median_w1_unnormalized": 0.0406,
-        "n_feasible": 497
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "QFlex-TA+",
-        "K": 3,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0479,
-        "median_w1_unnormalized": 0.1347,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "QFlex-TA+",
-        "K": 7,
-        "feasibility_pct": 99.4,
-        "false_modality_pct": 16.2,
-        "median_w1_eq6": 0.02,
-        "median_w1_unnormalized": 0.0562,
-        "n_feasible": 994
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "QFlex-TA+",
-        "K": 10,
-        "feasibility_pct": 99.4,
-        "false_modality_pct": 18.9,
-        "median_w1_eq6": 0.0176,
-        "median_w1_unnormalized": 0.0492,
-        "n_feasible": 994
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "QFlex-A+",
-        "K": 3,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0479,
-        "median_w1_unnormalized": 0.1347,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "QFlex-A+",
-        "K": 7,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0212,
-        "median_w1_unnormalized": 0.0602,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "QFlex-A+",
-        "K": 10,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0188,
-        "median_w1_unnormalized": 0.0532,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "Metalog",
-        "K": 3,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.028,
-        "median_w1_unnormalized": 0.0479,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "Metalog",
-        "K": 7,
-        "feasibility_pct": 96.1,
-        "false_modality_pct": 2.3,
-        "median_w1_eq6": 0.0155,
-        "median_w1_unnormalized": 0.0263,
-        "n_feasible": 961
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "Metalog",
-        "K": 10,
-        "feasibility_pct": 69.4,
-        "false_modality_pct": 44.8,
-        "median_w1_eq6": 0.0124,
-        "median_w1_unnormalized": 0.0211,
-        "n_feasible": 694
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "QFlex-U",
-        "K": 3,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0281,
-        "median_w1_unnormalized": 0.0483,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "QFlex-U",
-        "K": 7,
-        "feasibility_pct": 71.0,
-        "false_modality_pct": 8.2,
-        "median_w1_eq6": 0.016,
-        "median_w1_unnormalized": 0.0273,
-        "n_feasible": 710
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "QFlex-U",
-        "K": 10,
-        "feasibility_pct": 43.5,
-        "false_modality_pct": 48.7,
-        "median_w1_eq6": 0.0131,
-        "median_w1_unnormalized": 0.0225,
-        "n_feasible": 435
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "QFlex-TA+",
-        "K": 3,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0281,
-        "median_w1_unnormalized": 0.0483,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "QFlex-TA+",
-        "K": 7,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 1.8,
-        "median_w1_eq6": 0.0171,
-        "median_w1_unnormalized": 0.029,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "QFlex-TA+",
-        "K": 10,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 12.7,
-        "median_w1_eq6": 0.0157,
-        "median_w1_unnormalized": 0.0268,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "QFlex-A+",
-        "K": 3,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0281,
-        "median_w1_unnormalized": 0.0483,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "QFlex-A+",
-        "K": 7,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 1.8,
-        "median_w1_eq6": 0.0173,
-        "median_w1_unnormalized": 0.0292,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "QFlex-A+",
-        "K": 10,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 2.9,
-        "median_w1_eq6": 0.0164,
-        "median_w1_unnormalized": 0.0281,
-        "n_feasible": 1000
-      },
-      {
         "distribution": "Johnson SB",
         "model": "Metalog",
-        "K": 3,
-        "feasibility_pct": 100.0,
+        "K": 4,
+        "validity_pct": 100.0,
         "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.02,
-        "median_w1_unnormalized": 0.0095,
-        "n_feasible": 1000
+        "median_w1_eq6": 0.0148,
+        "median_w1_vs_truth_eq6": 0.0246,
+        "n_valid": 1000
       },
       {
         "distribution": "Johnson SB",
         "model": "Metalog",
         "K": 7,
-        "feasibility_pct": 96.1,
-        "false_modality_pct": 18.1,
-        "median_w1_eq6": 0.0111,
-        "median_w1_unnormalized": 0.0053,
-        "n_feasible": 961
-      },
-      {
-        "distribution": "Johnson SB",
-        "model": "Metalog",
-        "K": 10,
-        "feasibility_pct": 69.4,
-        "false_modality_pct": 71.0,
-        "median_w1_eq6": 0.009,
-        "median_w1_unnormalized": 0.0043,
-        "n_feasible": 694
-      },
-      {
-        "distribution": "Johnson SB",
-        "model": "QFlex-U",
-        "K": 3,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0202,
-        "median_w1_unnormalized": 0.0095,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SB",
-        "model": "QFlex-U",
-        "K": 7,
-        "feasibility_pct": 71.0,
-        "false_modality_pct": 9.4,
-        "median_w1_eq6": 0.0117,
-        "median_w1_unnormalized": 0.0056,
-        "n_feasible": 710
-      },
-      {
-        "distribution": "Johnson SB",
-        "model": "QFlex-U",
-        "K": 10,
-        "feasibility_pct": 43.5,
-        "false_modality_pct": 71.7,
-        "median_w1_eq6": 0.0098,
-        "median_w1_unnormalized": 0.0047,
-        "n_feasible": 435
-      },
-      {
-        "distribution": "Johnson SB",
-        "model": "QFlex-TA+",
-        "K": 3,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0202,
-        "median_w1_unnormalized": 0.0095,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SB",
-        "model": "QFlex-TA+",
-        "K": 7,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 2.5,
-        "median_w1_eq6": 0.0124,
-        "median_w1_unnormalized": 0.0059,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SB",
-        "model": "QFlex-TA+",
-        "K": 10,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 26.1,
+        "validity_pct": 96.1,
+        "false_modality_pct": 18.2,
         "median_w1_eq6": 0.0113,
-        "median_w1_unnormalized": 0.0054,
-        "n_feasible": 1000
+        "median_w1_vs_truth_eq6": 0.0263,
+        "n_valid": 961
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "Metalog",
+        "K": 10,
+        "validity_pct": 69.4,
+        "false_modality_pct": 71.0,
+        "median_w1_eq6": 0.0092,
+        "median_w1_vs_truth_eq6": 0.027,
+        "n_valid": 694
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "Metalog",
+        "K": 13,
+        "validity_pct": 37.6,
+        "false_modality_pct": 96.8,
+        "median_w1_eq6": 0.0082,
+        "median_w1_vs_truth_eq6": 0.0269,
+        "n_valid": 376
       },
       {
         "distribution": "Johnson SB",
         "model": "QFlex-A+",
-        "K": 3,
-        "feasibility_pct": 100.0,
+        "K": 4,
+        "validity_pct": 100.0,
         "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0202,
-        "median_w1_unnormalized": 0.0095,
-        "n_feasible": 1000
+        "median_w1_eq6": 0.0149,
+        "median_w1_vs_truth_eq6": 0.0242,
+        "n_valid": 1000
       },
       {
         "distribution": "Johnson SB",
         "model": "QFlex-A+",
         "K": 7,
-        "feasibility_pct": 100.0,
+        "validity_pct": 100.0,
         "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0125,
-        "median_w1_unnormalized": 0.0059,
-        "n_feasible": 1000
+        "median_w1_eq6": 0.0128,
+        "median_w1_vs_truth_eq6": 0.0254,
+        "n_valid": 1000
       },
       {
         "distribution": "Johnson SB",
         "model": "QFlex-A+",
         "K": 10,
-        "feasibility_pct": 100.0,
+        "validity_pct": 100.0,
         "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.012,
-        "median_w1_unnormalized": 0.0057,
-        "n_feasible": 1000
+        "median_w1_eq6": 0.0122,
+        "median_w1_vs_truth_eq6": 0.0257,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-A+",
+        "K": 13,
+        "validity_pct": 99.6,
+        "false_modality_pct": 0.2,
+        "median_w1_eq6": 0.0119,
+        "median_w1_vs_truth_eq6": 0.0257,
+        "n_valid": 996
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-TA+",
+        "K": 4,
+        "validity_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0149,
+        "median_w1_vs_truth_eq6": 0.0244,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-TA+",
+        "K": 7,
+        "validity_pct": 100.0,
+        "false_modality_pct": 2.6,
+        "median_w1_eq6": 0.0126,
+        "median_w1_vs_truth_eq6": 0.0255,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-TA+",
+        "K": 10,
+        "validity_pct": 100.0,
+        "false_modality_pct": 26.2,
+        "median_w1_eq6": 0.0115,
+        "median_w1_vs_truth_eq6": 0.0263,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-TA+",
+        "K": 13,
+        "validity_pct": 100.0,
+        "false_modality_pct": 57.4,
+        "median_w1_eq6": 0.0109,
+        "median_w1_vs_truth_eq6": 0.0264,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-U",
+        "K": 4,
+        "validity_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0149,
+        "median_w1_vs_truth_eq6": 0.0244,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-U",
+        "K": 7,
+        "validity_pct": 71.0,
+        "false_modality_pct": 9.4,
+        "median_w1_eq6": 0.0119,
+        "median_w1_vs_truth_eq6": 0.0263,
+        "n_valid": 710
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-U",
+        "K": 10,
+        "validity_pct": 43.4,
+        "false_modality_pct": 71.9,
+        "median_w1_eq6": 0.01,
+        "median_w1_vs_truth_eq6": 0.0271,
+        "n_valid": 434
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-U",
+        "K": 13,
+        "validity_pct": 28.4,
+        "false_modality_pct": 92.3,
+        "median_w1_eq6": 0.0086,
+        "median_w1_vs_truth_eq6": 0.0263,
+        "n_valid": 284
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "Metalog",
+        "K": 4,
+        "validity_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0201,
+        "median_w1_vs_truth_eq6": 0.0327,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "Metalog",
+        "K": 7,
+        "validity_pct": 96.1,
+        "false_modality_pct": 2.3,
+        "median_w1_eq6": 0.0158,
+        "median_w1_vs_truth_eq6": 0.0348,
+        "n_valid": 961
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "Metalog",
+        "K": 10,
+        "validity_pct": 69.4,
+        "false_modality_pct": 44.8,
+        "median_w1_eq6": 0.0127,
+        "median_w1_vs_truth_eq6": 0.0357,
+        "n_valid": 694
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "Metalog",
+        "K": 13,
+        "validity_pct": 37.6,
+        "false_modality_pct": 83.2,
+        "median_w1_eq6": 0.011,
+        "median_w1_vs_truth_eq6": 0.0364,
+        "n_valid": 376
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-A+",
+        "K": 4,
+        "validity_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0201,
+        "median_w1_vs_truth_eq6": 0.0326,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-A+",
+        "K": 7,
+        "validity_pct": 100.0,
+        "false_modality_pct": 1.8,
+        "median_w1_eq6": 0.0176,
+        "median_w1_vs_truth_eq6": 0.0334,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-A+",
+        "K": 10,
+        "validity_pct": 100.0,
+        "false_modality_pct": 2.9,
+        "median_w1_eq6": 0.0167,
+        "median_w1_vs_truth_eq6": 0.034,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-A+",
+        "K": 13,
+        "validity_pct": 99.6,
+        "false_modality_pct": 3.5,
+        "median_w1_eq6": 0.0163,
+        "median_w1_vs_truth_eq6": 0.0342,
+        "n_valid": 996
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-TA+",
+        "K": 4,
+        "validity_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0201,
+        "median_w1_vs_truth_eq6": 0.0327,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-TA+",
+        "K": 7,
+        "validity_pct": 100.0,
+        "false_modality_pct": 1.8,
+        "median_w1_eq6": 0.0174,
+        "median_w1_vs_truth_eq6": 0.0336,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-TA+",
+        "K": 10,
+        "validity_pct": 100.0,
+        "false_modality_pct": 12.7,
+        "median_w1_eq6": 0.016,
+        "median_w1_vs_truth_eq6": 0.0345,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-TA+",
+        "K": 13,
+        "validity_pct": 100.0,
+        "false_modality_pct": 36.3,
+        "median_w1_eq6": 0.0148,
+        "median_w1_vs_truth_eq6": 0.035,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-U",
+        "K": 4,
+        "validity_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0201,
+        "median_w1_vs_truth_eq6": 0.0327,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-U",
+        "K": 7,
+        "validity_pct": 71.0,
+        "false_modality_pct": 8.2,
+        "median_w1_eq6": 0.0163,
+        "median_w1_vs_truth_eq6": 0.0334,
+        "n_valid": 710
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-U",
+        "K": 10,
+        "validity_pct": 43.4,
+        "false_modality_pct": 48.8,
+        "median_w1_eq6": 0.0134,
+        "median_w1_vs_truth_eq6": 0.0364,
+        "n_valid": 434
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-U",
+        "K": 13,
+        "validity_pct": 28.4,
+        "false_modality_pct": 77.5,
+        "median_w1_eq6": 0.011,
+        "median_w1_vs_truth_eq6": 0.0355,
+        "n_valid": 284
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "Metalog",
+        "K": 4,
+        "validity_pct": 99.6,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0313,
+        "median_w1_vs_truth_eq6": 0.0452,
+        "n_valid": 996
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "Metalog",
+        "K": 7,
+        "validity_pct": 96.3,
+        "false_modality_pct": 28.5,
+        "median_w1_eq6": 0.0194,
+        "median_w1_vs_truth_eq6": 0.0396,
+        "n_valid": 963
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "Metalog",
+        "K": 10,
+        "validity_pct": 81.1,
+        "false_modality_pct": 59.8,
+        "median_w1_eq6": 0.0148,
+        "median_w1_vs_truth_eq6": 0.0377,
+        "n_valid": 811
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "Metalog",
+        "K": 13,
+        "validity_pct": 43.3,
+        "false_modality_pct": 83.1,
+        "median_w1_eq6": 0.0123,
+        "median_w1_vs_truth_eq6": 0.0373,
+        "n_valid": 433
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-A+",
+        "K": 4,
+        "validity_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0489,
+        "median_w1_vs_truth_eq6": 0.0546,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-A+",
+        "K": 7,
+        "validity_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0216,
+        "median_w1_vs_truth_eq6": 0.0385,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-A+",
+        "K": 10,
+        "validity_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0192,
+        "median_w1_vs_truth_eq6": 0.0367,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-A+",
+        "K": 13,
+        "validity_pct": 99.8,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0175,
+        "median_w1_vs_truth_eq6": 0.0365,
+        "n_valid": 998
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-TA+",
+        "K": 4,
+        "validity_pct": 99.8,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0294,
+        "median_w1_vs_truth_eq6": 0.044,
+        "n_valid": 998
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-TA+",
+        "K": 7,
+        "validity_pct": 99.4,
+        "false_modality_pct": 16.3,
+        "median_w1_eq6": 0.0204,
+        "median_w1_vs_truth_eq6": 0.0388,
+        "n_valid": 994
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-TA+",
+        "K": 10,
+        "validity_pct": 99.4,
+        "false_modality_pct": 18.9,
+        "median_w1_eq6": 0.0179,
+        "median_w1_vs_truth_eq6": 0.0377,
+        "n_valid": 994
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-TA+",
+        "K": 13,
+        "validity_pct": 99.1,
+        "false_modality_pct": 38.2,
+        "median_w1_eq6": 0.0162,
+        "median_w1_vs_truth_eq6": 0.0371,
+        "n_valid": 991
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-U",
+        "K": 4,
+        "validity_pct": 99.8,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0294,
+        "median_w1_vs_truth_eq6": 0.044,
+        "n_valid": 998
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-U",
+        "K": 7,
+        "validity_pct": 83.2,
+        "false_modality_pct": 10.0,
+        "median_w1_eq6": 0.0194,
+        "median_w1_vs_truth_eq6": 0.039,
+        "n_valid": 832
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-U",
+        "K": 10,
+        "validity_pct": 49.6,
+        "false_modality_pct": 43.3,
+        "median_w1_eq6": 0.0145,
+        "median_w1_vs_truth_eq6": 0.0367,
+        "n_valid": 496
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-U",
+        "K": 13,
+        "validity_pct": 31.2,
+        "false_modality_pct": 65.7,
+        "median_w1_eq6": 0.0114,
+        "median_w1_vs_truth_eq6": 0.0376,
+        "n_valid": 312
       }
     ]
   },
   "tableA1_mc_n50": {
-    "script": "mc_johnson_tables.py",
-    "w1_reference": "each replicate's OWN sample EQF (Weibull positions), NOT the true distribution -- this is the stored w1_normalized field",
+    "script": "mc_tables_rebuild.py",
+    "w1_reference": "each replicate's OWN sample EQF (Weibull positions), NOT the true distribution",
+    "w1_integration": "plain mean over [0.01, 0.99], divided by that replicate's interdecile range",
+    "orders": [
+      4,
+      7,
+      10,
+      13
+    ],
     "rows": [
       {
-        "distribution": "Johnson SU",
-        "model": "Metalog",
-        "K": 3,
-        "feasibility_pct": 98.6,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0518,
-        "median_w1_unnormalized": 0.1558,
-        "n_feasible": 986
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "Metalog",
-        "K": 7,
-        "feasibility_pct": 61.5,
-        "false_modality_pct": 37.9,
-        "median_w1_eq6": 0.0269,
-        "median_w1_unnormalized": 0.0783,
-        "n_feasible": 615
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "Metalog",
-        "K": 10,
-        "feasibility_pct": 41.2,
-        "false_modality_pct": 90.5,
-        "median_w1_eq6": 0.0238,
-        "median_w1_unnormalized": 0.0718,
-        "n_feasible": 412
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "QFlex-U",
-        "K": 3,
-        "feasibility_pct": 92.2,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0493,
-        "median_w1_unnormalized": 0.1488,
-        "n_feasible": 922
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "QFlex-U",
-        "K": 7,
-        "feasibility_pct": 51.1,
-        "false_modality_pct": 31.3,
-        "median_w1_eq6": 0.0308,
-        "median_w1_unnormalized": 0.0918,
-        "n_feasible": 511
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "QFlex-U",
-        "K": 10,
-        "feasibility_pct": 28.9,
-        "false_modality_pct": 87.2,
-        "median_w1_eq6": 0.0304,
-        "median_w1_unnormalized": 0.0898,
-        "n_feasible": 289
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "QFlex-TA+",
-        "K": 3,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0519,
-        "median_w1_unnormalized": 0.1578,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "QFlex-TA+",
-        "K": 7,
-        "feasibility_pct": 97.9,
-        "false_modality_pct": 18.3,
-        "median_w1_eq6": 0.0305,
-        "median_w1_unnormalized": 0.0906,
-        "n_feasible": 979
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "QFlex-TA+",
-        "K": 10,
-        "feasibility_pct": 97.1,
-        "false_modality_pct": 33.3,
-        "median_w1_eq6": 0.0275,
-        "median_w1_unnormalized": 0.0819,
-        "n_feasible": 971
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "QFlex-A+",
-        "K": 3,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0519,
-        "median_w1_unnormalized": 0.1578,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "QFlex-A+",
-        "K": 7,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0321,
-        "median_w1_unnormalized": 0.0973,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SU",
-        "model": "QFlex-A+",
-        "K": 10,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0298,
-        "median_w1_unnormalized": 0.0883,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "Metalog",
-        "K": 3,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0448,
-        "median_w1_unnormalized": 0.0791,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "Metalog",
-        "K": 7,
-        "feasibility_pct": 53.8,
-        "false_modality_pct": 23.0,
-        "median_w1_eq6": 0.0275,
-        "median_w1_unnormalized": 0.0466,
-        "n_feasible": 538
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "Metalog",
-        "K": 10,
-        "feasibility_pct": 36.0,
-        "false_modality_pct": 89.2,
-        "median_w1_eq6": 0.0258,
-        "median_w1_unnormalized": 0.0486,
-        "n_feasible": 360
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "QFlex-U",
-        "K": 3,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0447,
-        "median_w1_unnormalized": 0.0789,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "QFlex-U",
-        "K": 7,
-        "feasibility_pct": 52.4,
-        "false_modality_pct": 36.8,
-        "median_w1_eq6": 0.0318,
-        "median_w1_unnormalized": 0.0552,
-        "n_feasible": 524
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "QFlex-U",
-        "K": 10,
-        "feasibility_pct": 24.8,
-        "false_modality_pct": 83.9,
-        "median_w1_eq6": 0.0397,
-        "median_w1_unnormalized": 0.0669,
-        "n_feasible": 248
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "QFlex-TA+",
-        "K": 3,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0447,
-        "median_w1_unnormalized": 0.0789,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "QFlex-TA+",
-        "K": 7,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 7.3,
-        "median_w1_eq6": 0.0298,
-        "median_w1_unnormalized": 0.0543,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "QFlex-TA+",
-        "K": 10,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 31.8,
-        "median_w1_eq6": 0.0279,
-        "median_w1_unnormalized": 0.0509,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "QFlex-A+",
-        "K": 3,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0447,
-        "median_w1_unnormalized": 0.0789,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "QFlex-A+",
-        "K": 7,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 6.5,
-        "median_w1_eq6": 0.0296,
-        "median_w1_unnormalized": 0.0542,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SL",
-        "model": "QFlex-A+",
-        "K": 10,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 6.8,
-        "median_w1_eq6": 0.029,
-        "median_w1_unnormalized": 0.0532,
-        "n_feasible": 1000
-      },
-      {
         "distribution": "Johnson SB",
         "model": "Metalog",
-        "K": 3,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0295,
-        "median_w1_unnormalized": 0.0143,
-        "n_feasible": 1000
+        "K": 4,
+        "validity_pct": 99.9,
+        "false_modality_pct": 1.3,
+        "median_w1_eq6": 0.0251,
+        "median_w1_vs_truth_eq6": 0.0502,
+        "n_valid": 999
       },
       {
         "distribution": "Johnson SB",
         "model": "Metalog",
         "K": 7,
-        "feasibility_pct": 53.8,
+        "validity_pct": 53.8,
         "false_modality_pct": 52.4,
-        "median_w1_eq6": 0.0184,
-        "median_w1_unnormalized": 0.0086,
-        "n_feasible": 538
+        "median_w1_eq6": 0.0187,
+        "median_w1_vs_truth_eq6": 0.0526,
+        "n_valid": 538
       },
       {
         "distribution": "Johnson SB",
         "model": "Metalog",
         "K": 10,
-        "feasibility_pct": 36.0,
+        "validity_pct": 35.9,
         "false_modality_pct": 95.8,
-        "median_w1_eq6": 0.0147,
-        "median_w1_unnormalized": 0.0072,
-        "n_feasible": 360
+        "median_w1_eq6": 0.015,
+        "median_w1_vs_truth_eq6": 0.0549,
+        "n_valid": 359
       },
       {
         "distribution": "Johnson SB",
-        "model": "QFlex-U",
-        "K": 3,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0299,
-        "median_w1_unnormalized": 0.0144,
-        "n_feasible": 1000
+        "model": "Metalog",
+        "K": 13,
+        "validity_pct": 12.4,
+        "false_modality_pct": 100.0,
+        "median_w1_eq6": 0.0133,
+        "median_w1_vs_truth_eq6": 0.0577,
+        "n_valid": 124
       },
       {
         "distribution": "Johnson SB",
-        "model": "QFlex-U",
+        "model": "QFlex-A+",
+        "K": 4,
+        "validity_pct": 100.0,
+        "false_modality_pct": 1.1,
+        "median_w1_eq6": 0.026,
+        "median_w1_vs_truth_eq6": 0.0486,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-A+",
         "K": 7,
-        "feasibility_pct": 52.4,
-        "false_modality_pct": 61.6,
-        "median_w1_eq6": 0.0194,
-        "median_w1_unnormalized": 0.0092,
-        "n_feasible": 524
+        "validity_pct": 100.0,
+        "false_modality_pct": 3.0,
+        "median_w1_eq6": 0.0223,
+        "median_w1_vs_truth_eq6": 0.0508,
+        "n_valid": 1000
       },
       {
         "distribution": "Johnson SB",
-        "model": "QFlex-U",
+        "model": "QFlex-A+",
         "K": 10,
-        "feasibility_pct": 24.8,
-        "false_modality_pct": 95.6,
-        "median_w1_eq6": 0.016,
-        "median_w1_unnormalized": 0.0077,
-        "n_feasible": 248
-      },
-      {
-        "distribution": "Johnson SB",
-        "model": "QFlex-TA+",
-        "K": 3,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0299,
-        "median_w1_unnormalized": 0.0144,
-        "n_feasible": 1000
-      },
-      {
-        "distribution": "Johnson SB",
-        "model": "QFlex-TA+",
-        "K": 7,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 15.6,
+        "validity_pct": 100.0,
+        "false_modality_pct": 4.5,
         "median_w1_eq6": 0.0215,
-        "median_w1_unnormalized": 0.0104,
-        "n_feasible": 1000
+        "median_w1_vs_truth_eq6": 0.0508,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-A+",
+        "K": 13,
+        "validity_pct": 99.7,
+        "false_modality_pct": 4.9,
+        "median_w1_eq6": 0.0211,
+        "median_w1_vs_truth_eq6": 0.051,
+        "n_valid": 997
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-TA+",
+        "K": 4,
+        "validity_pct": 100.0,
+        "false_modality_pct": 1.1,
+        "median_w1_eq6": 0.0252,
+        "median_w1_vs_truth_eq6": 0.0499,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-TA+",
+        "K": 7,
+        "validity_pct": 100.0,
+        "false_modality_pct": 15.6,
+        "median_w1_eq6": 0.0219,
+        "median_w1_vs_truth_eq6": 0.051,
+        "n_valid": 1000
       },
       {
         "distribution": "Johnson SB",
         "model": "QFlex-TA+",
         "K": 10,
-        "feasibility_pct": 100.0,
+        "validity_pct": 100.0,
         "false_modality_pct": 55.7,
-        "median_w1_eq6": 0.019,
-        "median_w1_unnormalized": 0.0091,
-        "n_feasible": 1000
+        "median_w1_eq6": 0.0193,
+        "median_w1_vs_truth_eq6": 0.0526,
+        "n_valid": 1000
       },
       {
         "distribution": "Johnson SB",
+        "model": "QFlex-TA+",
+        "K": 13,
+        "validity_pct": 97.5,
+        "false_modality_pct": 80.0,
+        "median_w1_eq6": 0.0182,
+        "median_w1_vs_truth_eq6": 0.0535,
+        "n_valid": 975
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-U",
+        "K": 4,
+        "validity_pct": 99.2,
+        "false_modality_pct": 1.1,
+        "median_w1_eq6": 0.0252,
+        "median_w1_vs_truth_eq6": 0.0496,
+        "n_valid": 992
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-U",
+        "K": 7,
+        "validity_pct": 52.5,
+        "false_modality_pct": 61.7,
+        "median_w1_eq6": 0.0198,
+        "median_w1_vs_truth_eq6": 0.0539,
+        "n_valid": 525
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-U",
+        "K": 10,
+        "validity_pct": 24.7,
+        "false_modality_pct": 95.5,
+        "median_w1_eq6": 0.0163,
+        "median_w1_vs_truth_eq6": 0.055,
+        "n_valid": 247
+      },
+      {
+        "distribution": "Johnson SB",
+        "model": "QFlex-U",
+        "K": 13,
+        "validity_pct": 5.0,
+        "false_modality_pct": 94.0,
+        "median_w1_eq6": 0.0145,
+        "median_w1_vs_truth_eq6": 0.0551,
+        "n_valid": 50
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "Metalog",
+        "K": 4,
+        "validity_pct": 99.9,
+        "false_modality_pct": 0.3,
+        "median_w1_eq6": 0.0356,
+        "median_w1_vs_truth_eq6": 0.071,
+        "n_valid": 999
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "Metalog",
+        "K": 7,
+        "validity_pct": 53.8,
+        "false_modality_pct": 23.2,
+        "median_w1_eq6": 0.0281,
+        "median_w1_vs_truth_eq6": 0.077,
+        "n_valid": 538
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "Metalog",
+        "K": 10,
+        "validity_pct": 35.9,
+        "false_modality_pct": 89.1,
+        "median_w1_eq6": 0.0264,
+        "median_w1_vs_truth_eq6": 0.0832,
+        "n_valid": 359
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "Metalog",
+        "K": 13,
+        "validity_pct": 12.4,
+        "false_modality_pct": 100.0,
+        "median_w1_eq6": 0.0307,
+        "median_w1_vs_truth_eq6": 0.1056,
+        "n_valid": 124
+      },
+      {
+        "distribution": "Johnson SL",
         "model": "QFlex-A+",
-        "K": 3,
-        "feasibility_pct": 100.0,
+        "K": 4,
+        "validity_pct": 100.0,
         "false_modality_pct": 0.0,
-        "median_w1_eq6": 0.0299,
-        "median_w1_unnormalized": 0.0144,
-        "n_feasible": 1000
+        "median_w1_eq6": 0.0359,
+        "median_w1_vs_truth_eq6": 0.069,
+        "n_valid": 1000
       },
       {
-        "distribution": "Johnson SB",
+        "distribution": "Johnson SL",
         "model": "QFlex-A+",
         "K": 7,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 2.9,
-        "median_w1_eq6": 0.0219,
-        "median_w1_unnormalized": 0.0107,
-        "n_feasible": 1000
+        "validity_pct": 100.0,
+        "false_modality_pct": 6.6,
+        "median_w1_eq6": 0.0302,
+        "median_w1_vs_truth_eq6": 0.0722,
+        "n_valid": 1000
       },
       {
-        "distribution": "Johnson SB",
+        "distribution": "Johnson SL",
         "model": "QFlex-A+",
         "K": 10,
-        "feasibility_pct": 100.0,
-        "false_modality_pct": 4.4,
-        "median_w1_eq6": 0.0211,
-        "median_w1_unnormalized": 0.0103,
-        "n_feasible": 1000
+        "validity_pct": 100.0,
+        "false_modality_pct": 6.9,
+        "median_w1_eq6": 0.0296,
+        "median_w1_vs_truth_eq6": 0.0743,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-A+",
+        "K": 13,
+        "validity_pct": 99.7,
+        "false_modality_pct": 6.8,
+        "median_w1_eq6": 0.0292,
+        "median_w1_vs_truth_eq6": 0.075,
+        "n_valid": 997
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-TA+",
+        "K": 4,
+        "validity_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0357,
+        "median_w1_vs_truth_eq6": 0.0716,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-TA+",
+        "K": 7,
+        "validity_pct": 100.0,
+        "false_modality_pct": 7.4,
+        "median_w1_eq6": 0.0303,
+        "median_w1_vs_truth_eq6": 0.0733,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-TA+",
+        "K": 10,
+        "validity_pct": 100.0,
+        "false_modality_pct": 31.9,
+        "median_w1_eq6": 0.0284,
+        "median_w1_vs_truth_eq6": 0.0763,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-TA+",
+        "K": 13,
+        "validity_pct": 97.5,
+        "false_modality_pct": 57.1,
+        "median_w1_eq6": 0.0274,
+        "median_w1_vs_truth_eq6": 0.0779,
+        "n_valid": 975
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-U",
+        "K": 4,
+        "validity_pct": 99.2,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0357,
+        "median_w1_vs_truth_eq6": 0.0714,
+        "n_valid": 992
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-U",
+        "K": 7,
+        "validity_pct": 52.5,
+        "false_modality_pct": 37.0,
+        "median_w1_eq6": 0.0324,
+        "median_w1_vs_truth_eq6": 0.0792,
+        "n_valid": 525
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-U",
+        "K": 10,
+        "validity_pct": 24.7,
+        "false_modality_pct": 83.8,
+        "median_w1_eq6": 0.0401,
+        "median_w1_vs_truth_eq6": 0.1004,
+        "n_valid": 247
+      },
+      {
+        "distribution": "Johnson SL",
+        "model": "QFlex-U",
+        "K": 13,
+        "validity_pct": 5.0,
+        "false_modality_pct": 92.0,
+        "median_w1_eq6": 0.1467,
+        "median_w1_vs_truth_eq6": 0.2514,
+        "n_valid": 50
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "Metalog",
+        "K": 4,
+        "validity_pct": 97.1,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0385,
+        "median_w1_vs_truth_eq6": 0.0805,
+        "n_valid": 971
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "Metalog",
+        "K": 7,
+        "validity_pct": 61.5,
+        "false_modality_pct": 37.7,
+        "median_w1_eq6": 0.0274,
+        "median_w1_vs_truth_eq6": 0.0798,
+        "n_valid": 615
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "Metalog",
+        "K": 10,
+        "validity_pct": 41.2,
+        "false_modality_pct": 90.5,
+        "median_w1_eq6": 0.0242,
+        "median_w1_vs_truth_eq6": 0.0874,
+        "n_valid": 412
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "Metalog",
+        "K": 13,
+        "validity_pct": 16.4,
+        "false_modality_pct": 97.6,
+        "median_w1_eq6": 0.0258,
+        "median_w1_vs_truth_eq6": 0.096,
+        "n_valid": 164
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-A+",
+        "K": 4,
+        "validity_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.053,
+        "median_w1_vs_truth_eq6": 0.0853,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-A+",
+        "K": 7,
+        "validity_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0327,
+        "median_w1_vs_truth_eq6": 0.0803,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-A+",
+        "K": 10,
+        "validity_pct": 100.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0303,
+        "median_w1_vs_truth_eq6": 0.0811,
+        "n_valid": 1000
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-A+",
+        "K": 13,
+        "validity_pct": 99.3,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0293,
+        "median_w1_vs_truth_eq6": 0.0806,
+        "n_valid": 993
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-TA+",
+        "K": 4,
+        "validity_pct": 98.1,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0377,
+        "median_w1_vs_truth_eq6": 0.0799,
+        "n_valid": 981
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-TA+",
+        "K": 7,
+        "validity_pct": 97.9,
+        "false_modality_pct": 18.3,
+        "median_w1_eq6": 0.031,
+        "median_w1_vs_truth_eq6": 0.0805,
+        "n_valid": 979
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-TA+",
+        "K": 10,
+        "validity_pct": 97.1,
+        "false_modality_pct": 33.2,
+        "median_w1_eq6": 0.0281,
+        "median_w1_vs_truth_eq6": 0.0817,
+        "n_valid": 971
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-TA+",
+        "K": 13,
+        "validity_pct": 96.5,
+        "false_modality_pct": 57.9,
+        "median_w1_eq6": 0.0264,
+        "median_w1_vs_truth_eq6": 0.0817,
+        "n_valid": 965
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-U",
+        "K": 4,
+        "validity_pct": 98.0,
+        "false_modality_pct": 0.0,
+        "median_w1_eq6": 0.0377,
+        "median_w1_vs_truth_eq6": 0.0799,
+        "n_valid": 980
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-U",
+        "K": 7,
+        "validity_pct": 51.2,
+        "false_modality_pct": 31.2,
+        "median_w1_eq6": 0.0314,
+        "median_w1_vs_truth_eq6": 0.0864,
+        "n_valid": 512
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-U",
+        "K": 10,
+        "validity_pct": 28.9,
+        "false_modality_pct": 87.2,
+        "median_w1_eq6": 0.031,
+        "median_w1_vs_truth_eq6": 0.0879,
+        "n_valid": 289
+      },
+      {
+        "distribution": "Johnson SU",
+        "model": "QFlex-U",
+        "K": 13,
+        "validity_pct": 8.9,
+        "false_modality_pct": 98.9,
+        "median_w1_eq6": 0.0411,
+        "median_w1_vs_truth_eq6": 0.1209,
+        "n_valid": 89
       }
     ]
   },
@@ -823,6 +1077,30 @@
         "max_modes": 4
       },
       {
+        "model": "Metalog",
+        "K": 11,
+        "original_n_modes": null,
+        "n_valid": 398,
+        "persist_pct": null,
+        "max_modes": 4
+      },
+      {
+        "model": "Metalog",
+        "K": 12,
+        "original_n_modes": null,
+        "n_valid": 250,
+        "persist_pct": null,
+        "max_modes": 5
+      },
+      {
+        "model": "Metalog",
+        "K": 13,
+        "original_n_modes": null,
+        "n_valid": 167,
+        "persist_pct": null,
+        "max_modes": 5
+      },
+      {
         "model": "QFlex-U",
         "K": 3,
         "original_n_modes": 1,
@@ -887,6 +1165,30 @@
         "max_modes": 4
       },
       {
+        "model": "QFlex-U",
+        "K": 11,
+        "original_n_modes": null,
+        "n_valid": 77,
+        "persist_pct": null,
+        "max_modes": 4
+      },
+      {
+        "model": "QFlex-U",
+        "K": 12,
+        "original_n_modes": null,
+        "n_valid": 81,
+        "persist_pct": null,
+        "max_modes": 4
+      },
+      {
+        "model": "QFlex-U",
+        "K": 13,
+        "original_n_modes": null,
+        "n_valid": 66,
+        "persist_pct": null,
+        "max_modes": 5
+      },
+      {
         "model": "QFlex-A+",
         "K": 3,
         "original_n_modes": 1,
@@ -947,6 +1249,30 @@
         "K": 10,
         "original_n_modes": 1,
         "n_valid": 1000,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "QFlex-A+",
+        "K": 11,
+        "original_n_modes": 1,
+        "n_valid": 999,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "QFlex-A+",
+        "K": 12,
+        "original_n_modes": 1,
+        "n_valid": 1000,
+        "persist_pct": 100.0,
+        "max_modes": 1
+      },
+      {
+        "model": "QFlex-A+",
+        "K": 13,
+        "original_n_modes": 1,
+        "n_valid": 997,
         "persist_pct": 100.0,
         "max_modes": 1
       },
@@ -1013,6 +1339,30 @@
         "n_valid": 995,
         "persist_pct": 52.2,
         "max_modes": 3
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 11,
+        "original_n_modes": 1,
+        "n_valid": 995,
+        "persist_pct": 53.3,
+        "max_modes": 3
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 12,
+        "original_n_modes": 1,
+        "n_valid": 995,
+        "persist_pct": 54.7,
+        "max_modes": 3
+      },
+      {
+        "model": "QFlex-TA+",
+        "K": 13,
+        "original_n_modes": 2,
+        "n_valid": 986,
+        "persist_pct": 38.2,
+        "max_modes": 4
       }
     ]
   },
@@ -1339,10 +1689,22 @@
         "n_flat": 0
       },
       {
+        "model": "Log Metalog-13",
+        "valid_pct": 11.1,
+        "mode_loc_iqr_ft": 0.2042,
+        "mode_ht_iqr_perft": 0.4877,
+        "median_w1_eq6": 0.0461,
+        "median_w1_ft": 0.1711,
+        "modes_1_pct": 1.8,
+        "modes_2_pct": 17.1,
+        "modes_gt2_pct": 81.1,
+        "n_flat": 0
+      },
+      {
         "model": "Log QFlex-A+-4",
         "valid_pct": 100.0,
-        "mode_loc_iqr_ft": NaN,
-        "mode_ht_iqr_perft": NaN,
+        "mode_loc_iqr_ft": 0.4221,
+        "mode_ht_iqr_perft": 0.0468,
         "median_w1_eq6": 0.04533,
         "median_w1_ft": 0.1682,
         "modes_1_pct": 100.0,
@@ -1353,8 +1715,8 @@
       {
         "model": "Log QFlex-A+-7",
         "valid_pct": 100.0,
-        "mode_loc_iqr_ft": NaN,
-        "mode_ht_iqr_perft": NaN,
+        "mode_loc_iqr_ft": 0.3521,
+        "mode_ht_iqr_perft": 0.0512,
         "median_w1_eq6": 0.0465,
         "median_w1_ft": 0.1726,
         "modes_1_pct": 100.0,
@@ -1365,14 +1727,26 @@
       {
         "model": "Log QFlex-A+-10",
         "valid_pct": 100.0,
-        "mode_loc_iqr_ft": NaN,
-        "mode_ht_iqr_perft": NaN,
+        "mode_loc_iqr_ft": 0.286,
+        "mode_ht_iqr_perft": 0.0531,
         "median_w1_eq6": 0.04675,
         "median_w1_ft": 0.1735,
         "modes_1_pct": 100.0,
         "modes_2_pct": 0.0,
         "modes_gt2_pct": 0.0,
         "n_flat": 33
+      },
+      {
+        "model": "Log QFlex-A+-13",
+        "valid_pct": 100.0,
+        "mode_loc_iqr_ft": 0.2824,
+        "mode_ht_iqr_perft": 0.0528,
+        "median_w1_eq6": 0.04645,
+        "median_w1_ft": 0.1724,
+        "modes_1_pct": 100.0,
+        "modes_2_pct": 0.0,
+        "modes_gt2_pct": 0.0,
+        "n_flat": 27
       }
     ],
     "modality_tests": {
@@ -2329,6 +2703,16 @@
     "rows": [
       {
         "model": "Log Metalog",
+        "K": 4,
+        "valid_pct": 15.9,
+        "unimodal_pct": 98.1,
+        "bimodal_pct": 1.9,
+        "gt2_pct": 0.0,
+        "median_w1_eq6": 0.0555,
+        "median_w1_min": 2.0531
+      },
+      {
+        "model": "Log Metalog",
         "K": 5,
         "valid_pct": 12.2,
         "unimodal_pct": 76.2,
@@ -2386,6 +2770,46 @@
         "gt2_pct": 80.1,
         "median_w1_eq6": 0.0246,
         "median_w1_min": 0.9116
+      },
+      {
+        "model": "Log Metalog",
+        "K": 11,
+        "valid_pct": 37.6,
+        "unimodal_pct": 0.0,
+        "bimodal_pct": 10.6,
+        "gt2_pct": 89.4,
+        "median_w1_eq6": 0.024,
+        "median_w1_min": 0.8876
+      },
+      {
+        "model": "Log Metalog",
+        "K": 12,
+        "valid_pct": 73.0,
+        "unimodal_pct": 0.3,
+        "bimodal_pct": 7.7,
+        "gt2_pct": 92.1,
+        "median_w1_eq6": 0.0227,
+        "median_w1_min": 0.8415
+      },
+      {
+        "model": "Log Metalog",
+        "K": 13,
+        "valid_pct": 63.7,
+        "unimodal_pct": 0.0,
+        "bimodal_pct": 4.7,
+        "gt2_pct": 95.3,
+        "median_w1_eq6": 0.0219,
+        "median_w1_min": 0.8093
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 4,
+        "valid_pct": 100.0,
+        "unimodal_pct": 99.7,
+        "bimodal_pct": 0.0,
+        "gt2_pct": 0.0,
+        "median_w1_eq6": 0.0619,
+        "median_w1_min": 2.29
       },
       {
         "model": "Log QFlex-TA+",
@@ -2446,6 +2870,36 @@
         "gt2_pct": 0.0,
         "median_w1_eq6": 0.0278,
         "median_w1_min": 1.0273
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 11,
+        "valid_pct": 99.7,
+        "unimodal_pct": 3.2,
+        "bimodal_pct": 96.8,
+        "gt2_pct": 0.0,
+        "median_w1_eq6": 0.0278,
+        "median_w1_min": 1.0282
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 12,
+        "valid_pct": 99.7,
+        "unimodal_pct": 2.5,
+        "bimodal_pct": 97.5,
+        "gt2_pct": 0.0,
+        "median_w1_eq6": 0.0278,
+        "median_w1_min": 1.0275
+      },
+      {
+        "model": "Log QFlex-TA+",
+        "K": 13,
+        "valid_pct": 92.0,
+        "unimodal_pct": 0.2,
+        "bimodal_pct": 99.5,
+        "gt2_pct": 0.3,
+        "median_w1_eq6": 0.0259,
+        "median_w1_min": 0.9597
       }
     ],
     "kde_modes": [

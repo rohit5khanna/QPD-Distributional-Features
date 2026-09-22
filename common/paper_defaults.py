@@ -1,9 +1,9 @@
 """
 The paper's conventions and seeds, in one place.
 
-QPD Playground is meant to be an interactive companion to Khanna & Bickel,
-*Inferring Distributional Features based on Quantile-Parameterized
-Distribution Fits*. For that to mean anything, the notebook's DEFAULTS have to
+*Bump Hunting with QPDs* is the interactive companion to Khanna & Bickel,
+*Bump Hunting, Structural Overfitting, and Quantile-Parameterized
+Distributions*. For that to mean anything, the notebook's DEFAULTS have to
 reproduce the paper's numbers -- a reader should be able to open it, touch
 nothing, and see the published result. Every control still moves; the paper is
 simply where each one starts.
@@ -92,13 +92,17 @@ DIST_PARAMS = dict(eta=0, kappa=1, c=0.5, d=1.2)
 MC_BASE_SEED = 42
 
 
-def mc_seed(sample_size, replication):
+def mc_seed(sample_size, replication, base=None):
     """The paper's Monte Carlo seed formula. Verified bit-exact against the
-    stored checkpoints for 200/200 replications of Johnson SU at N = 200."""
-    return MC_BASE_SEED + sample_size * 1000 + replication
+    stored checkpoints for 200/200 replications of Johnson SU at N = 200.
+
+    `base` overrides MC_BASE_SEED so an interactive caller can draw a DIFFERENT
+    but equally reproducible ensemble. base=42 is the paper.
+    """
+    return (MC_BASE_SEED if base is None else int(base)) + sample_size * 1000 + replication
 
 
-def mc_draw(dist, sample_size, replication):
+def mc_draw(dist, sample_size, replication, base=None):
     """One Monte Carlo sample, by the paper's generator path.
 
     MUST go through jpse's `rvs`. `dist.quantile(rng.random(n))` gives a
@@ -106,7 +110,8 @@ def mc_draw(dist, sample_size, replication):
     notebook's Monte Carlo numbers did not match the paper's.
     """
     return np.sort(np.asarray(
-        dist.rvs(size=sample_size, random_state=mc_seed(sample_size, replication)),
+        dist.rvs(size=sample_size,
+                 random_state=mc_seed(sample_size, replication, base)),
         float))
 
 
@@ -118,7 +123,7 @@ def mc_draw(dist, sample_size, replication):
 #: 200043 = 42 + 200*1000 + 1, i.e. mc_seed(200, 1).
 BOOTSTRAP_SEED = 200043
 BOOTSTRAP_N = 200
-BOOTSTRAP_K = [4, 7, 10]
+BOOTSTRAP_K = [4, 7, 10, 13]      # the paper's standard order set
 
 
 def bootstrap_resample_seed(b):
@@ -151,15 +156,36 @@ GEYSER_STREAM_BASE = 25_000_000
 HYDRO_BASE = 40_000_000
 BIMODAL_BASE = 60_000_000
 
+# Streams that belong to the NOTEBOOK, not the paper: the interactive
+# "draw again" buttons and the asset-return section, which is the notebook's
+# own extension. They were bare literals (70_000 for the bimodal redraw,
+# 471_000 * 10_000 for the returns bootstrap). 70_000 was not merely
+# undocumented, it was inside the fish pool: fish_seed(0.7, b) spans
+# 70_042..71_041, so a redraw could land on a fish replicate's stream and
+# check_seed_families would not have seen it, because it only checks the
+# families it is told about. Both now have bases of their own, above every
+# paper family, and are asserted alongside them.
+RETURNS_BASE = 80_000_000
+REDRAW_BASE = 90_000_000
+
 #: Jitter is the HALF-WIDTH: jitter j means Uniform(-j, +j).
 FISH_JITTER = 0.5             # lb   -- recorded weights are 1-lb heaped
 GEYSER_JITTER = 0.5           # min  -- waiting times are whole minutes
 HYDRO_JITTER = 0.0            # gauge heights are continuous; no jitter
+#: Clip floor after jittering, per dataset -- matches FLOOR in the
+#: reproduction's fish_common / geyser_common / hydrology_common.
 FISH_FLOOR = 0.01
 GEYSER_FLOOR = 1e-9
+HYDRO_FLOOR = 1e-9
 
 
-def _replicate(x_raw, b, jitter, base, floor, rng_seed=None):
+def _replicate(x_raw, jitter, floor, rng_seed):
+    """One bootstrap replicate: resample with replacement, then jitter.
+
+    `b` and `base` used to be parameters here and were never read -- the seed
+    was always passed in ready-made. They are gone, so a caller cannot believe
+    it is choosing a stream by passing them.
+    """
     n = len(x_raw)
     rng = np.random.default_rng(rng_seed)
     idx = rng.integers(0, n, size=n)
@@ -169,43 +195,58 @@ def _replicate(x_raw, b, jitter, base, floor, rng_seed=None):
     return np.clip(s, floor, None)
 
 
-def fish_seed(jitter, b):
+# ARGUMENT ORDER IS (jitter, b) IN ALL THREE. It used to be (jitter, b) for
+# fish and (b, jitter) for geyser, with hydrology taking b alone. Both
+# arguments are numbers, so geyser_seed(0.5, 3) against the old signature
+# meant b=0.5, jitter=3 and returned a different stream with no error. The
+# reproduction's *_common.py modules use (jitter, b); so does this module now.
+# Jitter keeps its per-dataset default, so callers may still pass b alone --
+# AS A KEYWORD.
+
+def fish_seed(jitter=FISH_JITTER, b=0):
     return MC_BASE_SEED + FISH_BASE + int(round(jitter * 100)) * 10_000 + b
 
 
-def fish_resample(x_raw, jitter, b):
-    return _replicate(x_raw, b, jitter, FISH_BASE, FISH_FLOOR, fish_seed(jitter, b))
+def fish_resample(x_raw, jitter=FISH_JITTER, b=0):
+    return _replicate(x_raw, jitter, FISH_FLOOR, fish_seed(jitter, b))
 
 
-def geyser_seed(b, jitter=GEYSER_JITTER):
+def geyser_seed(jitter=GEYSER_JITTER, b=0):
     return MC_BASE_SEED + GEYSER_BASE + int(round(jitter * 100)) * 10_000 + b
 
 
-def geyser_resample(x_raw, b, jitter=GEYSER_JITTER):
-    return _replicate(x_raw, b, jitter, GEYSER_BASE, GEYSER_FLOOR, geyser_seed(b, jitter))
+def geyser_resample(x_raw, jitter=GEYSER_JITTER, b=0):
+    return _replicate(x_raw, jitter, GEYSER_FLOOR, geyser_seed(jitter, b))
 
 
-def hydro_seed(b):
-    return MC_BASE_SEED + HYDRO_BASE + b
+def hydro_seed(jitter=HYDRO_JITTER, b=0):
+    return MC_BASE_SEED + HYDRO_BASE + int(round(jitter * 100)) * 10_000 + b
 
 
-def hydro_resample(x_raw, b):
-    return _replicate(x_raw, b, HYDRO_JITTER, HYDRO_BASE, 1e-9, hydro_seed(b))
+def hydro_resample(x_raw, jitter=HYDRO_JITTER, b=0):
+    return _replicate(x_raw, jitter, HYDRO_FLOOR, hydro_seed(jitter, b))
 
 
-def jitter_original(x_raw, jitter, base_stream, draw=0):
+def jitter_original(x_raw, jitter, base_stream, draw=0, floor=None):
     """One jitter realization of the RECORDED values -- no resampling.
 
     Used for point-estimate curves (every observation appears once). It needs
     its own stream: borrowing a replicate's seed would silently make the point
     estimate a duplicate of one bootstrap band member.
+
+    CLIPS AT `floor`, as fish_common.jitter_original and
+    geyser_common.jitter_original do. This module's version did not, which was
+    a silent divergence rather than a numeric one -- at the paper's jitters the
+    floor never binds (fish minimum is 1 lb against a 0.01 floor, geyser 43 min
+    against 1e-9) -- but it would have bitten the moment anyone raised the
+    jitter slider far enough to push a value to or below zero.
     """
     rng = np.random.default_rng(MC_BASE_SEED + base_stream
                                 + int(round(jitter * 100)) * 10_000 + draw)
     x = np.asarray(x_raw, float)
     if jitter > 0:
         x = x + rng.uniform(-jitter, jitter, size=len(x))
-    return x
+    return x if floor is None else np.clip(x, floor, None)
 
 
 # ---------------------------------------------------------------------------
@@ -214,11 +255,66 @@ def jitter_original(x_raw, jitter, base_stream, draw=0):
 
 BIMODAL_N = 200
 BIMODAL_WEIGHTS = (0.60, 0.40)
-BIMODAL_SEPARATION = -3.5     # x sigma of the base distribution, leftward
+BIMODAL_SEPARATION = -3.5     # x sigma of the base distribution, LEFTWARD.
+                              # The sign is load-bearing: the base SU is
+                              # skewed (c = 0.5), so a rightward shift is NOT
+                              # the mirror image -- it is a different
+                              # population, W1 = 0.589 away from this one.
+
+
+def base_sigma(eta=0.0, kappa=1.0, c=0.5, d=1.2):
+    """Closed-form standard deviation of the Johnson SU base distribution.
+
+    Q(p) = eta + kappa*sinh((z - c)/d) with z = Phi^-1(p), so X = eta +
+    kappa*sinh(W), W ~ Normal(mu, s^2) with mu = -c/d and s = 1/d. Using
+    E[e^W] = e^{mu + s^2/2}:
+
+        E[sinh W]   = e^{s^2/2} * sinh(mu)
+        E[sinh^2 W] = (e^{2 s^2} * cosh(2 mu) - 1) / 2
+        Var[X]      = kappa^2 * (E[sinh^2 W] - E[sinh W]^2)
+
+    Exact -- no grid, no draws, no seed.  Two WRONG values were in use before:
+    the notebook took np.std of the quantile function on a 5000-point grid
+    over [0.0005, 0.9995] (1.3244, 3.26 % low, because that truncation loses
+    real tail), and the paper's generator took np.std of 10,000 rvs draws
+    under default_rng(9999) (1.3792, 0.74 % high). The manuscript says the
+    second component sits 3.5 standard deviations away; only this value makes
+    that sentence true.
+    """
+    mu, s2 = -c / d, 1.0 / d ** 2
+    m1 = np.exp(s2 / 2) * np.sinh(mu)
+    m2 = (np.exp(2 * s2) * np.cosh(2 * mu) - 1) / 2
+    return float(kappa * np.sqrt(m2 - m1 ** 2))
+
+
+BIMODAL_BASE_SIGMA = base_sigma(**DIST_PARAMS)   # 1.3690932625389083
+
+
+def bimodal_shift(separation=None, sigma=None):
+    """The offset applied to the second component, in x units."""
+    sep = BIMODAL_SEPARATION if separation is None else separation
+    return sep * (BIMODAL_BASE_SIGMA if sigma is None else sigma)
 
 
 def bimodal_seed(replication):
     return MC_BASE_SEED + BIMODAL_BASE + replication
+
+
+def bimodal_draw(dist, n, seed_base, offset, weight_a=None):
+    """One sample from a two-component mixture, by the paper's sampler.
+
+    Mirrors generate_bimodal_source.sample_bimodal_mixture (and therefore
+    reproduction/scripts/bimodal_common.sample_mixture): the component split is
+    a single binomial on the mixture rng, then each component is drawn by
+    jpse's `rvs` on its own offset seed. `rng.random(n) < w` per draw plus
+    inverse-CDF is an equally valid sampler and gives a DIFFERENT sample from
+    the same seed, which is why it cannot be used here.
+    """
+    w = BIMODAL_WEIGHTS[0] if weight_a is None else float(weight_a)
+    n1 = int(np.random.default_rng(seed_base).binomial(n, w))
+    a = np.asarray(dist.rvs(size=n1, random_state=seed_base + 1000), float)
+    b = np.asarray(dist.rvs(size=n - n1, random_state=seed_base + 2000), float) + offset
+    return np.sort(np.concatenate([a, b]))
 
 
 # ---------------------------------------------------------------------------
@@ -233,12 +329,25 @@ def check_seed_families(n_boot=N_BOOT, verbose=False):
         'fish': {fish_seed(j, b) for j in fj for b in range(n_boot)}
                 | {MC_BASE_SEED + FISH_STREAM_BASE + int(round(j * 100)) * 10_000 + d
                    for j in fj for d in range(100)},
-        'geyser': {geyser_seed(b) for b in range(n_boot)}
+        'geyser': {geyser_seed(b=b) for b in range(n_boot)}
                   | {MC_BASE_SEED + GEYSER_STREAM_BASE
                      + int(round(GEYSER_JITTER * 100)) * 10_000 + d for d in range(100)},
-        'hydrology': {hydro_seed(b) for b in range(n_boot)},
-        'bimodal': {bimodal_seed(r) for r in range(n_boot)},
+        'hydrology': {hydro_seed(b=b) for b in range(n_boot)},
+        'bimodal': {bimodal_seed(r) for r in range(n_boot)}
+                   | {bimodal_seed(r) + off for r in range(n_boot)
+                      for off in (1000, 2000)},
+        'returns': {RETURNS_BASE + b for b in range(n_boot)},
+        'redraw': {REDRAW_BASE + d for d in range(n_boot)},
     }
+    # The bimodal component seeds are seed_base + 1000 / + 2000, so replicate
+    # r's SECOND component shares a stream with replicate (r + 1000)'s FIRST.
+    # That is safe only while n_boot <= 1000, which is why it is asserted
+    # rather than assumed -- raising N_BOOT would silently correlate them.
+    assert len(pools['bimodal']) == 3 * n_boot, (
+        'bimodal component streams overlap: replicate r component B shares a '
+        'seed with replicate r+1000 component A. Raise the 1000/2000 offsets '
+        f'before running more than 1000 replicates (n_boot={n_boot}).')
+
     names = list(pools)
     for i in range(len(names)):
         for j_ in range(i + 1, len(names)):

@@ -4,3 +4,4 @@ __pycache__/
 __marimo__/
 _site/
 .DS_Store
+_sync_backup_*/

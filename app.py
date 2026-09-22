@@ -13,7 +13,7 @@
 import marimo
 
 __generated_with = "0.24.0"
-app = marimo.App(width="medium", app_title="QPD Playground")
+app = marimo.App(width="medium", app_title="Bump Hunting with QPDs")
 
 
 @app.cell
@@ -104,10 +104,10 @@ def _():
 def _(mo):
     mo.md(
         r"""
-        # QPD Playground
+        # Bump Hunting with QPDs
 
-        A hands-on companion to *Inferring Distributional Features based on
-        Quantile-Parameterized Distribution Fits* (Khanna & Bickel). Every
+        A hands-on companion to *Bump Hunting, Structural Overfitting, and
+        Quantile-Parameterized Distributions* (Khanna & Bickel). Every
         panel below is live: drag the sliders, click the buttons, and watch
         the Metalog and QFlex fits move &mdash; including the spurious modes
         that motivate the paper.
@@ -118,7 +118,7 @@ def _(mo):
         &middot; four empirical case studies (each with its own QPD fit,
         Hartigan dip test, and bootstrap batch analysis). Every batch run
         reports all 4 QPDs &mdash; Metalog, QFlex-U, QFlex-TA+, QFlex-A+
-        &mdash; with the paper's feasibility / false-modality / W1
+        &mdash; with the paper's validity / false-modality / W1
         statistics, plus the Hartigan unimodality rejection rate.
         """
     )
@@ -167,6 +167,20 @@ def _(
     # two up is what made this notebook's W1 disagree with the paper's.
     W1_P_GRID = PAPER.P_GRID
 
+    def _modes_paper_grid(fit):
+        """Mode count on the PAPER's interval, [0.01, 0.99].
+
+        The live panels draw on FIT_P_GRID, which reaches much closer to p=0/1
+        so the curves span the plots. Counting modes out there disagrees with
+        the paper -- mode_utils.detect_modes_in_pdf uses [0.01, 0.99], and the
+        extreme tails are exactly where spurious bumps appear. Without this the
+        live panel and the batch summary could report different mode counts for
+        the same fit.
+        """
+        _x = np.asarray(fit.quantile(W1_P_GRID), float)
+        _p = np.asarray(fit.pdf(W1_P_GRID), float)
+        return detect_modes_from_arrays(_x, _p)
+
     def paper_settings_note(mo_ref, seed_text, settings, note=None):
         """A compact "to reproduce the paper, use these" callout.
 
@@ -188,7 +202,10 @@ def _(
 
 These are the defaults, so an untouched notebook already reproduces the
 paper. The values come from `common/paper_defaults.py`, the same module the
-paper's `reproduction/` scripts import.{_extra}
+paper's `reproduction/` scripts import. The **QFlex constraint** control drives
+only the single-fit panel; the batch summary always fits all four QPDs, and
+**K** selects which block of the paper's table a run reproduces rather than
+changing the experiment.{_extra}
 ///
 """
         )
@@ -210,11 +227,16 @@ paper's `reproduction/` scripts import.{_extra}
     # the one piece of information (which constraint?) most worth encoding
     # visually -- the constraint dropdown's own text was the only way to
     # tell U/TA+/A+ apart at a glance.
+    # These four are RESERVED for the four QPDs and are used for nothing else,
+    # here or in the paper -- they are the same hex values as the paper's
+    # reproduction/scripts/figure_style.py. Anything that is not one of these
+    # models (GEV, the population curve, observed data, bootstrap bands) draws
+    # a colour from outside this dict.
     MODEL_COLORS = {
-        "Metalog": "#3B5FA0",
-        "QFlex-U": "#8E5AA6",
-        "QFlex-TA+": "#B0413E",
-        "QFlex-A+": "#2E8B57",
+        "Metalog": "#1f77b4",
+        "QFlex-U": "#9467bd",
+        "QFlex-TA+": "#ff7f0e",
+        "QFlex-A+": "#2ca02c",
     }
     _QFLEX_CONSTRAINTS = {"QFlex-U": "NONE", "QFlex-TA+": "TA", "QFlex-A+": "A"}
 
@@ -262,7 +284,15 @@ paper's `reproduction/` scripts import.{_extra}
     # render_empirical_panel's `reference_fits` expects, with the curve
     # evaluated on FIT_P_GRID so W1 is computed on the same grid as every
     # QPD curve.
-    REFERENCE_COLORS = {"Normal": "#B5651D", "GEV": "#2E8B57"}
+    # figure_style.OTHER in the reproduction: GEV is BROWN. It was sea green
+    # (#2E8B57) here, one step from QFlex-A+ (#2ca02c) -- and the hydrology
+    # panel draws GEV and Log QFlex-A+ on the same axes, so the two reference
+    # curves the reader is meant to compare were near-indistinguishable.
+    #: figure_style.OTHER['observed'] -- observed data drawn as MARKERS, as
+    #: distinct from the empirical CURVE.
+    OBSERVED_COLOR = "#40556b"
+
+    REFERENCE_COLORS = {"Normal": "#B5651D", "GEV": "#8c564b"}
 
     def make_normal_reference(x_raw):
         """Maximum-likelihood normal fit (= sample mean / sd)."""
@@ -379,7 +409,7 @@ paper's `reproduction/` scripts import.{_extra}
         try:
             _mf = _make_metalog(x_sorted, y_plot_pos, k_metalog_val, bounds)
             _xg, _pg = _mf.quantile(FIT_P_GRID), _mf.pdf(FIT_P_GRID)
-            _results["Metalog"] = {"fit": _mf, "curve": (_xg, _pg), "modes": detect_modes_from_arrays(_xg, _pg)}
+            _results["Metalog"] = {"fit": _mf, "curve": (_xg, _pg), "modes": _modes_paper_grid(_mf)}
         except MetalogError as e:
             _results["Metalog"] = {"fit": None, "curve": None, "modes": (None, None, None)}
             _errors.append(f"Metalog: {e}")
@@ -389,7 +419,7 @@ paper's `reproduction/` scripts import.{_extra}
                 _constraint = ConstraintType[_QFLEX_CONSTRAINTS[_label]]
                 _qf = _make_qflex(x_sorted, y_plot_pos, k_qflex_val, _constraint, bounds)
                 _xg, _pg = _qf.quantile(FIT_P_GRID), _qf.pdf(FIT_P_GRID)
-                _results[_label] = {"fit": _qf, "curve": (_xg, _pg), "modes": detect_modes_from_arrays(_xg, _pg)}
+                _results[_label] = {"fit": _qf, "curve": (_xg, _pg), "modes": _modes_paper_grid(_qf)}
             except QFlexError as e:
                 _results[_label] = {"fit": None, "curve": None, "modes": (None, None, None)}
                 _errors.append(f"{_label}: {e}")
@@ -443,7 +473,7 @@ paper's `reproduction/` scripts import.{_extra}
             _pg = _mf.pdf(FIT_P_GRID)
             _metalog_fit = _mf
             _metalog_curve = (_xg, _pg)
-            _metalog_modes = detect_modes_from_arrays(_xg, _pg)
+            _metalog_modes = _modes_paper_grid(_mf)
         except MetalogError as e:
             _fit_error = f"Metalog: {e}"
 
@@ -454,7 +484,7 @@ paper's `reproduction/` scripts import.{_extra}
             _pg = _qf.pdf(FIT_P_GRID)
             _qflex_fit = _qf
             _qflex_curve = (_xg, _pg)
-            _qflex_modes = detect_modes_from_arrays(_xg, _pg)
+            _qflex_modes = _modes_paper_grid(_qf)
         except QFlexError as e:
             _fit_error = (_fit_error + " · " if _fit_error else "") + f"{QFLEX_LABELS[constraint_label]}: {e}"
 
@@ -495,7 +525,7 @@ paper's `reproduction/` scripts import.{_extra}
         def _line(name, fit, modes, w1):
             if fit is None:
                 return f"**{name}:** fit failed"
-            _feas = "valid" if fit.is_feasible else "⚠️ infeasible (PDF goes negative)"
+            _feas = "valid" if fit.is_feasible else "⚠️ not valid (PDF goes negative)"
             _w1_txt = f" | **W1 vs {w1_label}** = {w1:.4f}" if w1 is not None else ""
             return f"**{name}:** {_feas}, {_shape_text(modes[0])}{_w1_txt}"
 
@@ -555,7 +585,7 @@ paper's `reproduction/` scripts import.{_extra}
         )
         _fig.add_trace(
             go.Scatter(x=y_sample, y=x_sample, mode="markers", name="Sample",
-                        marker=dict(color="#4E5972", size=5, opacity=0.55)),
+                        marker=dict(color=OBSERVED_COLOR, size=5, opacity=0.55)),
             row=1, col=1,
         )
 
@@ -563,19 +593,19 @@ paper's `reproduction/` scripts import.{_extra}
             _xg, _pg = metalog_curve
             _fig.add_trace(
                 go.Scatter(x=FIT_P_GRID, y=_xg, mode="lines", name=f"{_metalog_display} K={k_metalog_val}",
-                            line=dict(color="#3B5FA0", width=2.4)),
+                            line=dict(color=MODEL_COLORS["Metalog"], width=2.4)),
                 row=1, col=1,
             )
             _fig.add_trace(
                 go.Scatter(x=_xg, y=_pg, mode="lines", name=f"{_metalog_display} K={k_metalog_val}",
-                            line=dict(color="#3B5FA0", width=2.4), showlegend=False),
+                            line=dict(color=MODEL_COLORS["Metalog"], width=2.4), showlegend=False),
                 row=1, col=2,
             )
             _n_modes, _locs, _hgts = metalog_modes
             if _locs is not None and len(_locs) > 0:
                 _fig.add_trace(
                     go.Scatter(x=_locs, y=_hgts, mode="markers", name=f"{_metalog_display} modes",
-                                marker=dict(color="#3B5FA0", size=10, symbol="diamond",
+                                marker=dict(color=MODEL_COLORS["Metalog"], size=10, symbol="diamond",
                                             line=dict(color="white", width=1))),
                     row=1, col=2,
                 )
@@ -611,24 +641,24 @@ paper's `reproduction/` scripts import.{_extra}
         )
         style_fig(_fig, dense_ticks=True)
 
-        # W1 vs the known true distribution's own quantile function -- the
-        # ground-truth analog of the "W1 vs empirical" number shown in the
-        # empirical-dataset sections, since here the true generating
-        # distribution (rather than just an empirical sample) is known.
-        # Equation 6, against the TRUE quantile function.
-        _true_on_w1 = np.asarray(true_dist.quantile(W1_P_GRID), float)
-        _L = PAPER.interdecile(_true_on_w1)
+        # W1 is measured against THIS REPLICATE'S OWN SAMPLE, not against the
+        # true distribution -- the paper's Monte Carlo tables (3 and A1) do the
+        # same. Distance-to-truth is a different quantity (estimation error);
+        # this one is fit to the data actually observed, which keeps the number
+        # comparable with the empirical sections, where no truth exists.
+        _eqf_on_w1 = PAPER.empirical_qf(x_sample, W1_P_GRID)
+        _L = PAPER.interdecile(_eqf_on_w1)
         def _eq6(curve):
             if curve is None:
                 return None
             _q = np.interp(W1_P_GRID, FIT_P_GRID, curve[0])
-            return PAPER.w1(_q, _true_on_w1, _L)[1]
+            return PAPER.w1(_q, _eqf_on_w1, _L)[1]
         _metalog_w1 = _eq6(metalog_curve)
         _qflex_w1 = _eq6(qflex_curve)
 
         return mo.vstack([
             mode_summary_md(mo, fit_error, metalog_fit, metalog_modes, qflex_fit, qflex_modes, constraint_label,
-                              metalog_w1=_metalog_w1, qflex_w1=_qflex_w1, w1_label="true", bounds=bounds,
+                              metalog_w1=_metalog_w1, qflex_w1=_qflex_w1, w1_label="sample", bounds=bounds,
                               true_n_modes=true_n_modes),
             mo.ui.plotly(_fig, config=plotly_config),
         ])
@@ -636,7 +666,7 @@ paper's `reproduction/` scripts import.{_extra}
     def render_empirical_panel(mo, plotly_config, title, axis_label, constraint_label, p_grid, eqf_point, eqf_lo,
                                  eqf_hi, x_raw, metalog_curve, metalog_fit, metalog_modes, qflex_curve, qflex_fit,
                                  qflex_modes, fit_error, value_xlim=None, bounds=None, reference_fits=None,
-                                 true_n_modes=1):
+                                 true_n_modes=1, bin_width=None, bin_start=None):
         """The EQF+CI / Metalog / QFlex panel pair shared by the four
         empirical dataset sections. The PDF panel also shows a histogram of
         the raw data for reference. `bounds` selects the boundedness
@@ -677,24 +707,37 @@ paper's `reproduction/` scripts import.{_extra}
         _stride = max(1, _n_raw // 400)
         _fig.add_trace(go.Scatter(
             x=_p_raw[::_stride], y=x_raw[::_stride], mode="markers", name="Raw data",
-            marker=dict(color="#4E5972", size=4, opacity=0.35),
+            marker=dict(color=OBSERVED_COLOR, size=4, opacity=0.35),
         ), row=1, col=1)
 
+        # `bin_width` follows the paper: bins of 2 x the jitter half-width, so
+        # one bin holds exactly the interval a recorded value can be smeared
+        # over (1 lb for fish at +/-0.5 lb, 1 min for geyser at +/-0.5 min).
+        # Sections that set no bin_width keep Plotly's 40-bin default.
+        if bin_width:
+            _hist_bins = dict(
+                autobinx=False,
+                xbins=dict(size=bin_width,
+                           start=(float(np.min(x_raw)) - bin_width / 2.0
+                                  if bin_start is None else bin_start)),
+            )
+        else:
+            _hist_bins = dict(nbinsx=40)
         _fig.add_trace(go.Histogram(
             x=x_raw, histnorm="probability density", name="Data histogram",
-            marker=dict(color="#C7CCDA"), opacity=0.55, nbinsx=40,
+            marker=dict(color="#C7CCDA"), opacity=0.55, **_hist_bins,
         ), row=1, col=2)
 
         if metalog_curve is not None:
             _xg, _pg = metalog_curve
             _fig.add_trace(go.Scatter(x=FIT_P_GRID, y=_xg, mode="lines", name=f"{_metalog_display} fit",
-                                        line=dict(color="#3B5FA0", width=2.4)), row=1, col=1)
+                                        line=dict(color=MODEL_COLORS["Metalog"], width=2.4)), row=1, col=1)
             _fig.add_trace(go.Scatter(x=_xg, y=_pg, mode="lines", name=f"{_metalog_display} fit",
-                                        line=dict(color="#3B5FA0", width=2.4), showlegend=False), row=1, col=2)
+                                        line=dict(color=MODEL_COLORS["Metalog"], width=2.4), showlegend=False), row=1, col=2)
             _n_modes, _locs, _hgts = metalog_modes
             if _locs is not None and len(_locs) > 0:
                 _fig.add_trace(go.Scatter(x=_locs, y=_hgts, mode="markers", name=f"{_metalog_display} modes",
-                                            marker=dict(color="#3B5FA0", size=10, symbol="diamond",
+                                            marker=dict(color=MODEL_COLORS["Metalog"], size=10, symbol="diamond",
                                                         line=dict(color="white", width=1))), row=1, col=2)
 
         if qflex_curve is not None:
@@ -729,7 +772,12 @@ paper's `reproduction/` scripts import.{_extra}
         # the raw curve max (which may itself be the spike) when nothing
         # feasible is available to anchor on, so the panel is never left
         # with no range at all.
-        _hist_counts, _ = np.histogram(x_raw, bins=40, density=True)
+        _hist_counts, _ = np.histogram(
+            x_raw,
+            bins=(np.arange(float(np.min(x_raw)) - bin_width / 2.0,
+                            float(np.max(x_raw)) + bin_width, bin_width)
+                  if bin_width else 40),
+            density=True)
         _hist_max = float(np.max(_hist_counts)) if len(_hist_counts) else 0.0
         _feasible_maxes = []
         if metalog_fit is not None and getattr(metalog_fit, "is_feasible", False) and metalog_curve is not None:
@@ -832,27 +880,44 @@ paper's `reproduction/` scripts import.{_extra}
         per-iteration table -- since for 30-100 replicates x 4 models that
         table was mostly noise nobody read.
 
-        w1_ref: either a single quantile-grid array used as the reference
-        for all 4 models (e.g. the "true" population in the Monte Carlo
-        sections, which doesn't depend on which model is fit), or a dict
-        {model_label: array_or_None} for a per-model reference (e.g. each
-        empirical section's own full-sample fit per model)."""
+        w1_ref: one of
+          * the string "own-sample" -- each replicate is measured against its
+            OWN sample's EQF, rebuilt per replicate. This is what the paper's
+            Monte Carlo tables do;
+          * a single quantile-grid array on FIT_P_GRID, used for all 4 models
+            (e.g. an empirical section's fixed observed EQF);
+          * a dict {model_label: array_or_None} for a per-model reference
+            (e.g. each section's own full-sample fit per model).
+        Whichever form is given, the reference reaching the W1 computation is
+        always an array on W1_P_GRID, so Equation 6 is evaluated on the paper's
+        interval and never on the wider drawing grid."""
         _constraints = {"QFlex-U": "NONE", "QFlex-TA+": "TA", "QFlex-A+": "A"}
-        _dp = FIT_P_GRID[1] - FIT_P_GRID[0]
+        # Whether draw_fn wants the replicate index is decided by INSPECTING it,
+        # not by catching TypeError: a genuine TypeError raised inside a correct
+        # draw_fn used to be swallowed and silently demote the section to the
+        # legacy single-stream RNG, losing per-replicate seeding without a word.
+        _draw_takes_rep = (getattr(draw_fn, "__code__", None) is not None
+                           and draw_fn.__code__.co_argcount >= 2)
         _rng = np.random.default_rng(seed)
         _rows = []
         _dip_rejects = 0
 
-        def _ref_for(label):
+        _OWN_SAMPLE = "own-sample"
+
+        def _ref_for(label, own_ref):
+            """Always returns a reference on W1_P_GRID (or None)."""
             if w1_ref is None:
                 return None
-            return w1_ref.get(label) if isinstance(w1_ref, dict) else w1_ref
+            if isinstance(w1_ref, str):
+                return own_ref
+            _a = w1_ref.get(label) if isinstance(w1_ref, dict) else w1_ref
+            return None if _a is None else np.interp(W1_P_GRID, FIT_P_GRID, _a)
 
         for _rep in range(n_reps):
-            try:
-                _x, _y = draw_fn(_rng, _rep)     # per-replicate seeding (paper)
-            except TypeError:
-                _x, _y = draw_fn(_rng)           # legacy one-stream draw
+            _x, _y = draw_fn(_rng, _rep) if _draw_takes_rep else draw_fn(_rng)
+            # Built once per replicate, not once per model.
+            _own_ref = (PAPER.empirical_qf(np.sort(_x), W1_P_GRID)
+                        if isinstance(w1_ref, str) and w1_ref == _OWN_SAMPLE else None)
 
             try:
                 _, _dip_pval, _dip_reject = hartigan_test(_x)
@@ -862,21 +927,34 @@ paper's `reproduction/` scripts import.{_extra}
 
             for _model_name in MODEL_ORDER:
                 _row = {"Replicate": _rep + 1, "Model": _model_name}
-                _w1_ref_arr = _ref_for(_model_name)
+                _w1_ref_arr = _ref_for(_model_name, _own_ref)
                 try:
                     if _model_name == "Metalog":
                         _fit = _make_metalog(_x, _y, k_metalog_val, bounds)
                     else:
                         _fit = _make_qflex(_x, _y, k_qflex_val, ConstraintType[_constraints[_model_name]], bounds)
-                    _xg = _fit.quantile(FIT_P_GRID)
-                    _pg = _fit.pdf(FIT_P_GRID)
-                    _n_modes, _, _ = detect_modes_from_arrays(_xg, _pg)
-                    _row["Feasible"] = bool(_fit.is_feasible)
-                    _row["Modes"] = int(_n_modes) if _n_modes is not None else 0
+                    # Modes and W1 are BOTH evaluated on the paper's grid,
+                    # [0.01, 0.99]. FIT_P_GRID is the wide DRAWING grid; the
+                    # extreme tails it reaches are exactly where spurious bumps
+                    # appear, so counting modes out there reads high against
+                    # the paper, whose detect_modes_in_pdf uses [0.01, 0.99].
+                    _xw = np.asarray(_fit.quantile(W1_P_GRID), float)
+                    _pw = np.asarray(_fit.pdf(W1_P_GRID), float)
+                    _n_modes, _, _ = detect_modes_from_arrays(_xw, _pw)
+                    _row["Valid"] = bool(_fit.is_feasible)
+                    # -1 marks an unusable PDF. The paper drops those from the
+                    # modality denominator rather than scoring them as 0 modes.
+                    _row["Modes"] = int(_n_modes) if _n_modes is not None else -1
                     if _w1_ref_arr is not None:
-                        _row[w1_label] = round(float(np.sum(np.abs(_xg - _w1_ref_arr)) * _dp), 4)
+                        # Equation 6: mean |Q_F - Q_T| over [0.01, 0.99],
+                        # divided by the TARGET's interdecile range. The old
+                        # sum(|.|)*dp on FIT_P_GRID was neither normalised nor
+                        # on the right interval.
+                        _row[w1_label] = round(
+                            PAPER.w1(_xw, _w1_ref_arr,
+                                     PAPER.interdecile(_w1_ref_arr))[1], 4)
                 except (MetalogError, QFlexError):
-                    _row["Feasible"] = False
+                    _row["Valid"] = False
                     _row["Modes"] = None
                     if _w1_ref_arr is not None:
                         _row[w1_label] = None
@@ -895,8 +973,8 @@ paper's `reproduction/` scripts import.{_extra}
         for _model in MODEL_ORDER:
             _g = _df[_df["Model"] == _model]
             _n = len(_g)
-            _feas = _g[_g["Feasible"]]
-            _feas_pct = round(100 * len(_feas) / _n) if _n else 0
+            _feas = _g[_g["Valid"]]
+            _feas_pct = round(100 * len(_feas) / _n, 1) if _n else 0.0
             # "False" modality means *more* modes than the population
             # actually has -- 1 in the unimodal-truth settings, 2 for the
             # bimodal mixture and the geyser. Hardcoding > 1 here would score
@@ -904,7 +982,9 @@ paper's `reproduction/` scripts import.{_extra}
             # failure. `true_n_modes=None` (fish: truth unresolved) falls
             # back to > 1 and the column is renamed to say so.
             _thr = 1 if true_n_modes is None else true_n_modes
-            _false_modal_pct = round(100 * (_feas["Modes"] > _thr).mean()) if len(_feas) else 0
+            _usable = _feas[_feas["Modes"] >= 0]
+            _false_modal_pct = (round(100 * float((_usable["Modes"] > _thr).mean()), 1)
+                                if len(_usable) else 0.0)
             _k_used = k_metalog_val if _model == "Metalog" else k_qflex_val
             _model_display = _qpd_prefix(bounds) + _model
             # "Valid fits" is the denominator the two right-hand columns are
@@ -918,24 +998,24 @@ paper's `reproduction/` scripts import.{_extra}
             # than as the small-sample artifact it is.
             _summary = {
                 "Model": _model_display, "K": _k_used, "Replicates": _n,
-                "Feasibility %": _feas_pct, "Valid fits": len(_feas),
+                "Validity %": _feas_pct, "Valid fits": len(_feas),
                 _modal_col: _false_modal_pct,
             }
             if w1_label in _g.columns:
                 _summary[f"Median {w1_label}"] = round(_feas[w1_label].median(), 4) if len(_feas) else float("nan")
             _summary_rows.append(_summary)
 
-        _dip_rate_pct = round(100 * _dip_rejects / n_reps) if n_reps else 0
+        _dip_rate_pct = round(100 * _dip_rejects / n_reps, 1) if n_reps else 0.0
 
         mo.output.replace(
             mo.vstack([
                 mo.md(f"**Done — {n_reps} replicates × 4 QPDs.**"),
                 mo.md(
-                    "**Summary across all replicates** &mdash; the same feasibility / false-modality / W1 "
-                    "statistics behind the paper's Table 2/3, now reported for all 4 QPDs. "
-                    f"**Feasibility %** is out of all *Replicates*; `{_modal_col}` and **Median W1** "
-                    "are conditioned on the feasible fits only, so their denominator is *Valid fits* "
-                    "&mdash; read those two columns against it, since a model that is feasible in only a "
+                    "**Summary across all replicates** &mdash; the same validity / false-modality / W1 "
+                    "statistics behind the paper's Tables 3 and A1, now reported for all 4 QPDs. "
+                    f"**Validity %** is out of all *Replicates*; `{_modal_col}` and **Median W1** "
+                    "are conditioned on the valid fits only, so their denominator is *Valid fits* "
+                    "&mdash; read those two columns against it, since a model that is valid in only a "
                     "handful of replicates can post an extreme percentage off very few fits."
                 ),
                 mo.ui.table(_summary_rows, selection=None, show_download=False, pagination=False),
@@ -1034,7 +1114,13 @@ def _(PLOTLY_CONFIG, go, make_subplots, mo, np, sb_dist, sl_dist, style_fig, su_
     )
 
     _p = np.linspace(0.002, 0.998, 500)
-    _specs = [(su_dist, "#3B5FA0", 1), (sl_dist, "#2E8B57", 2), (sb_dist, "#A66A16", 3)]
+    # figure_style.REFERENCE in the reproduction -- the three reference
+    # distributions get colours that are NOT any model's. The previous trio
+    # (#3B5FA0 / #2E8B57 / #A66A16) sat right next to Metalog, QFlex-A+ and
+    # QFlex-TA+ respectively, which is the collision Figure 1 was rebuilt to
+    # remove. (Open item, paper side: REFERENCE[0] #d62728 is also the KDE and
+    # zoom-frame colour, so that red does double duty.)
+    _specs = [(su_dist, "#d62728", 1), (sl_dist, "#17becf", 2), (sb_dist, "#bcbd22", 3)]
     for _dist, _color, _col in _specs:
         _x = _dist.quantile(_p)
         _pdf = _dist.pdf(_x)
@@ -1221,7 +1307,7 @@ def _(mo, paper_settings_note):
     paper_settings_note(
         mo,
         "`42 + N×1000 + replication`, drawn with jpse's `rvs` &mdash; at N=200 that is `200042, 200043, …`. The paper's Monte Carlo uses this exact formula; drawing `quantile(rng.random(n))` instead gives a different sample from the same seed.",
-        [("Reference distribution", "Johnson SU (η=0, κ=1, c=0.5, d=1.2)"), ("Sample size N", "200"), ("Metalog K / QFlex K", "10 / 10"), ("QFlex constraint", "A+"), ("Replicates", "1000"), ("W1", "Equation 6 vs the replicate’s own EQF")],
+        [("Reference distribution", "Johnson SU (η=0, κ=1, c=0.5, d=1.2)"), ("Sample size N", "200"), ("Metalog K / QFlex K", "10 / 10  (the paper shows 4, 7, 10 and 13 \u2014 one run reproduces one of those blocks)"), ("Replicates", "1000"), ("W1", "Equation 6 vs the replicate\u2019s own EQF")],
         "Tables 3 and A1, Figures 2 and 3.",
     )
     return
@@ -1288,11 +1374,15 @@ def _(mc_redraw, mo):
 
 
 @app.cell
-def _(mc_n_effective, mc_redraw, mc_true_dist, np):
-    # A fresh IID Monte Carlo sample: new pseudo-random draws from the true
-    # distribution's own quantile function every time the button is clicked.
-    _rng = np.random.default_rng(10_000 + mc_redraw.value)
-    mc_x_sample = np.sort(mc_true_dist.quantile(_rng.random(mc_n_effective)))
+def _(PAPER, mc_base_seed, mc_n_effective, mc_redraw, mc_true_dist):
+    # The live panel shows REPLICATE (redraw + 1) of the paper's own Monte
+    # Carlo, so an untouched notebook displays the paper's first replicate and
+    # the redraw button walks through 2, 3, ... Previously this drew from
+    # `quantile(rng.random(n))` on an unrelated 10_000 + redraw stream, so the
+    # panel above and the batch below were fitting different sample families
+    # in the same section -- and neither matched the seed the callout states.
+    mc_x_sample = PAPER.mc_draw(mc_true_dist, mc_n_effective,
+                                mc_redraw.value + 1, base=mc_base_seed.value)
     _n = len(mc_x_sample)
     mc_y_sample = np.arange(1, _n + 1) / (_n + 1)  # Weibull plotting position, matching the paper's Equation 3
     return mc_x_sample, mc_y_sample
@@ -1356,18 +1446,26 @@ def _(mo):
         label="Replicates", show_value=True
     )
     mc_run_batch = mo.ui.run_button(label="▶ Run Monte Carlo Analysis")
-    return mc_n_replicates, mc_run_batch
+    # The draws are fully determined by (base, N, replicate), so pressing the
+    # button twice gives identical output -- that is the point. Moving this
+    # number draws a DIFFERENT but equally reproducible ensemble; 42 is the
+    # paper's, and is what every published Monte Carlo number comes from.
+    mc_base_seed = mo.ui.number(
+        start=0, stop=999_999, step=1, value=PAPER.MC_BASE_SEED,
+        label="Monte Carlo base seed (42 = the paper)",
+    )
+    return mc_base_seed, mc_n_replicates, mc_run_batch
 
 
 @app.cell
-def _(mc_n_replicates, mc_run_batch, mo):
+def _(mc_base_seed, mc_n_replicates, mc_run_batch, mo):
     mo.vstack([
         mo.md(
             "**Full Monte Carlo simulation** — uses this experiment's own family, N, and K's; "
             "each replicate draws a brand-new sample from the true distribution. W1 is measured against "
             "the **true** quantile function, which is known here."
         ),
-        mo.hstack([mc_n_replicates, mc_run_batch], justify="start", gap=2),
+        mo.hstack([mc_n_replicates, mc_base_seed, mc_run_batch], justify="start", gap=2),
     ], gap=1)
     return
 
@@ -1380,6 +1478,7 @@ def _(
     mc_k_qflex,
     mc_n_effective,
     mc_n_replicates,
+    mc_base_seed,
     mc_run_batch,
     mc_true_dist,
     mo,
@@ -1387,7 +1486,8 @@ def _(
     run_replicate_batch,
 ):
     if mc_run_batch.value:
-        _x_true_grid = mc_true_dist.quantile(FIT_P_GRID)
+        # The batch's W1 reference is each replicate's own sample EQF, so it is
+        # rebuilt per replicate inside _draw below rather than fixed here.
 
         def _draw(rng, rep):
             # The paper's Monte Carlo draw: jpse's rvs (legacy np.random.seed
@@ -1396,13 +1496,14 @@ def _(
             # before -- gives a DIFFERENT sample for the same nominal seed, so
             # the batch could never match the paper no matter how N and K were
             # set. Replication numbering starts at 1, as in the paper.
-            _x = PAPER.mc_draw(mc_true_dist, mc_n_effective, rep + 1)
+            _x = PAPER.mc_draw(mc_true_dist, mc_n_effective, rep + 1,
+                               base=mc_base_seed.value)
             return _x, PAPER.weibull(len(_x))
 
         run_replicate_batch(
             mo, mc_n_replicates.value, mc_k_metalog.value, mc_k_qflex.value,
-            _draw, PAPER.mc_seed(mc_n_effective, 1),
-            w1_ref=_x_true_grid, w1_label="W1 vs true", bounds=mc_bounds,
+            _draw, PAPER.mc_seed(mc_n_effective, 1, mc_base_seed.value),
+            w1_ref="own-sample", w1_label="W1 vs sample", bounds=mc_bounds,
         )
     else:
         mo.output.replace(
@@ -1437,7 +1538,7 @@ def _(mo, paper_settings_note):
     paper_settings_note(
         mo,
         "reference realization `200043` (= `42 + 200×1000 + 1`, i.e. replication 1 of the Monte Carlo above); each resample uses `200043×10000 + b`, so replicate *b* is reachable on its own rather than by replaying a loop.",
-        [("Reference-sample seed", "200043"), ("Sample size N", "200"), ("Metalog K / QFlex K", "10 / 10  (the paper shows 4, 7 and 10)"), ("QFlex constraint", "A+"), ("Replicates", "1000")],
+        [("Reference-sample seed", "200043"), ("Sample size N", "200"), ("Metalog K / QFlex K", "10 / 10  (the paper shows 4, 7, 10 and 13)"), ("Replicates", "1000")],
         "Table 4 and Figures 4&ndash;7. Persist at K = 4 / 7 / 10 is 100 / 66.3 / 37.9 %.",
     )
     return
@@ -1518,21 +1619,45 @@ def _(base_seed, boot_redraw, mo, new_reference):
 
 
 @app.cell
-def _(base_seed, boot_n_effective, boot_true_dist, new_reference, np):
+def _(PAPER, base_seed, boot_n_effective, boot_true_dist, new_reference, np):
     # The "single selected realization" the bootstrap is conditioned on.
     # Regenerated when the reference seed changes, the "new reference
     # realization" button is clicked, or N changes (so it always matches the
     # current sample-size setting).
-    _rng = np.random.default_rng(base_seed.value + new_reference.value)
-    reference_sample = np.sort(boot_true_dist.quantile(_rng.random(boot_n_effective)))
-    return (reference_sample,)
+    #
+    # DRAWN THE PAPER'S WAY. This used to be
+    # `np.sort(dist.quantile(rng.random(n)))`, which is precisely the generator
+    # path paper_defaults documents as wrong: jpse's `rvs` goes through the
+    # legacy np.random.seed + inverse-CDF route, so the two produce DIFFERENT
+    # samples from the same nominal seed. The whole bootstrap section was
+    # therefore conditioned on a realization the paper never used.
+    #
+    # Two forms are returned. `reference_sample_raw` is in GENERATION order and
+    # is what resampling must use -- rng.choice selects by INDEX, so drawing
+    # from the sorted copy silently changes which values come out.
+    # `reference_sample` is the sorted copy, for the EQF and the plots.
+    if new_reference.value:
+        # A DIFFERENT realization than the paper's, but drawn the same way --
+        # jpse's rvs, not quantile(rng.random(n)) -- so "a new realization" and
+        # "the paper's realization" differ only in seed, not in generator.
+        reference_sample_raw = np.asarray(
+            boot_true_dist.rvs(size=boot_n_effective,
+                               random_state=base_seed.value + new_reference.value), float)
+    else:
+        reference_sample_raw = np.asarray(
+            boot_true_dist.rvs(size=boot_n_effective,
+                               random_state=PAPER.mc_seed(boot_n_effective, 1)), float)
+    reference_sample = np.sort(reference_sample_raw)
+    return reference_sample, reference_sample_raw
 
 
 @app.cell
-def _(boot_n_effective, boot_redraw, np, reference_sample):
-    # One bootstrap resample of that fixed reference realization.
-    _rng = np.random.default_rng(90_000 + boot_redraw.value)
-    boot_x_sample = np.sort(_rng.choice(reference_sample, size=boot_n_effective, replace=True))
+def _(PAPER, boot_redraw, np, reference_sample_raw):
+    # One bootstrap resample of that fixed reference realization. Resampling is
+    # from the GENERATION-order copy and uses the paper's per-replicate stream,
+    # so "resample b" here is the same draw the paper calls b.
+    boot_x_sample = np.sort(PAPER.bootstrap_resample(reference_sample_raw,
+                                                     boot_redraw.value))
     _n = len(boot_x_sample)
     boot_y_sample = np.arange(1, _n + 1) / (_n + 1)
     return boot_x_sample, boot_y_sample
@@ -1623,9 +1748,11 @@ def _(
     boot_n_effective,
     boot_n_replicates,
     boot_run_batch,
+    PAPER,
     mo,
     np,
     reference_sample,
+    reference_sample_raw,
     run_replicate_batch,
 ):
     if boot_run_batch.value:
@@ -1635,11 +1762,14 @@ def _(
         _p_ref = np.arange(1, _n_ref + 1) / (_n_ref + 1)
         _x_ref_grid = np.interp(FIT_P_GRID, _p_ref, reference_sample)
 
-        def _draw(rng):
-            _x = np.sort(rng.choice(reference_sample, size=boot_n_effective, replace=True))
-            _n = len(_x)
-            _y = np.arange(1, _n + 1) / (_n + 1)
-            return _x, _y
+        def _draw(rng, rep):
+            # Per-replicate seeding on the paper's stream
+            # (BOOTSTRAP_SEED*10_000 + b), from the generation-order copy.
+            # Previously this took only `rng`, so run_replicate_batch's
+            # signature check fell back to one shared stream and replicate b
+            # was not the paper's replicate b.
+            _x = np.sort(PAPER.bootstrap_resample(reference_sample_raw, rep))
+            return _x, PAPER.weibull(len(_x))
 
         run_replicate_batch(
             mo, boot_n_replicates.value, boot_k_metalog.value, boot_k_qflex.value,
@@ -1691,9 +1821,16 @@ def _(detect_modes_from_arrays, mo, np, su_dist):
         # two Johnson SU distributions with the second shifted 3.5 SDs left,
         # N = 200, and K = 12 -- the order at which its Figure 8 shows
         # QFlex-TA+ recovering both modes.
+        # The slider is SIGNED and starts at the paper's -3.5. It used to
+        # run 0..6 with value=abs(PAPER.BIMODAL_SEPARATION), which threw the
+        # sign away and contradicted the comment three lines above: the
+        # notebook opened on a mixture shifted RIGHT. Because the base SU is
+        # skewed (c = 0.5), that is not the mirror image but a different
+        # population, W1 = 0.589 from the paper's.
         _delta = mo.ui.slider(
-            start=0.0, stop=6.0, step=0.1, value=abs(PAPER.BIMODAL_SEPARATION),
-            label="Mean separation (in SDs of the base SU)", show_value=True,
+            start=-6.0, stop=6.0, step=0.1, value=PAPER.BIMODAL_SEPARATION,
+            label="Mean separation (in SDs of the base SU; negative = left)",
+            show_value=True,
         )
         _ratio = mo.ui.slider(
             start=0.05, stop=0.95, step=0.05, value=PAPER.BIMODAL_WEIGHTS[0],
@@ -1770,8 +1907,12 @@ def _(detect_modes_from_arrays, mo, np, su_dist):
         small separations the two components merge into one peak, so
         hard-coding 2 would mislabel a correct unimodal fit as having
         missed a mode."""
-        _p_grid = np.linspace(0.0005, 0.9995, 5000)
-        _sigma = float(np.std(su_dist.quantile(_p_grid)))
+        # sigma is the CLOSED FORM (PAPER.base_sigma), not np.std of the
+        # quantile function on a [0.0005, 0.9995] grid. That grid truncates
+        # enough of this SU's tail to read 1.3244 against a true 1.3691 --
+        # 3.26 % low, which moved the whole population.
+        _sigma = PAPER.base_sigma(eta=su_dist.eta, kappa=su_dist.kappa,
+                                  c=su_dist.c, d=su_dist.d)
         _a = su_dist
         _b = _ShiftedSU(su_dist, delta_value * _sigma)
         _dist = _MixtureDist(_a, _b, ratio_value)
@@ -1780,15 +1921,22 @@ def _(detect_modes_from_arrays, mo, np, su_dist):
         _n_true, _, _ = detect_modes_from_arrays(_xg, _dist.pdf(_xg))
         return {
             "comp_a": _a, "comp_b": _b, "weight_a": ratio_value,
+            "base": su_dist, "offset": delta_value * _sigma, "sigma": _sigma,
             "dist": _dist, "true_modes": int(_n_true) if _n_true else 1,
         }
 
-    def draw_mixture(rng, scenario, n):
-        """Exact mixture sampling: pick a component per draw, then invert
-        that component's own quantile function."""
-        _which = rng.random(n) < scenario["weight_a"]
-        _u = rng.random(n)
-        return np.sort(np.where(_which, scenario["comp_a"].quantile(_u), scenario["comp_b"].quantile(_u)))
+    def draw_mixture(seed_base, scenario, n):
+        """The paper's mixture sampler: one binomial for the component split,
+        then each component drawn by jpse's `rvs` on its own offset seed.
+
+        This used to pick a component per draw (`rng.random(n) < w`) and invert
+        that component's quantile. Both are exact samplers of the same mixture,
+        but they give DIFFERENT samples from the same seed, so the notebook's
+        bimodal section could not reproduce the paper's. Verified bit-identical
+        to reproduction/scripts/bimodal_common.draw for replicates 0, 1, 7,
+        436, 607 and 999."""
+        return PAPER.bimodal_draw(scenario["base"], n, int(seed_base),
+                                  scenario["offset"], scenario["weight_a"])
 
     return build_mixture, draw_mixture, make_bimodal_controls, render_bimodal_controls
 
@@ -1876,9 +2024,13 @@ def _(bimodal_redraw, mo):
 
 
 @app.cell
-def _(bimodal_mc_n_effective, bimodal_mc_scenario, bimodal_redraw, draw_mixture, np):
-    _rng = np.random.default_rng(20_000 + bimodal_redraw.value)
-    bimodal_mc_x_sample = draw_mixture(_rng, bimodal_mc_scenario, bimodal_mc_n_effective)
+def _(PAPER, bimodal_mc_n_effective, bimodal_mc_scenario, bimodal_redraw, draw_mixture, np):
+    # Replicate (redraw + 1) of the paper's bimodal Monte Carlo stream
+    # (42 + 60,000,000 + replication), matching the batch below; this used to
+    # be an unrelated 20_000 + redraw stream.
+    bimodal_mc_x_sample = draw_mixture(
+        PAPER.bimodal_seed(bimodal_redraw.value + 1),
+        bimodal_mc_scenario, bimodal_mc_n_effective)
     _n = len(bimodal_mc_x_sample)
     bimodal_mc_y_sample = np.arange(1, _n + 1) / (_n + 1)
     return bimodal_mc_x_sample, bimodal_mc_y_sample
@@ -1982,17 +2134,17 @@ def _(
     run_replicate_batch,
 ):
     if bimodal_run_batch.value:
-        _x_true_grid = bimodal_mc_scenario["dist"].quantile(FIT_P_GRID)
-
-        def _draw(rng):
-            _x = draw_mixture(rng, bimodal_mc_scenario, bimodal_mc_n_effective)
-            _n = len(_x)
-            _y = np.arange(1, _n + 1) / (_n + 1)
-            return _x, _y
+        def _draw(rng, rep):
+            # Per-replicate seeding on the paper's bimodal stream
+            # (42 + 60,000,000 + replication), replacing a single arbitrary
+            # 606_060 stream consumed in a loop.
+            _x = draw_mixture(PAPER.bimodal_seed(rep + 1),
+                              bimodal_mc_scenario, bimodal_mc_n_effective)
+            return _x, PAPER.weibull(len(_x))
 
         run_replicate_batch(
             mo, bimodal_n_replicates.value, bimodal_mc_k_metalog.value, bimodal_mc_k_qflex.value,
-            _draw, 606_060, w1_ref=_x_true_grid, w1_label="W1 vs true",
+            _draw, PAPER.bimodal_seed(1), w1_ref="own-sample", w1_label="W1 vs sample",
             true_n_modes=bimodal_mc_scenario["true_modes"],
         )
     else:
@@ -2090,15 +2242,19 @@ def _(bimodal_boot_redraw, bimodal_new_reference, bimodal_seed, mo):
 
 
 @app.cell
-def _(bimodal_boot_n_effective, bimodal_boot_scenario, bimodal_new_reference, bimodal_seed, draw_mixture, np):
-    _rng = np.random.default_rng(bimodal_seed.value + bimodal_new_reference.value)
-    bimodal_reference_sample = draw_mixture(_rng, bimodal_boot_scenario, bimodal_boot_n_effective)
+def _(bimodal_boot_n_effective, bimodal_boot_scenario, bimodal_new_reference, bimodal_seed, draw_mixture):
+    # draw_mixture now takes the SEED, not an rng, because the paper's sampler
+    # seeds each mixture component separately.
+    _seed = int(bimodal_seed.value) + int(bimodal_new_reference.value)
+    bimodal_reference_sample = draw_mixture(_seed, bimodal_boot_scenario, bimodal_boot_n_effective)
     return (bimodal_reference_sample,)
 
 
 @app.cell
 def _(bimodal_boot_n_effective, bimodal_boot_redraw, bimodal_reference_sample, np):
-    _rng = np.random.default_rng(70_000 + bimodal_boot_redraw.value)
+    # REDRAW_BASE, not a bare 70_000: that literal sat inside the fish
+    # replicate pool (fish_seed(0.7, b) spans 70_042..71_041).
+    _rng = np.random.default_rng(PAPER.REDRAW_BASE + bimodal_boot_redraw.value)
     bimodal_boot_x_sample = np.sort(_rng.choice(bimodal_reference_sample, size=bimodal_boot_n_effective, replace=True))
     _n = len(bimodal_boot_x_sample)
     bimodal_boot_y_sample = np.arange(1, _n + 1) / (_n + 1)
@@ -2208,11 +2364,14 @@ def _(
         _p_ref = np.arange(1, _n_ref + 1) / (_n_ref + 1)
         _x_ref_grid = np.interp(FIT_P_GRID, _p_ref, bimodal_reference_sample)
 
-        def _draw(rng):
-            _x = np.sort(rng.choice(bimodal_reference_sample, size=bimodal_boot_n_effective, replace=True))
-            _n = len(_x)
-            _y = np.arange(1, _n + 1) / (_n + 1)
-            return _x, _y
+        def _draw(rng, rep):
+            # Per-replicate stream, so replicate b is reachable on its own
+            # instead of only by replaying the loop. This section has no
+            # counterpart in the paper, so the base is the section's own.
+            _r = np.random.default_rng((bimodal_seed.value + 777) * 10_000 + rep)
+            _x = np.sort(_r.choice(bimodal_reference_sample,
+                                   size=bimodal_boot_n_effective, replace=True))
+            return _x, PAPER.weibull(len(_x))
 
         run_replicate_batch(
             mo, bimodal_boot_n_replicates.value, bimodal_boot_k_metalog.value, bimodal_boot_k_qflex.value,
@@ -2519,15 +2678,17 @@ def _(
         _all_fits, _ = fit_all_qpds(returns_x, np.arange(1, len(returns_x) + 1) / (len(returns_x) + 1), returns_k_metalog.value, returns_k_qflex.value)
         _w1_refs = {_label: (_r["curve"][0] if _r["curve"] is not None else None) for _label, _r in _all_fits.items()}
 
-        def _draw(rng):
-            _n = len(returns_x)
-            _x = np.sort(rng.choice(returns_x, size=_n, replace=True))
-            _y = np.arange(1, _n + 1) / (_n + 1)  # Weibull, matching this page's convention
-            return _x, _y
+        def _draw(rng, rep):
+            # Per-replicate stream (see the bimodal bootstrap above). The
+            # asset-return section is the notebook's own extension, not part of
+            # the paper, so the base seed is local to it.
+            _r = np.random.default_rng(PAPER.RETURNS_BASE + rep)
+            _x = np.sort(_r.choice(returns_x, size=len(returns_x), replace=True))
+            return _x, PAPER.weibull(len(_x))
 
         run_replicate_batch(
             mo, returns_n_replicates.value, returns_k_metalog.value, returns_k_qflex.value,
-            _draw, 471_000, w1_ref=_w1_refs, w1_label="W1 vs full-sample fit",
+            _draw, PAPER.RETURNS_BASE, w1_ref=_w1_refs, w1_label="W1 vs full-sample fit",
         )
     else:
         mo.output.replace(mo.md("*Click **▶ Run Bootstrap Analysis** to bootstrap-resample and refit repeatedly.*"))
@@ -2698,12 +2859,12 @@ def _(
             # The paper's resampling: per-replicate seed, so replicate b is
             # the same sample here as in the reproduction scripts. Gauge
             # heights are continuous, so no jitter.
-            _x = np.sort(PAPER.hydro_resample(hydro_x, rep))
+            _x = np.sort(PAPER.hydro_resample(hydro_x, b=rep))
             return _x, PAPER.weibull(len(_x))
 
         run_replicate_batch(
             mo, hydro_n_replicates.value, hydro_k_metalog.value, hydro_k_qflex.value,
-            _draw, PAPER.hydro_seed(0),
+            _draw, PAPER.hydro_seed(b=0),
             # Equation 6 measures against the OBSERVED sample's EQF, not
             # against the full-sample fit.
             w1_ref=np.interp(FIT_P_GRID, hydro_p_grid, hydro_eqf_point),
@@ -2774,7 +2935,7 @@ def _(mo):
 
 
 @app.cell
-def _(fish_jitter, load_fish_raw, np):
+def _(PAPER, fish_jitter, load_fish_raw, np):
     # `fish_raw` keeps the recorded (heavily rounded) weights; `fish_x` is
     # the single jittered realization that the displayed point-estimate fit
     # is computed from. The bootstrap below deliberately does NOT resample
@@ -2782,9 +2943,15 @@ def _(fish_jitter, load_fish_raw, np):
     # the paper's "±0.5 lb uniform jitter to the bootstrap resamples".
     fish_raw = load_fish_raw()
     if fish_jitter.value > 0:
-        _rng = np.random.default_rng(20260828)
-        _jittered = fish_raw + _rng.uniform(-fish_jitter.value, fish_jitter.value, size=len(fish_raw))
-        fish_x = np.sort(_jittered)
+        # Draw 0 of the paper's own jitter_original stream -- the same
+        # realization the paper's fish figures are drawn from. This used to be
+        # default_rng(20260828), a date with no relation to any other seed in
+        # the project, which put the displayed point-estimate fit on a jitter
+        # realization that appears nowhere in the paper. (20_260_828 also lands
+        # inside the geyser replicate pool at a 2.6-minute jitter.)
+        fish_x = np.sort(PAPER.jitter_original(
+            fish_raw, fish_jitter.value, PAPER.FISH_STREAM_BASE,
+            draw=0, floor=PAPER.FISH_FLOOR))
     else:
         fish_x = fish_raw
     _n = len(fish_x)
@@ -2837,6 +3004,7 @@ def _(fish_k_metalog, fish_k_qflex, fish_qflex_constraint, fish_x, fish_y, fit_m
 
 @app.cell
 def _(
+    PAPER,
     PLOTLY_CONFIG,
     fish_eqf_hi,
     fish_eqf_lo,
@@ -2857,7 +3025,8 @@ def _(
     render_empirical_panel(
         mo, PLOTLY_CONFIG, "Fish weights", "Weight (lbs)", fish_qflex_constraint.value, fish_p_grid, fish_eqf_point,
         fish_eqf_lo, fish_eqf_hi, fish_x, fish_metalog_curve, fish_metalog_fit, fish_metalog_modes, fish_qflex_curve,
-        fish_qflex_fit, fish_qflex_modes, fish_fit_error, value_xlim=(None, 30), bounds=(0, None),
+        fish_qflex_fit, fish_qflex_modes, fish_fit_error, value_xlim=(None, 28), bounds=(0, None),
+        bin_width=2 * PAPER.FISH_JITTER, bin_start=0.5,
         true_n_modes=None,
     )
     return
@@ -3004,6 +3173,7 @@ def _(fit_metalog_qflex, geyser_k_metalog, geyser_k_qflex, geyser_qflex_constrai
 
 @app.cell
 def _(
+    PAPER,
     PLOTLY_CONFIG,
     geyser_eqf_hi,
     geyser_eqf_lo,
@@ -3026,6 +3196,7 @@ def _(
         geyser_p_grid, geyser_eqf_point, geyser_eqf_lo, geyser_eqf_hi, geyser_x, geyser_metalog_curve,
         geyser_metalog_fit, geyser_metalog_modes, geyser_qflex_curve, geyser_qflex_fit, geyser_qflex_modes,
         geyser_fit_error, value_xlim=(30, None), bounds=(0, None), true_n_modes=2,
+        bin_width=2 * PAPER.GEYSER_JITTER, bin_start=0.5,
     )
     return
 
@@ -3064,12 +3235,12 @@ def _(
             # Waiting times are whole minutes, so the paper adds ±0.5 min
             # jitter to each resample. Without it the resamples are full of
             # ties, which is what drives spurious high-order modality.
-            _x = np.sort(PAPER.geyser_resample(geyser_x, rep))
+            _x = np.sort(PAPER.geyser_resample(geyser_x, b=rep))
             return _x, PAPER.weibull(len(_x))
 
         run_replicate_batch(
             mo, geyser_n_replicates.value, geyser_k_metalog.value, geyser_k_qflex.value,
-            _draw, PAPER.geyser_seed(0),
+            _draw, PAPER.geyser_seed(b=0),
             w1_ref=np.interp(FIT_P_GRID, geyser_p_grid, geyser_eqf_point),
             w1_label="W1 vs empirical (Eq 6)", bounds=(0, None),
             true_n_modes=2,
@@ -3084,8 +3255,8 @@ def _(mo):
     mo.md(
         r"""
         ---
-        *Built as a companion to Khanna &amp; Bickel, "Inferring Distributional
-        Features based on Quantile-Parameterized Distribution Fits."*
+        *Built as a companion to Khanna &amp; Bickel, "Bump Hunting, Structural
+        Overfitting, and Quantile-Parameterized Distributions."*
         """
     )
     return

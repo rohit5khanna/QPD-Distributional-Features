@@ -1,8 +1,8 @@
-# QPD Playground
+# Bump Hunting with QPDs
 
-A live, in-browser interactive companion to Khanna & Bickel, *Inferring
-Distributional Features based on Quantile-Parameterized Distribution
-Fits*, built as a [marimo](https://marimo.io) notebook.
+A live, in-browser interactive companion to Khanna & Bickel, *Bump
+Hunting, Structural Overfitting, and Quantile-Parameterized
+Distributions*, built as a [marimo](https://marimo.io) notebook.
 
 **Live notebook:** https://rohit5khanna.github.io/QPD-Distributional-Features/
 

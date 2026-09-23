@@ -890,14 +890,14 @@ experiment.{_extra}
     TABLE_CAPTIONS = {
         "mc": "**Tables 3 and A1** &mdash; validity, false modality and median W1, "
               "reported here for all four QPDs rather than the paper's two.",
-        "bootstrap": "**The bootstrap diagnostics table** &mdash; validity, mode-dispersion "
-                     "IQRs, median W1 and the mode-count split.",
-        "bimodal": "**Table 5** &mdash; mode recovery against a genuinely bimodal population, "
+        "bootstrap": "**Table 5** &mdash; validity, mode-dispersion IQRs, median W1 and the "
+                     "mode-count split. (The Hartigan rate below is Table 4.)",
+        "bimodal": "**Table 6** &mdash; mode recovery against a genuinely bimodal population, "
                    "so 2 modes is the correct answer and *>2 Modes* is the overfitting column.",
-        "hydrology": "**Table 6** &mdash; the primary mode is the TALLEST peak of each fit.",
+        "hydrology": "**Table 7** &mdash; the primary mode is the TALLEST peak of each fit.",
         "fish": "**Table 9** &mdash; the primary mode is the TALLEST peak, the secondary the "
                 "next tallest.",
-        "geyser": "**Table 11** &mdash; the primary mode is the one at the LONGER waiting time, "
+        "geyser": "**Table 10** &mdash; the primary mode is the one at the LONGER waiting time, "
                   "as the manuscript defines it, not the taller peak.",
     }
 
@@ -908,7 +908,7 @@ experiment.{_extra}
         QFlex constraint variants) to each one, then leave a summary behind
         -- feasibility rate, false-modality rate, and (when a reference is
         given) median W1 distance per model, the same statistics behind the
-        paper's Table 2/3, now covering all 4 QPDs rather than just the 2
+        paper's Tables 3 and A1, now covering all 4 QPDs rather than just the 2
         shown in the live panel above. Also runs the Hartigan dip test on
         each replicate's raw draw and reports the aggregate unimodality
         rejection rate. Only the final summary is shown -- not a
@@ -1017,11 +1017,11 @@ experiment.{_extra}
         # paper table it corresponds to, not one generic shape:
         #
         #   "mc"        Tables 3 / A1  Validity %, False Modality %, Median W1
-        #   "bootstrap" the bootstrap table  + mode IQRs and the 1/2/>2 split
-        #   "bimodal"   Table 5        Max # Modes, Valid, Unimodal, Bimodal, >2
-        #   "hydrology" Table 6        1/2/>2 split + PRIMARY mode IQRs (ft)
+        #   "bootstrap" Table 5        + mode IQRs and the 1/2/>2 split
+        #   "bimodal"   Table 6        Max # Modes, Valid, Unimodal, Bimodal, >2
+        #   "hydrology" Table 7        1/2/>2 split + PRIMARY mode IQRs (ft)
         #   "fish"      Table 9        1/2 split + primary AND secondary IQRs (lb)
-        #   "geyser"    Table 11       1/2/>2 split + primary and secondary (min)
+        #   "geyser"    Table 10       1/2/>2 split + primary and secondary (min)
         #
         # The paper lays Tables 3 / A1 out WIDE (two models side by side) to fit
         # the page; the notebook reports four QPDs, so the same columns are given
@@ -1239,8 +1239,8 @@ def _(PLOTLY_CONFIG, go, make_subplots, mo, np, sb_dist, sl_dist, style_fig, su_
     # figure_style.REFERENCE in the reproduction -- the three reference
     # distributions get colours that are NOT any model's. The previous trio
     # (#3B5FA0 / #2E8B57 / #A66A16) sat right next to Metalog, QFlex-A+ and
-    # QFlex-TA+ respectively, which is the collision Figure 1 was rebuilt to
-    # remove. (Open item, paper side: REFERENCE[0] #d62728 is also the KDE and
+    # QFlex-TA+ respectively, which is the collision the paper's
+    # reference-distributions figure was rebuilt to remove. (Open item, paper side: REFERENCE[0] #d62728 is also the KDE and
     # zoom-frame colour, so that red does double duty.)
     _specs = [(su_dist, "#d62728", 1), (sl_dist, "#17becf", 2), (sb_dist, "#bcbd22", 3)]
     for _dist, _color, _col in _specs:
@@ -1332,7 +1332,8 @@ def _(mo):
                 "TA+  (tail coefficients ≥ 0)": "TA",
             },
             # A+ is the comparator in the paper's unimodal Monte Carlo and
-            # bootstrap sections (Figures 5 and 6 are Metalog vs QFlex-A+).
+            # bootstrap sections -- its mode-count-and-dispersion figures put
+            # Metalog against QFlex-A+.
             value="A+  (all coefficients \u2265 0)",
             label="QFlex constraint",
         )
@@ -1430,8 +1431,9 @@ def _(mo, paper_settings_note):
         mo,
         "`42 + N×1000 + replication`, drawn with jpse's `rvs` &mdash; at N=200 that is `200042, 200043, …`. The paper's Monte Carlo uses this exact formula; drawing `quantile(rng.random(n))` instead gives a different sample from the same seed.",
         [("Reference distribution", "Johnson SU (η=0, κ=1, c=0.5, d=1.2)"), ("Sample size N", "200"), ("Metalog K", "10"), ("QFlex K", "10"), ("Replicates", "1000")],
-        "Tables 3 and A1, Figures 2 and 3. The paper reports K = 4, 7, 10 and 13; "
-        "one run reproduces one of those blocks.",
+        "Tables 3 and A1, and the Monte Carlo results figures (Johnson SU in the main "
+        "text, SL and SB in the appendix). The paper reports K = 4, 7, 10 and 13; one run "
+        "reproduces one of those blocks.",
     )
     return
 
@@ -1663,8 +1665,8 @@ def _(mo, paper_settings_note):
         mo,
         "reference realization `200043` (= `42 + 200×1000 + 1`, i.e. replication 1 of the Monte Carlo above); each resample uses `200043×10000 + b`, so replicate *b* is reachable on its own rather than by replaying a loop.",
         [("Reference-sample seed", "200043"), ("Sample size N", "200"), ("Metalog K", "10"), ("QFlex K", "10"), ("Replicates", "1000")],
-        "Table 4 and Figures 4&ndash;7. The paper reports K = 4, 7, 10 and 13; persistence "
-        "at K = 4 / 7 / 10 is 100 / 66.3 / 37.9 %.",
+        "Tables 4 and 5, and the bootstrap figures. The paper reports K = 4, 7, 10 and 13; "
+        "persistence at K = 4 / 7 / 10 is 100 / 66.3 / 37.9 %.",
     )
     return
 
@@ -1949,7 +1951,8 @@ def _(
         separation or K for one never moves the other underneath it."""
         # Defaults are the paper's bimodal reference: a 60/40 mixture of
         # two Johnson SU distributions with the second shifted 3.5 SDs left,
-        # N = 200, and K = 12 -- the order at which its Figure 8 shows
+        # N = 200, and K = 12 -- the order at which the paper's bimodal
+        # reference figure shows
         # QFlex-TA+ recovering both modes.
         # The slider is SIGNED and starts at the paper's -3.5. It used to
         # run 0..6 with value=abs(PAPER.BIMODAL_SEPARATION), which threw the
@@ -2122,9 +2125,9 @@ def _(mo, section_header_html):
 def _(mo, paper_settings_note):
     paper_settings_note(
         mo,
-        "`42 + 60,000,000 + replication`. Each replicate is an independent draw from the analytic mixture &mdash; the paper's Table 5 was re-run this way, replacing an earlier pooled bootstrap of subsamples.",
+        "`42 + 60,000,000 + replication`. Each replicate is an independent draw from the analytic mixture &mdash; the paper's Table 6 was re-run this way, replacing an earlier pooled bootstrap of subsamples.",
         [("Mixture", "60 / 40, second component shifted 3.5 SD left"), ("Sample size N", "200"), ("Metalog K", "12"), ("QFlex K", "12"), ("QFlex constraint", "TA+"), ("Replicates", "1000")],
-        "Table 5 and Figure 8, which span K = 4 to 14.",
+        "Table 6 and the bimodal reference figure, which span K = 4 to 14.",
     )
     return
 
@@ -2308,7 +2311,7 @@ def _(
             mo, bimodal_n_replicates.value, bimodal_mc_k_metalog.value, bimodal_mc_k_qflex.value,
             _draw, PAPER.bimodal_seed(1), w1_ref="own-sample", w1_label="W1 vs sample",
             true_n_modes=bimodal_mc_scenario["true_modes"],
-            table_format="bimodal"                 # Table 5
+            table_format="bimodal"                 # Table 6
         )
     else:
         mo.output.replace(
@@ -2544,7 +2547,7 @@ def _(
             mo, bimodal_boot_n_replicates.value, bimodal_boot_k_metalog.value, bimodal_boot_k_qflex.value,
             _draw, bimodal_seed.value + 777, w1_ref=_x_ref_grid,
             w1_label="W1 vs reference sample", true_n_modes=bimodal_boot_scenario["true_modes"],
-            table_format="bimodal"                 # Table 5 columns; the bootstrap twin has no table of its own
+            table_format="bimodal"                 # Table 6 columns; the bootstrap twin has no table of its own
         )
     else:
         mo.output.replace(
@@ -2637,8 +2640,8 @@ def _(DATA_DIR, io, np, pd):
 
     def eqf_bootstrap_ci(x_raw, p_grid, n_boot, seed=42, boot_source=None, jitter=0.0):
         # Pointwise 95% percentile bootstrap CI on the EQF, matching the
-        # method used for the paper's own EQF+CI figures (e.g. Figure 10,
-        # hydrology): resample the raw data with replacement, interpolate
+        # method used for the paper's own EQF+CI figures (the river-gauge
+        # EQF with bootstrap intervals): resample the raw data with replacement, interpolate
         # each resample's EQF onto a common probability grid, and take the
         # 2.5th/97.5th percentiles at each grid point across resamples.
         #
@@ -2893,7 +2896,7 @@ def _(mo, paper_settings_note):
         mo,
         "`42 + 40,000,000 + b`. GEV and every QPD see the **same** replicate *b*, so the curves are paired; the draft's own scripts drew GEV from seed 42 and the QPDs from 43.",
         [("Metalog K", "10"), ("QFlex K", "10"), ("QFlex constraint", "A+"), ("Jitter", "none &mdash; gauge heights are continuous"), ("Replicates", "1000")],
-        "Table 6 and Figures 7&ndash;10. At these settings Log Metalog K=10 gives 37.2 % valid and median W1 0.0453; Log QFlex-A+ K=10 gives 100 % and 0.0467.",
+        "Table 7 and the river-gauge figures. At these settings Log Metalog K=10 gives 37.2 % valid and median W1 0.0453; Log QFlex-A+ K=10 gives 100 % and 0.0467.",
     )
     return
 
@@ -3038,7 +3041,7 @@ def _(
             # against the full-sample fit.
             w1_ref=np.interp(FIT_P_GRID, hydro_p_grid, hydro_eqf_point),
             w1_label="W1 vs empirical", bounds=(0, None),
-            table_format="hydrology"               # Table 6
+            table_format="hydrology"               # Table 7
         )
     else:
         mo.output.replace(mo.md("*Click **▶ Run Bootstrap Analysis** to bootstrap-resample and refit repeatedly.*"))
@@ -3073,7 +3076,7 @@ def _(mo, paper_settings_note):
         mo,
         "`42 + round(j×100)×10,000 + b`; at the default jitter j = 0.5 that is `500042 + b`. Jitter is the **half-width**, so j means Uniform(−j, +j), and each replicate is re-jittered independently.",
         [("Metalog K", "10"), ("QFlex K", "10"), ("QFlex constraint", "TA+"), ("Jitter half-width j", "0.5 lb"), ("Replicates", "1000")],
-        "Table 7 and Figures 11&ndash;15. At these settings 82.0 % of Log Metalog K=10 fits are bimodal against 28.2 % for Log QFlex-TA+.",
+        "Tables 8 and 9, and the fish-weight figures. At these settings 82.0 % of Log Metalog K=10 fits are bimodal against 28.2 % for Log QFlex-TA+.",
     )
     return
 
@@ -3285,7 +3288,7 @@ def _(mo, paper_settings_note):
         mo,
         "`42 + 20,000,000 + 50×10,000 + b` = `20,500,042 + b`. The recorded waiting times are whole minutes, so each resample gets ±0.5 min of jitter.",
         [("Data", "299 Old Faithful waiting times, Azzalini &amp; Bowman (1990)"), ("Metalog K", "8"), ("QFlex K", "10"), ("QFlex constraint", "TA+"), ("Jitter half-width", "0.5 min"), ("Replicates", "1000")],
-        "Tables 8 and 9, Figures 16 and 17. At these settings Log Metalog K=8 gives 72.5 % valid with 80.6 % bimodal; Log QFlex-TA+ K=10 gives 99.7 % and 96.8 %.",
+        "Table 10 and the geyser figures. At these settings Log Metalog K=8 gives 72.5 % valid with 80.6 % bimodal; Log QFlex-TA+ K=10 gives 99.7 % and 96.8 %.",
     )
     return
 
@@ -3415,7 +3418,7 @@ def _(
             w1_ref=np.interp(FIT_P_GRID, geyser_p_grid, geyser_eqf_point),
             w1_label="W1 vs empirical", bounds=(0, None),
             true_n_modes=2,
-            table_format="geyser"                  # Table 11
+            table_format="geyser"                  # Table 10
         )
     else:
         mo.output.replace(mo.md("*Click **▶ Run Bootstrap Analysis** to bootstrap-resample and refit repeatedly.*"))

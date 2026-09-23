@@ -121,15 +121,14 @@ def _(mo):
         &mdash; with the paper's validity / false-modality / W1
         statistics, plus the Hartigan unimodality rejection rate.
 
-        **How W₁ is measured, everywhere on this page.** The distance between a
-        fitted quantile function $Q_F$ and its target $Q_T$ is the mean absolute
-        gap over the central 98 % of probability, divided by the target's
-        interdecile range so it is scale-free:
+        **How W₁ is measured, everywhere on this page.** The normalized
+        Wasserstein-1 distance between a fitted quantile function $Q_F$ and its
+        target $Q_T$, as the paper defines it in Equation 6:
 
-        $$W_1 \;=\; \frac{\operatorname{mean}_{\,p \in [0.01,\, 0.99]}
-        \bigl|\,Q_F(p) - Q_T(p)\,\bigr|}{Q_T(0.9) - Q_T(0.1)}$$
+        $$W_1 \;=\; \frac{1}{Q_T(0.9) - Q_T(0.1)}
+        \int_0^1 \bigl|\,Q_F(p) - Q_T(p)\,\bigr| \; dp$$
 
-        The interval stops short of 0 and 1 because an empirical quantile
+        Evaluated here on $p \in [0.01,\, 0.99]$, since an empirical quantile
         function is undefined outside its smallest and largest plotting
         positions. Only the **target** changes from section to section: a Monte
         Carlo replicate is measured against its own sample, a bootstrap

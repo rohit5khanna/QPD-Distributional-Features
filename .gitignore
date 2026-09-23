@@ -5,3 +5,4 @@ __marimo__/
 _site/
 .DS_Store
 _sync_backup_*/
+_ui_backup_*/

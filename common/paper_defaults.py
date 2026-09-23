@@ -318,6 +318,89 @@ def bimodal_draw(dist, n, seed_base, offset, weight_a=None):
 
 
 # ---------------------------------------------------------------------------
+# Mode ranking and dispersion -- the conventions behind the paper's mode-IQR
+# columns. THEY ARE NOT UNIFORM ACROSS SECTIONS, and the difference is
+# deliberate, so they are separate functions rather than one with a flag:
+#
+#   hydrology (Table 6)  primary = the TALLEST peak            (hydrology_tables.py)
+#   fish      (Table 9)  primary = the TALLEST peak            (fish_summary.py::_rank_modes)
+#   geyser    (Table 11) primary = the peak at the LONGER WAIT (geyser_tables.py)
+#
+# Denominators are the same in all three: the primary columns are summarised
+# over valid fits with at least ONE mode, the secondary columns over valid fits
+# with at least TWO. (Verified against Table10_geyser_mode_iqr.csv, where
+# n_primary at Log Metalog K=4 equals the 159 feasible fits and n_secondary is
+# the 3 bimodal ones.)
+# ---------------------------------------------------------------------------
+
+def iqr(v):
+    """Q3 - Q1, RAW (not normalized by the median). The paper reports raw IQRs."""
+    v = np.asarray([x for x in np.asarray(v, float) if np.isfinite(x)], float)
+    if v.size == 0:
+        return float('nan')
+    q1, q3 = np.percentile(v, [25, 75])
+    return float(q3 - q1)
+
+
+def rank_modes_by_height(locs, hgts):
+    """(primary_loc, primary_height, secondary_loc, secondary_height).
+
+    PRIMARY is the tallest peak, SECONDARY the next tallest. Used by the fish
+    and hydrology tables. A one-mode fit has no secondary and returns NaN there,
+    which is why the secondary columns are summarised over a smaller set.
+    """
+    if locs is None or hgts is None or len(locs) == 0:
+        return (float('nan'),) * 4
+    locs = np.asarray(locs, float); hgts = np.asarray(hgts, float)
+    order = np.argsort(hgts)[::-1]
+    i = order[0]
+    if len(order) == 1:
+        return (float(locs[i]), float(hgts[i]), float('nan'), float('nan'))
+    j = order[1]
+    return (float(locs[i]), float(hgts[i]), float(locs[j]), float(hgts[j]))
+
+
+def rank_modes_by_position(locs, hgts):
+    """PRIMARY is the mode at the LARGEST x (the longer waiting time), SECONDARY
+    the mode at the SMALLEST x (the shorter one) -- the two EXTREMES, not the
+    top two.
+
+    For a two-mode fit the two readings coincide, which is why this is easy to
+    get wrong. They part company on fits with three or more modes: taking the
+    "second longest" wait instead of the shortest gives a K=8 secondary-location
+    IQR of 0.9365 against the published 0.6469, because 135 of the 719 bimodal-
+    or-more fits at that order have a middle mode. Checked against
+    Table10_geyser_mode_iqr.csv, which is what the manuscript's Table 11 prints.
+    """
+    if locs is None or hgts is None or len(locs) == 0:
+        return (float('nan'),) * 4
+    locs = np.asarray(locs, float); hgts = np.asarray(hgts, float)
+    i = int(np.argmax(locs))
+    if locs.size == 1:
+        return (float(locs[i]), float(hgts[i]), float('nan'), float('nan'))
+    j = int(np.argmin(locs))
+    return (float(locs[i]), float(hgts[i]), float(locs[j]), float(hgts[j]))
+
+
+def modality_split(n_modes):
+    """(pct_1_mode, pct_2_modes, pct_gt2) over the fits handed in.
+
+    PAPER CONVENTION: a 0-mode fit counts in the "1 mode %" column -- the
+    manuscript's unimodal category is n_modes <= 1, not n_modes == 1. Fits with
+    n_modes < 0 (unusable PDF) must be excluded by the CALLER; they are not part
+    of the denominator.
+    """
+    v = np.asarray(n_modes, float)
+    v = v[np.isfinite(v)]
+    n = v.size
+    if n == 0:
+        return (float('nan'),) * 3
+    return (100.0 * float((v <= 1).mean()),
+            100.0 * float((v == 2).mean()),
+            100.0 * float((v > 2).mean()))
+
+
+# ---------------------------------------------------------------------------
 # Self-check
 # ---------------------------------------------------------------------------
 

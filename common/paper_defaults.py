@@ -88,7 +88,7 @@ def w1(qf_on_grid, target_on_grid, divisor=None):
 # ---------------------------------------------------------------------------
 
 #: Shared by all three reference distributions (SU, SL, SB).
-DIST_PARAMS = dict(eta=0, kappa=1, c=0.5, d=1.2)
+DIST_PARAMS = dict(xi=0, lam=1, gamma=0.5, delta=1.2)
 
 MC_BASE_SEED = 42
 
@@ -270,16 +270,16 @@ BIMODAL_SEPARATION = -3.5     # x sigma of the base distribution, LEFTWARD.
                               # population, W1 = 0.589 away from this one.
 
 
-def base_sigma(eta=0.0, kappa=1.0, c=0.5, d=1.2):
+def base_sigma(xi=0.0, lam=1.0, gamma=0.5, delta=1.2):
     """Closed-form standard deviation of the Johnson SU base distribution.
 
-    Q(p) = eta + kappa*sinh((z - c)/d) with z = Phi^-1(p), so X = eta +
-    kappa*sinh(W), W ~ Normal(mu, s^2) with mu = -c/d and s = 1/d. Using
+    Q(p) = xi + lam*sinh((z - gamma)/delta) with z = Phi^-1(p), so X = xi +
+    lam*sinh(W), W ~ Normal(mu, s^2) with mu = -gamma/delta and s = 1/delta. Using
     E[e^W] = e^{mu + s^2/2}:
 
         E[sinh W]   = e^{s^2/2} * sinh(mu)
         E[sinh^2 W] = (e^{2 s^2} * cosh(2 mu) - 1) / 2
-        Var[X]      = kappa^2 * (E[sinh^2 W] - E[sinh W]^2)
+        Var[X]      = lam^2 * (E[sinh^2 W] - E[sinh W]^2)
 
     Exact -- no grid, no draws, no seed.  Two WRONG values were in use before:
     the notebook took np.std of the quantile function on a 5000-point grid
@@ -289,10 +289,10 @@ def base_sigma(eta=0.0, kappa=1.0, c=0.5, d=1.2):
     second component sits 3.5 standard deviations away; only this value makes
     that sentence true.
     """
-    mu, s2 = -c / d, 1.0 / d ** 2
+    mu, s2 = -gamma / delta, 1.0 / delta ** 2
     m1 = np.exp(s2 / 2) * np.sinh(mu)
     m2 = (np.exp(2 * s2) * np.cosh(2 * mu) - 1) / 2
-    return float(kappa * np.sqrt(m2 - m1 ** 2))
+    return float(lam * np.sqrt(m2 - m1 ** 2))
 
 
 BIMODAL_BASE_SIGMA = base_sigma(**DIST_PARAMS)   # 1.3690932625389083

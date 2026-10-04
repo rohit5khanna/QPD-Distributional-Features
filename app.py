@@ -1194,11 +1194,16 @@ def _(mo, section_header_html):
         {section_header_html("Johnson distributions", level=2)}
 
         The reference ("true") population every Monte Carlo panel below
-        draws from is a member of the Johnson system: one $(\eta, \kappa,
-        c, d)$ recipe, expressed through three different quantile-function
-        shapes (SU unbounded, SL semi-bounded, SB bounded on $(\eta, \eta+
-        \kappa)$). Defaults match Bickel (2026) Figure 1. Vary the sliders
-        to see how the same recipe reshapes each family.
+        draws from is a member of the Johnson system: one $(\xi, \lambda,
+        \gamma, \delta)$ recipe, expressed through three different
+        quantile-function shapes (SU unbounded, SL semi-bounded, SB bounded on
+        $(\xi, \xi+\lambda)$). Defaults match Bickel (2026) Figure 1. Vary the
+        sliders to see how the same recipe reshapes each family.
+
+        The system is written $Z = \gamma + \delta\, g((X-\xi)/\lambda)$,
+        as in the manuscript and in Bickel (2026): $\xi$ location, $\lambda$
+        scale, $\gamma$ and $\delta$ shape. The code uses the same names, with
+        $\lambda$ spelled `lam` because `lambda` is a Python keyword.
         """
     )
     return
@@ -1206,24 +1211,25 @@ def _(mo, section_header_html):
 
 @app.cell
 def _(mo):
-    eta_j = mo.ui.slider(start=-3.0, stop=3.0, step=0.02, value=0.0, label="η (location)", show_value=True)
-    kappa_j = mo.ui.slider(start=0.1, stop=4.0, step=0.02, value=1.0, label="κ (scale / SB width)", show_value=True)
-    c_j = mo.ui.slider(start=-3.0, stop=3.0, step=0.02, value=0.5, label="c (shape)", show_value=True)
-    d_j = mo.ui.slider(start=0.1, stop=4.0, step=0.02, value=1.2, label="d (shape/scale)", show_value=True)
-    return c_j, d_j, eta_j, kappa_j
+    # Labels and identifiers both follow the manuscript's notation.
+    xi_j = mo.ui.slider(start=-3.0, stop=3.0, step=0.02, value=0.0, label="ξ (location)", show_value=True)
+    lam_j = mo.ui.slider(start=0.1, stop=4.0, step=0.02, value=1.0, label="λ (scale / SB width)", show_value=True)
+    gamma_j = mo.ui.slider(start=-3.0, stop=3.0, step=0.02, value=0.5, label="γ (shape)", show_value=True)
+    delta_j = mo.ui.slider(start=0.1, stop=4.0, step=0.02, value=1.2, label="δ (shape/scale)", show_value=True)
+    return gamma_j, delta_j, xi_j, lam_j
 
 
 @app.cell
-def _(c_j, d_j, eta_j, kappa_j, mo):
-    mo.hstack([eta_j, kappa_j, c_j, d_j], justify="start", gap=2)
+def _(gamma_j, delta_j, xi_j, lam_j, mo):
+    mo.hstack([xi_j, lam_j, gamma_j, delta_j], justify="start", gap=2)
     return
 
 
 @app.cell
-def _(JohnsonSB, JohnsonSL, JohnsonSU, c_j, d_j, eta_j, kappa_j):
-    su_dist = JohnsonSU(eta=eta_j.value, kappa=kappa_j.value, c=c_j.value, d=d_j.value)
-    sl_dist = JohnsonSL(eta=eta_j.value, kappa=kappa_j.value, c=c_j.value, d=d_j.value)
-    sb_dist = JohnsonSB(eta=eta_j.value, kappa=kappa_j.value, c=c_j.value, d=d_j.value)
+def _(JohnsonSB, JohnsonSL, JohnsonSU, gamma_j, delta_j, xi_j, lam_j):
+    su_dist = JohnsonSU(xi=xi_j.value, lam=lam_j.value, gamma=gamma_j.value, delta=delta_j.value)
+    sl_dist = JohnsonSL(xi=xi_j.value, lam=lam_j.value, gamma=gamma_j.value, delta=delta_j.value)
+    sb_dist = JohnsonSB(xi=xi_j.value, lam=lam_j.value, gamma=gamma_j.value, delta=delta_j.value)
     return sb_dist, sl_dist, su_dist
 
 
@@ -1377,12 +1383,12 @@ def _(mo):
         )
         return _n_eff, _notice
 
-    def johnson_bounds(family_value, eta_value, kappa_value):
+    def johnson_bounds(family_value, xi_value, lam_value):
         """Match the boundedness of the fitted Metalog/QFlex to the support
         of whichever Johnson family is selected as the true population --
         unbounded (SU) stays unbounded, semi-bounded (SL, domain
-        (eta, inf)) fits Log Metalog/Log QFlex with lower_bound=eta, and
-        bounded (SB, domain (eta, eta+kappa)) fits Logit Metalog/Logit
+        (xi, inf)) fits Log Metalog/Log QFlex with lower_bound=xi, and
+        bounded (SB, domain (xi, xi+lam)) fits Logit Metalog/Logit
         QFlex with both bounds. Mirrors the paper's own MC design, which
         obtains "the semi-bounded and bounded distributions via exponential
         and logit transforms, respectively" to match the reference family's
@@ -1390,13 +1396,13 @@ def _(mo):
         if family_value.startswith("Johnson SU"):
             return None, "**Unbounded fit** — Johnson SU has support on the whole real line, so plain Metalog / QFlex are used."
         if family_value.startswith("Johnson SL"):
-            return (eta_value, None), (
+            return (xi_value, None), (
                 f"**Semi-bounded fit (Log Metalog / Log QFlex)** — Johnson SL has support "
-                f"(η, ∞) = ({eta_value:.2f}, ∞), so the lower bound is set to η = {eta_value:.2f}."
+                f"(ξ, ∞) = ({xi_value:.2f}, ∞), so the lower bound is set to ξ = {xi_value:.2f}."
             )
-        return (eta_value, eta_value + kappa_value), (
+        return (xi_value, xi_value + lam_value), (
             f"**Bounded fit (Logit Metalog / Logit QFlex)** — Johnson SB has support "
-            f"(η, η+κ) = ({eta_value:.2f}, {eta_value + kappa_value:.2f}), so both bounds are set accordingly."
+            f"(ξ, ξ+λ) = ({xi_value:.2f}, {xi_value + lam_value:.2f}), so both bounds are set accordingly."
         )
 
     def johnson_dist_for(family_value, su, sl, sb):
@@ -1430,7 +1436,7 @@ def _(mo, paper_settings_note):
     paper_settings_note(
         mo,
         "`42 + N×1000 + replication`, drawn with jpse's `rvs` &mdash; at N=200 that is `200042, 200043, …`. The paper's Monte Carlo uses this exact formula; drawing `quantile(rng.random(n))` instead gives a different sample from the same seed.",
-        [("Reference distribution", "Johnson SU (η=0, κ=1, c=0.5, d=1.2)"), ("Sample size N", "200"), ("Metalog K", "10"), ("QFlex K", "10"), ("Replicates", "1000")],
+        [("Reference distribution", "Johnson SU (ξ=0, λ=1, γ=0.5, δ=1.2)"), ("Sample size N", "200"), ("Metalog K", "10"), ("QFlex K", "10"), ("Replicates", "1000")],
         "Tables 3 and A1, and the Monte Carlo results figures (Johnson SU in the main "
         "text, SL and SB in the appendix). The paper reports K = 4, 7, 10 and 13; one run "
         "reproduces one of those blocks.",
@@ -1440,7 +1446,7 @@ def _(mo, paper_settings_note):
 @app.cell
 def _(make_scenario_controls, mo):
     mc_family, mc_n_slider, mc_k_metalog, mc_k_qflex, mc_qflex_constraint = make_scenario_controls(
-        mo, "Reference distribution (uses the η/κ/c/d panel above)"
+        mo, "Reference distribution (uses the ξ/λ/γ/δ panel above)"
     )
     return mc_family, mc_k_metalog, mc_k_qflex, mc_n_slider, mc_qflex_constraint
 
@@ -1468,8 +1474,8 @@ def _(johnson_dist_for, mc_family, sb_dist, sl_dist, su_dist):
 
 
 @app.cell
-def _(eta_j, johnson_bounds, kappa_j, mc_family, mo):
-    mc_bounds, _note = johnson_bounds(mc_family.value, eta_j.value, kappa_j.value)
+def _(xi_j, johnson_bounds, lam_j, mc_family, mo):
+    mc_bounds, _note = johnson_bounds(mc_family.value, xi_j.value, lam_j.value)
     mo.md(_note)
     return (mc_bounds,)
 
@@ -1695,7 +1701,7 @@ def _(mo, paper_settings_note):
 @app.cell
 def _(make_scenario_controls, mo):
     boot_family, boot_n_slider, boot_k_metalog, boot_k_qflex, boot_qflex_constraint = make_scenario_controls(
-        mo, "Reference distribution (uses the η/κ/c/d panel above)"
+        mo, "Reference distribution (uses the ξ/λ/γ/δ panel above)"
     )
     return boot_family, boot_k_metalog, boot_k_qflex, boot_n_slider, boot_qflex_constraint
 
@@ -1723,8 +1729,8 @@ def _(boot_family, johnson_dist_for, sb_dist, sl_dist, su_dist):
 
 
 @app.cell
-def _(boot_family, eta_j, johnson_bounds, kappa_j, mo):
-    boot_bounds, _note = johnson_bounds(boot_family.value, eta_j.value, kappa_j.value)
+def _(boot_family, xi_j, johnson_bounds, lam_j, mo):
+    boot_bounds, _note = johnson_bounds(boot_family.value, xi_j.value, lam_j.value)
     mo.md(_note)
     return (boot_bounds,)
 
@@ -2050,7 +2056,7 @@ def _(
                 mo.md(heading),
                 mo.md(
                     "The population is a mixture of **two Johnson SU components** of "
-                    "identical shape (η=0, κ=1, c=0.5, d=1.2): **component A**, which "
+                    "identical shape (ξ=0, λ=1, γ=0.5, δ=1.2): **component A**, which "
                     "stays put, and **component B**, a copy of it shifted along the "
                     f"x-axis. One standard deviation of that shape is **{_sd:.4f}**, and "
                     "the two controls below set where B sits and how much of the "
@@ -2073,7 +2079,7 @@ def _(
         )
 
     class _ShiftedSU:
-        """su_dist translated by a fixed offset -- same shape, new eta."""
+        """su_dist translated by a fixed offset -- same shape, new xi."""
         def __init__(self, base, offset):
             self._base = base
             self._offset = offset
@@ -2122,8 +2128,8 @@ def _(
         # quantile function on a [0.0005, 0.9995] grid. That grid truncates
         # enough of this SU's tail to read 1.3244 against a true 1.3691 --
         # 3.26 % low, which moved the whole population.
-        _sigma = PAPER.base_sigma(eta=su_dist.eta, kappa=su_dist.kappa,
-                                  c=su_dist.c, d=su_dist.d)
+        _sigma = PAPER.base_sigma(xi=su_dist.xi, lam=su_dist.lam,
+                                  gamma=su_dist.gamma, delta=su_dist.delta)
         _a = su_dist
         _b = _ShiftedSU(su_dist, delta_value * _sigma)
         _dist = _MixtureDist(_a, _b, ratio_value)

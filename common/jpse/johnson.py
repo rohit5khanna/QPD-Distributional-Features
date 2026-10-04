@@ -5,10 +5,19 @@ This module implements the three Johnson distribution families using their
 exact quantile function forms as specified in Bickel (2026).
 
 The Johnson system is defined by:
-    Z = c + d*g((X - η)/κ), where Z ~ N(0,1)
+    Z = γ + δ*g((X - ξ)/λ), where Z ~ N(0,1)
 
 Solving for X gives the quantile functions:
-    Q(p) = η + κ*g^(-1)((Φ^(-1)(p) - c)/d)
+    Q(p) = ξ + λ*g^(-1)((Φ^(-1)(p) - γ)/δ)
+
+NOTATION. ξ location, λ scale, γ and δ shape -- the classical Johnson symbols,
+as used both by the manuscript and by Bickel (2026), so formulas quoted from
+either carry over unchanged. In code λ is spelled `lam`, because `lambda` is a
+Python keyword.
+
+Until this was corrected, the module used η, κ, c, d instead. That was this
+module's own departure from the notation of the paper it implements -- NOT
+Bickel's notation, despite sitting directly under the reference below.
 
 where Φ^(-1)(p) is the standard normal quantile function.
 
@@ -29,34 +38,34 @@ class JohnsonBase:
 
     Parameters
     ----------
-    eta : float
-        Location parameter (η)
-    kappa : float
-        Scale parameter (κ > 0)
-    c : float
+    xi : float
+        Location parameter (ξ)
+    lam : float
+        Scale parameter (λ > 0)
+    gamma : float
         Shape parameter
-    d : float
-        Shape/scale parameter (d > 0)
+    delta : float
+        Shape/scale parameter (delta > 0)
     """
 
-    def __init__(self, eta=0.0, kappa=1.0, c=0.5, d=1.2):
-        if kappa <= 0:
-            raise ValueError("kappa must be positive")
-        if d <= 0:
-            raise ValueError("d must be positive")
+    def __init__(self, xi=0.0, lam=1.0, gamma=0.5, delta=1.2):
+        if lam <= 0:
+            raise ValueError("lam must be positive")
+        if delta <= 0:
+            raise ValueError("delta must be positive")
 
-        self.eta = eta
-        self.kappa = kappa
-        self.c = c
-        self.d = d
+        self.xi = xi
+        self.lam = lam
+        self.gamma = gamma
+        self.delta = delta
 
     def _standard_normal_quantile(self, p):
         """Compute Φ^(-1)(p) - the standard normal quantile function"""
         return norm.ppf(p)
 
     def _centered_scaled_normal(self, p):
-        """Compute (Φ^(-1)(p) - c) / d"""
-        return (self._standard_normal_quantile(p) - self.c) / self.d
+        """Compute (Φ^(-1)(p) - gamma) / delta"""
+        return (self._standard_normal_quantile(p) - self.gamma) / self.delta
 
     def quantile(self, p):
         """
@@ -166,8 +175,8 @@ class JohnsonBase:
 
     def __repr__(self):
         return (f"{self.__class__.__name__}("
-                f"eta={self.eta}, kappa={self.kappa}, "
-                f"c={self.c}, d={self.d})")
+                f"xi={self.xi}, lam={self.lam}, "
+                f"gamma={self.gamma}, delta={self.delta})")
 
 
 class JohnsonSU(JohnsonBase):
@@ -175,25 +184,25 @@ class JohnsonSU(JohnsonBase):
     Johnson SU distribution (unbounded support: X ∈ (-∞, ∞)).
 
     Quantile function:
-        Q_SU(p) = η + κ * sinh((Φ^(-1)(p) - c) / d)
+        Q_SU(p) = ξ + λ * sinh((Φ^(-1)(p) - gamma) / delta)
 
     where sinh is the hyperbolic sine function.
 
     Parameters
     ----------
-    eta : float
+    xi : float
         Location parameter (default 0.0)
-    kappa : float
+    lam : float
         Scale parameter (default 1.0, must be > 0)
-    c : float
+    gamma : float
         Shape parameter (default 0.5)
-    d : float
+    delta : float
         Shape/scale parameter (default 1.2, must be > 0)
 
     Examples
     --------
     >>> # Figure 1 parameters from Bickel (2026)
-    >>> dist = JohnsonSU(eta=0, kappa=1, c=0.5, d=1.2)
+    >>> dist = JohnsonSU(xi=0, lam=1, gamma=0.5, delta=1.2)
     >>> samples = dist.rvs(size=100000)
     >>> x = dist.quantile(0.5)  # Median
     """
@@ -202,7 +211,7 @@ class JohnsonSU(JohnsonBase):
         """
         Quantile function for Johnson SU.
 
-        Q_SU(p) = η + κ * sinh((Φ^(-1)(p) - c) / d)
+        Q_SU(p) = ξ + λ * sinh((Φ^(-1)(p) - gamma) / delta)
 
         Parameters
         ----------
@@ -216,33 +225,33 @@ class JohnsonSU(JohnsonBase):
         """
         p = np.asarray(p)
         z = self._centered_scaled_normal(p)
-        return self.eta + self.kappa * np.sinh(z)
+        return self.xi + self.lam * np.sinh(z)
 
 
 class JohnsonSL(JohnsonBase):
     """
-    Johnson SL distribution (semi-bounded support: X ∈ (η, ∞)).
+    Johnson SL distribution (semi-bounded support: X ∈ (ξ, ∞)).
 
     Quantile function:
-        Q_SL(p) = η + κ * exp((Φ^(-1)(p) - c) / d)
+        Q_SL(p) = ξ + λ * exp((Φ^(-1)(p) - gamma) / delta)
 
     where exp is the exponential function.
 
     Parameters
     ----------
-    eta : float
+    xi : float
         Location parameter / lower bound (default 0.0)
-    kappa : float
+    lam : float
         Scale parameter (default 1.0, must be > 0)
-    c : float
+    gamma : float
         Shape parameter (default 0.5)
-    d : float
+    delta : float
         Shape/scale parameter (default 1.2, must be > 0)
 
     Examples
     --------
     >>> # Figure 1 parameters from Bickel (2026)
-    >>> dist = JohnsonSL(eta=0, kappa=1, c=0.5, d=1.2)
+    >>> dist = JohnsonSL(xi=0, lam=1, gamma=0.5, delta=1.2)
     >>> samples = dist.rvs(size=100000)
     >>> x = dist.quantile(0.5)  # Median
     """
@@ -251,7 +260,7 @@ class JohnsonSL(JohnsonBase):
         """
         Quantile function for Johnson SL.
 
-        Q_SL(p) = η + κ * exp((Φ^(-1)(p) - c) / d)
+        Q_SL(p) = ξ + λ * exp((Φ^(-1)(p) - gamma) / delta)
 
         Parameters
         ----------
@@ -261,38 +270,38 @@ class JohnsonSL(JohnsonBase):
         Returns
         -------
         x : ndarray
-            Quantile values (> η)
+            Quantile values (> ξ)
         """
         p = np.asarray(p)
         z = self._centered_scaled_normal(p)
-        return self.eta + self.kappa * np.exp(z)
+        return self.xi + self.lam * np.exp(z)
 
 
 class JohnsonSB(JohnsonBase):
     """
-    Johnson SB distribution (bounded support: X ∈ (η, η + κ)).
+    Johnson SB distribution (bounded support: X ∈ (ξ, ξ + λ)).
 
     Quantile function:
-        Q_SB(p) = η + κ * logit^(-1)((Φ^(-1)(p) - c) / d)
+        Q_SB(p) = ξ + λ * logit^(-1)((Φ^(-1)(p) - gamma) / delta)
 
     where logit^(-1)(x) = 1/(1 + exp(-x)) is the logistic sigmoid function.
 
     Parameters
     ----------
-    eta : float
+    xi : float
         Lower bound (default 0.0)
-    kappa : float
+    lam : float
         Width of support (default 1.0, must be > 0)
-        Support is (η, η + κ)
-    c : float
+        Support is (ξ, ξ + λ)
+    gamma : float
         Shape parameter (default 0.5)
-    d : float
+    delta : float
         Shape/scale parameter (default 1.2, must be > 0)
 
     Examples
     --------
     >>> # Figure 1 parameters from Bickel (2026)
-    >>> dist = JohnsonSB(eta=0, kappa=1, c=0.5, d=1.2)
+    >>> dist = JohnsonSB(xi=0, lam=1, gamma=0.5, delta=1.2)
     >>> samples = dist.rvs(size=100000)
     >>> x = dist.quantile(0.5)  # Median
     >>> # All samples will be in (0, 1)
@@ -302,7 +311,7 @@ class JohnsonSB(JohnsonBase):
         """
         Quantile function for Johnson SB.
 
-        Q_SB(p) = η + κ * logit^(-1)((Φ^(-1)(p) - c) / d)
+        Q_SB(p) = ξ + λ * logit^(-1)((Φ^(-1)(p) - gamma) / delta)
 
         where logit^(-1)(x) = 1/(1 + exp(-x))
 
@@ -314,9 +323,9 @@ class JohnsonSB(JohnsonBase):
         Returns
         -------
         x : ndarray
-            Quantile values in (η, η + κ)
+            Quantile values in (ξ, ξ + λ)
         """
         p = np.asarray(p)
         z = self._centered_scaled_normal(p)
         # expit(x) = 1/(1 + exp(-x)) is the logistic sigmoid
-        return self.eta + self.kappa * expit(z)
+        return self.xi + self.lam * expit(z)

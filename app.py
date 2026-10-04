@@ -466,9 +466,20 @@ experiment.{_extra}
         """The one-line Hartigan verdict for a single (raw/current) sample:
         just reject-or-not, per the paper's convention -- the interesting
         aggregate is the *rate* of rejection across a bootstrap batch,
-        reported separately by run_replicate_batch below."""
+        reported separately by run_replicate_batch below.
+
+        The two outcomes are NOT symmetric, and the wording must not imply they
+        are. Rejecting is a positive finding: the dip is larger than a unimodal
+        population would usually produce. Failing to reject is absence of
+        evidence -- it can mean the population is unimodal OR that the test
+        lacks power at this N -- so it cannot be reported as the test endorsing
+        unimodality, and certainly not as it ruling out spurious modes, which
+        is a claim about the FIT rather than about the data. This line used to
+        read "rejects spurious modes" in that branch, which asserted exactly
+        that."""
         _dip, _pval, _reject = hartigan_test(x)
-        _verdict = "**rejects** unimodality" if _reject else "**rejects** spurious modes"
+        _verdict = ("**rejects** unimodality" if _reject
+                    else "does **not** reject unimodality")
         return mo.md(
             f"**Hartigan dip test** (this sample, N={len(x)}): dip = {_dip:.4f}, p = {_pval:.4f} "
             f"&rarr; {_verdict} at α=0.05."
@@ -1785,16 +1796,19 @@ def _(get_boot_b, mo, set_boot_b):
 
 
 @app.cell
-def _(PAPER, base_seed, boot_b_box, boot_redraw, get_boot_b, mo):
-    _is_paper = " (the paper's)" if int(base_seed.value) == PAPER.BOOTSTRAP_SEED else ""
+def _(PAPER, base_seed, mo):
+    # The seed box sits with the REFERENCE panel below, not with the dice: it
+    # chooses which realization is being bootstrapped, which is a different
+    # question from which resample of it you are looking at.
+    _is_paper = " \u2014 the paper's" if int(base_seed.value) == PAPER.BOOTSTRAP_SEED else ""
     mo.vstack([
-        mo.hstack([base_seed, boot_redraw, boot_b_box], justify="start", gap=2),
+        mo.hstack([base_seed], justify="start", gap=2),
         mo.md(
-            f"*Reference realization: seed **{int(base_seed.value)}**{_is_paper}"
-            f" &nbsp;&middot;&nbsp; resample **#{get_boot_b()}***  \n"
-            "*The **seed** chooses **which** single sample is being bootstrapped — the one standing "
-            "in for \"the data you happen to have\". **🎲** holds that sample fixed and draws another "
-            "resample from it, which is the bootstrap step itself.*"
+            f"### This is what you are bootstrapping\n"
+            f"*The single realization drawn at seed **{int(base_seed.value)}**{_is_paper}, standing "
+            "in for \"the data you happen to have\". Everything below resamples THIS sample with "
+            "replacement and refits. Change the seed and you are bootstrapping a different "
+            "realization; every panel below follows.*"
         ),
     ], gap=1)
     return
@@ -1827,6 +1841,72 @@ def _(base_seed, boot_n_effective, boot_true_dist, np):
                            random_state=int(base_seed.value)), float)
     reference_sample = np.sort(reference_sample_raw)
     return reference_sample, reference_sample_raw
+
+
+@app.cell
+def _(
+    PAPER,
+    PLOTLY_CONFIG,
+    boot_true_dist,
+    go,
+    hartigan_line_md,
+    make_subplots,
+    mo,
+    np,
+    reference_sample,
+    style_fig,
+):
+    # The realization itself, shown before any resampling. Without this the
+    # section plotted only resample #N, so the sample the seed box selects was
+    # never visible -- and the point of the section is the contrast between a
+    # sample that looks unimodal and fits that bend.
+    _xr = reference_sample
+    _pr = np.arange(1, len(_xr) + 1) / (len(_xr) + 1)   # Weibull, as elsewhere
+    _figr = make_subplots(rows=1, cols=2,
+                          subplot_titles=("Empirical quantile function",
+                                          "Histogram and true density"))
+    # 1e-4 .. 1-1e-4, not 0.002 .. 0.998: at the narrower range the true QF
+    # stopped at 3.56 while this realization reaches 4.51, so the reference
+    # curve visibly fell short of its own data on the right.
+    _pg = np.linspace(1e-4, 1 - 1e-4, 1200)
+    _span = float(_xr.max() - _xr.min())
+    _xlim = [float(_xr.min()) - 0.04 * _span, float(_xr.max()) + 0.04 * _span]
+    _figr.add_trace(go.Scatter(x=boot_true_dist.quantile(_pg), y=_pg, mode="lines",
+                               line=dict(color="#d62728", width=2.2),
+                               name="True QF"), row=1, col=1)
+    _figr.add_trace(go.Scatter(x=_xr, y=_pr, mode="markers",
+                               marker=dict(color="#444", size=4, opacity=0.75),
+                               name="Reference sample"), row=1, col=1)
+    _figr.add_trace(go.Histogram(x=_xr, histnorm="probability density", nbinsx=30,
+                                 marker=dict(color="#999"), opacity=0.55,
+                                 name="Reference sample", showlegend=False), row=1, col=2)
+    _xg = boot_true_dist.quantile(_pg)
+    _figr.add_trace(go.Scatter(x=_xg, y=boot_true_dist.pdf(_xg), mode="lines",
+                               line=dict(color="#d62728", width=2.2),
+                               name="True density", showlegend=False), row=1, col=2)
+    _figr.update_xaxes(title_text="Value", range=_xlim, row=1, col=1)
+    _figr.update_yaxes(title_text="Cumulative probability", range=[0, 1], row=1, col=1)
+    _figr.update_xaxes(title_text="Value", range=_xlim, row=1, col=2)
+    _figr.update_yaxes(title_text="Density", row=1, col=2)
+    _figr.update_layout(height=330, margin=dict(l=55, r=20, t=45, b=50),
+                        legend=dict(orientation="h", y=1.14, x=0))
+    style_fig(_figr, dense_ticks=True)
+    mo.vstack([mo.ui.plotly(_figr, config=PLOTLY_CONFIG),
+               hartigan_line_md(mo, _xr)], gap=1)
+    return
+
+
+@app.cell
+def _(boot_b_box, boot_redraw, get_boot_b, mo):
+    mo.vstack([
+        mo.hstack([boot_redraw, boot_b_box], justify="start", gap=2),
+        mo.md(
+            f"*Showing resample **#{get_boot_b()}** of the realization above.* "
+            "*🎲 holds that realization fixed and draws another resample from it, which is the "
+            "bootstrap step itself; the **#** box jumps straight to a particular resample.*"
+        ),
+    ], gap=1)
+    return
 
 
 @app.cell

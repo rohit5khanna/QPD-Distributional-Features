@@ -1482,24 +1482,46 @@ def _(mc_true_dist, true_dist_ranges):
 
 @app.cell
 def _(mo):
+    # The sample number is shared STATE, not the button's click count, so the
+    # dice and the box are two views of ONE value: the dice steps it, the box
+    # jumps straight to any sample. Deriving it from the click count instead
+    # would make the two disagree the moment anyone typed in the box.
+    get_mc_rep, set_mc_rep = mo.state(1)
+    return get_mc_rep, set_mc_rep
+
+
+@app.cell
+def _(mo, set_mc_rep):
+    # Depends on the SETTER only, via the functional update form, so this cell
+    # does not read the state and the button is not rebuilt on every change.
     mc_redraw = mo.ui.button(
         label="🎲 Draw a new Monte Carlo sample",
         value=0, on_click=lambda v: v + 1,
+        on_change=lambda _: set_mc_rep(lambda n: n + 1),
     )
     return (mc_redraw,)
 
 
 @app.cell
-def _(mc_redraw, mo):
+def _(get_mc_rep, mo, set_mc_rep):
+    mc_rep_box = mo.ui.number(
+        start=1, stop=1_000_000, step=1, value=get_mc_rep(),
+        label="Replicate #", on_change=set_mc_rep,
+    )
+    return (mc_rep_box,)
+
+
+@app.cell
+def _(get_mc_rep, mc_redraw, mc_rep_box, mo):
     mo.vstack([
-        mc_redraw,
-        mo.md(f"*Draws so far: **#{mc_redraw.value + 1}** — each click refits on a brand-new sample from the true distribution.*"),
+        mo.hstack([mc_redraw, mc_rep_box], justify="start", gap=2),
+        mo.md(f"*Showing replicate **#{get_mc_rep()}** of the paper's Monte Carlo — the dice steps to the next one; type a number to jump straight to it.*"),
     ], gap=1)
     return
 
 
 @app.cell
-def _(PAPER, mc_base_seed, mc_n_effective, mc_redraw, mc_true_dist):
+def _(PAPER, get_mc_rep, mc_base_seed, mc_n_effective, mc_true_dist):
     # The live panel shows REPLICATE (redraw + 1) of the paper's own Monte
     # Carlo, so an untouched notebook displays the paper's first replicate and
     # the redraw button walks through 2, 3, ... Previously this drew from
@@ -1507,7 +1529,7 @@ def _(PAPER, mc_base_seed, mc_n_effective, mc_redraw, mc_true_dist):
     # panel above and the batch below were fitting different sample families
     # in the same section -- and neither matched the seed the callout states.
     mc_x_sample = PAPER.mc_draw(mc_true_dist, mc_n_effective,
-                                mc_redraw.value + 1, base=mc_base_seed.value)
+                                get_mc_rep(), base=mc_base_seed.value)
     _n = len(mc_x_sample)
     mc_y_sample = np.arange(1, _n + 1) / (_n + 1)  # Weibull plotting position, matching the paper's Equation 3
     return mc_x_sample, mc_y_sample
@@ -1663,8 +1685,8 @@ def _(mo, section_header_html):
 def _(mo, paper_settings_note):
     paper_settings_note(
         mo,
-        "reference realization `200043` (= `42 + 200×1000 + 1`, i.e. replication 1 of the Monte Carlo above); each resample uses `200043×10000 + b`, so replicate *b* is reachable on its own rather than by replaying a loop.",
-        [("Reference-sample seed", "200043"), ("Sample size N", "200"), ("Metalog K", "10"), ("QFlex K", "10"), ("Replicates", "1000")],
+        "reference realization `200110` (= `42 + 200×1000 + 68`, i.e. replication 68 of the Monte Carlo above); each resample uses `200110×10000 + b`, so replicate *b* is reachable on its own rather than by replaying a loop.",
+        [("Reference-sample seed", "200110"), ("Sample size N", "200"), ("Metalog K", "10"), ("QFlex K", "10"), ("Replicates", "1000")],
         "Tables 4 and 5, and the bootstrap figures. The paper reports K = 4, 7, 10 and 13; "
         "persistence at K = 4 / 7 / 10 is 100 / 66.3 / 37.9 %.",
     )
@@ -1715,6 +1737,16 @@ def _(boot_true_dist, true_dist_ranges):
 
 @app.cell
 def _(mo):
+    # The sample number is shared STATE, not the button's click count, so the
+    # dice and the box are two views of ONE value: the dice steps it, the box
+    # jumps straight to any sample. Deriving it from the click count instead
+    # would make the two disagree the moment anyone typed in the box.
+    get_boot_b, set_boot_b = mo.state(1)
+    return get_boot_b, set_boot_b
+
+
+@app.cell
+def _(mo, set_boot_b):
     base_seed = mo.ui.number(
         start=0, stop=999_999, step=1, value=PAPER.BOOTSTRAP_SEED,
         label="Reference-sample seed",
@@ -1725,21 +1757,35 @@ def _(mo):
     # same thing and the box stopped showing the seed actually in use. The dice
     # button stays: it does something different -- it holds the realization
     # fixed and draws another resample from it, which is the bootstrap step.
+    # Depends on the SETTER only, via the functional update form, so this cell
+    # does not read the state and the button is not rebuilt on every change.
     boot_redraw = mo.ui.button(
         label="🎲 Draw another resample",
         value=0, on_click=lambda v: v + 1,
+        on_change=lambda _: set_boot_b(lambda n: n + 1),
     )
     return base_seed, boot_redraw
 
 
 @app.cell
-def _(PAPER, base_seed, boot_redraw, mo):
+def _(get_boot_b, mo, set_boot_b):
+    # 1-based to match the "resample #N" the panel has always displayed; the
+    # resample INDEX handed to PAPER.bootstrap_resample is this minus one.
+    boot_b_box = mo.ui.number(
+        start=1, stop=1_000_000, step=1, value=get_boot_b(),
+        label="Resample #", on_change=set_boot_b,
+    )
+    return (boot_b_box,)
+
+
+@app.cell
+def _(PAPER, base_seed, boot_b_box, boot_redraw, get_boot_b, mo):
     _is_paper = " (the paper's)" if int(base_seed.value) == PAPER.BOOTSTRAP_SEED else ""
     mo.vstack([
-        mo.hstack([base_seed, boot_redraw], justify="start", gap=2),
+        mo.hstack([base_seed, boot_redraw, boot_b_box], justify="start", gap=2),
         mo.md(
             f"*Reference realization: seed **{int(base_seed.value)}**{_is_paper}"
-            f" &nbsp;&middot;&nbsp; resample **#{boot_redraw.value + 1}***  \n"
+            f" &nbsp;&middot;&nbsp; resample **#{get_boot_b()}***  \n"
             "*The **seed** chooses **which** single sample is being bootstrapped — the one standing "
             "in for \"the data you happen to have\". **🎲** holds that sample fixed and draws another "
             "resample from it, which is the bootstrap step itself.*"
@@ -1766,8 +1812,8 @@ def _(base_seed, boot_n_effective, boot_true_dist, np):
     # is what resampling must use -- rng.choice selects by INDEX, so drawing
     # from the sorted copy silently changes which values come out.
     # `reference_sample` is the sorted copy, for the EQF and the plots.
-    # The seed box IS the realization. Its default, 200043, is exactly
-    # PAPER.mc_seed(200, 1) -- the paper's pinned realization -- so an untouched
+    # The seed box IS the realization. Its default, 200110, is exactly
+    # PAPER.mc_seed(200, 68) -- the paper's pinned realization -- so an untouched
     # notebook still reproduces the published numbers. Any other value is a
     # different realization drawn the same way, differing in seed, not generator.
     reference_sample_raw = np.asarray(
@@ -1778,12 +1824,12 @@ def _(base_seed, boot_n_effective, boot_true_dist, np):
 
 
 @app.cell
-def _(PAPER, boot_redraw, np, reference_sample_raw):
+def _(PAPER, get_boot_b, np, reference_sample_raw):
     # One bootstrap resample of that fixed reference realization. Resampling is
     # from the GENERATION-order copy and uses the paper's per-replicate stream,
     # so "resample b" here is the same draw the paper calls b.
     boot_x_sample = np.sort(PAPER.bootstrap_resample(reference_sample_raw,
-                                                     boot_redraw.value))
+                                                     get_boot_b() - 1))
     _n = len(boot_x_sample)
     boot_y_sample = np.arange(1, _n + 1) / (_n + 1)
     return boot_x_sample, boot_y_sample
@@ -2175,26 +2221,50 @@ def _(bimodal_mc_scenario, true_dist_ranges):
 
 @app.cell
 def _(mo):
-    bimodal_redraw = mo.ui.button(label="🎲 Draw a new Monte Carlo sample", value=0, on_click=lambda v: v + 1)
+    # The sample number is shared STATE, not the button's click count, so the
+    # dice and the box are two views of ONE value: the dice steps it, the box
+    # jumps straight to any sample.
+    get_bimodal_rep, set_bimodal_rep = mo.state(1)
+    return get_bimodal_rep, set_bimodal_rep
+
+
+@app.cell
+def _(mo, set_bimodal_rep):
+    # Depends on the SETTER only, via the functional update form, so this cell
+    # does not read the state and the button is not rebuilt on every change.
+    bimodal_redraw = mo.ui.button(
+        label="🎲 Draw a new Monte Carlo sample",
+        value=0, on_click=lambda v: v + 1,
+        on_change=lambda _: set_bimodal_rep(lambda n: n + 1),
+    )
     return (bimodal_redraw,)
 
 
 @app.cell
-def _(bimodal_redraw, mo):
+def _(get_bimodal_rep, mo, set_bimodal_rep):
+    bimodal_rep_box = mo.ui.number(
+        start=1, stop=1_000_000, step=1, value=get_bimodal_rep(),
+        label="Replicate #", on_change=set_bimodal_rep,
+    )
+    return (bimodal_rep_box,)
+
+
+@app.cell
+def _(bimodal_redraw, bimodal_rep_box, get_bimodal_rep, mo):
     mo.vstack([
-        bimodal_redraw,
-        mo.md(f"*Draws so far: **#{bimodal_redraw.value + 1}** — each click refits on a brand-new sample from the true mixture.*"),
+        mo.hstack([bimodal_redraw, bimodal_rep_box], justify="start", gap=2),
+        mo.md(f"*Showing replicate **#{get_bimodal_rep()}** of the paper's bimodal Monte Carlo — the dice steps to the next one; type a number to jump straight to it.*"),
     ], gap=1)
     return
 
 
 @app.cell
-def _(PAPER, bimodal_mc_n_effective, bimodal_mc_scenario, bimodal_redraw, draw_mixture, np):
+def _(PAPER, bimodal_mc_n_effective, bimodal_mc_scenario, draw_mixture, get_bimodal_rep, np):
     # Replicate (redraw + 1) of the paper's bimodal Monte Carlo stream
     # (42 + 60,000,000 + replication), matching the batch below; this used to
     # be an unrelated 20_000 + redraw stream.
     bimodal_mc_x_sample = draw_mixture(
-        PAPER.bimodal_seed(bimodal_redraw.value + 1),
+        PAPER.bimodal_seed(get_bimodal_rep()),
         bimodal_mc_scenario, bimodal_mc_n_effective)
     _n = len(bimodal_mc_x_sample)
     bimodal_mc_y_sample = np.arange(1, _n + 1) / (_n + 1)
@@ -2382,6 +2452,15 @@ def _(bimodal_boot_scenario, true_dist_ranges):
 
 @app.cell
 def _(mo):
+    # The sample number is shared STATE, not the button's click count, so the
+    # dice and the box are two views of ONE value: the dice steps it, the box
+    # jumps straight to any sample.
+    get_bimodal_boot_b, set_bimodal_boot_b = mo.state(1)
+    return get_bimodal_boot_b, set_bimodal_boot_b
+
+
+@app.cell
+def _(mo, set_bimodal_boot_b):
     bimodal_seed = mo.ui.number(
         start=0, stop=999_999, step=1, value=PAPER.MC_BASE_SEED,
         label="Reference-sample seed",
@@ -2392,18 +2471,31 @@ def _(mo):
     # same thing and the box stopped showing the seed actually in use. The dice
     # button stays: it does something different -- it holds the realization
     # fixed and draws another resample from it, which is the bootstrap step.
+    # Depends on the SETTER only, via the functional update form, so this cell
+    # does not read the state and the button is not rebuilt on every change.
     bimodal_boot_redraw = mo.ui.button(
-        label="🎲 Draw another resample", value=0, on_click=lambda v: v + 1)
+        label="🎲 Draw another resample", value=0, on_click=lambda v: v + 1,
+        on_change=lambda _: set_bimodal_boot_b(lambda n: n + 1))
     return bimodal_boot_redraw, bimodal_seed
 
 
 @app.cell
-def _(bimodal_boot_redraw, bimodal_seed, mo):
+def _(get_bimodal_boot_b, mo, set_bimodal_boot_b):
+    # 1-based to match the displayed "resample #N"; the rng offset is this minus one.
+    bimodal_boot_b_box = mo.ui.number(
+        start=1, stop=1_000_000, step=1, value=get_bimodal_boot_b(),
+        label="Resample #", on_change=set_bimodal_boot_b,
+    )
+    return (bimodal_boot_b_box,)
+
+
+@app.cell
+def _(bimodal_boot_b_box, bimodal_boot_redraw, bimodal_seed, get_bimodal_boot_b, mo):
     mo.vstack([
-        mo.hstack([bimodal_seed, bimodal_boot_redraw], justify="start", gap=2),
+        mo.hstack([bimodal_seed, bimodal_boot_redraw, bimodal_boot_b_box], justify="start", gap=2),
         mo.md(
             f"*Reference realization: seed **{int(bimodal_seed.value)}** &nbsp;&middot;&nbsp; "
-            f"resample **#{bimodal_boot_redraw.value + 1}***  \n"
+            f"resample **#{get_bimodal_boot_b()}***  \n"
             "*The **seed** chooses **which** single sample is being bootstrapped; **🎲** holds that "
             "sample fixed and draws another resample from it.*"
         ),
@@ -2421,10 +2513,10 @@ def _(bimodal_boot_n_effective, bimodal_boot_scenario, bimodal_seed, draw_mixtur
 
 
 @app.cell
-def _(bimodal_boot_n_effective, bimodal_boot_redraw, bimodal_reference_sample, np):
+def _(bimodal_boot_n_effective, bimodal_reference_sample, get_bimodal_boot_b, np):
     # REDRAW_BASE, not a bare 70_000: that literal sat inside the fish
     # replicate pool (fish_seed(0.7, b) spans 70_042..71_041).
-    _rng = np.random.default_rng(PAPER.REDRAW_BASE + bimodal_boot_redraw.value)
+    _rng = np.random.default_rng(PAPER.REDRAW_BASE + get_bimodal_boot_b() - 1)
     bimodal_boot_x_sample = np.sort(_rng.choice(bimodal_reference_sample, size=bimodal_boot_n_effective, replace=True))
     _n = len(bimodal_boot_x_sample)
     bimodal_boot_y_sample = np.arange(1, _n + 1) / (_n + 1)

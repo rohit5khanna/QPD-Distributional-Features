@@ -23,7 +23,8 @@ WHAT WAS WRONG BEFORE (and is fixed by using this module)
    have made the numbers agree.
 
 2. THE BOOTSTRAP SECTION DEFAULTED TO THE WRONG REALIZATION. Seed 200612 was
-   the default; the paper's pinned realization is 200043. 200612 is the
+   the default; the paper's pinned realization is 200110 (replication 68; it
+   was 200043, replication 1, before the paper moved). 200612 is the
    realization the paper's own pipeline used in one place and not another --
    the inconsistency that was found and corrected during the reproduction work.
 
@@ -119,9 +120,16 @@ def mc_draw(dist, sample_size, replication, base=None):
 # Section 2 -- Bootstrap diagnostics (Table 4; Figures 4-7)
 # ---------------------------------------------------------------------------
 
-#: The paper's pinned realization: Johnson SU, N = 200, replication 1.
-#: 200043 = 42 + 200*1000 + 1, i.e. mc_seed(200, 1).
-BOOTSTRAP_SEED = 200043
+#: The paper's pinned realization: Johnson SU, N = 200, replication 68.
+#: 200110 = 42 + 200*1000 + 68, i.e. mc_seed(200, 68).
+#:
+#: Was 200043 (replication 1) until the paper moved to replication 68. Why 68:
+#: it is a realization whose ORIGINAL-SAMPLE fits are feasible for all four
+#: models at every order 3-13. On replication 1 the Metalog original fit is
+#: infeasible at K = 11, 12 and 13 and QFlex-U from K = 9 up, which left gaps
+#: in the section's figures. Note that 68 was SELECTED on that feasibility, so
+#: it is not an arbitrary draw -- the paper has to say so where it uses it.
+BOOTSTRAP_SEED = 200110
 BOOTSTRAP_N = 200
 BOOTSTRAP_K = [4, 7, 10, 13]      # the paper's standard order set
 

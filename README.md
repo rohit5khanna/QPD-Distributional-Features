@@ -1,6 +1,6 @@
 # Bump Hunting with QPDs
 
-A live, in-browser interactive companion to Khanna & Bickel, *Bump
+A live, in-browser interactive companion to *Bump
 Hunting, Structural Overfitting, and Quantile-Parameterized
 Distributions*, built as a [marimo](https://marimo.io) notebook.
 

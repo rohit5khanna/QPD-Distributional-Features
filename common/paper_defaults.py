@@ -1,7 +1,7 @@
 """
 The paper's conventions and seeds, in one place.
 
-*Bump Hunting with QPDs* is the interactive companion to Khanna & Bickel,
+*Bump Hunting with QPDs* is the interactive companion to
 *Bump Hunting, Structural Overfitting, and Quantile-Parameterized
 Distributions*. For that to mean anything, the notebook's DEFAULTS have to
 reproduce the paper's numbers -- a reader should be able to open it, touch

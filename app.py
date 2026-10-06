@@ -107,7 +107,7 @@ def _(mo):
         # Bump Hunting with QPDs
 
         A hands-on companion to *Bump Hunting, Structural Overfitting, and
-        Quantile-Parameterized Distributions* (Khanna & Bickel). Every
+        Quantile-Parameterized Distributions*. Every
         panel below is live: drag the sliders, click the buttons, and watch
         the Metalog and QFlex fits move &mdash; including the spurious modes
         that motivate the paper.
@@ -3608,7 +3608,7 @@ def _(mo):
     mo.md(
         r"""
         ---
-        *Built as a companion to Khanna &amp; Bickel, "Bump Hunting, Structural
+        *Built as a companion to "Bump Hunting, Structural
         Overfitting, and Quantile-Parameterized Distributions."*
         """
     )

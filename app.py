@@ -1888,8 +1888,8 @@ def _(
     _figr.update_yaxes(title_text="Cumulative probability", range=[0, 1], row=1, col=1)
     _figr.update_xaxes(title_text="Value", range=_xlim, row=1, col=2)
     _figr.update_yaxes(title_text="Density", row=1, col=2)
-    _figr.update_layout(height=330, margin=dict(l=55, r=20, t=45, b=50),
-                        legend=dict(orientation="h", y=1.14, x=0))
+    _figr.update_layout(height=330, margin=dict(l=55, r=20, t=45, b=75),
+                        legend=dict(orientation="h", y=-0.22, x=0))
     style_fig(_figr, dense_ticks=True)
     mo.vstack([mo.ui.plotly(_figr, config=PLOTLY_CONFIG),
                hartigan_line_md(mo, _xr)], gap=1)

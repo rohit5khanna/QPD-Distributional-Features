@@ -693,7 +693,7 @@ experiment.{_extra}
                                  eqf_hi, x_raw, metalog_curve, metalog_fit, metalog_modes, qflex_curve, qflex_fit,
                                  qflex_modes, fit_error, value_xlim=None, bounds=None, reference_fits=None,
                                  true_n_modes=1, bin_width=None, bin_start=None):
-        """The EQF+CI / Metalog / QFlex panel pair shared by the four
+        """The EQF + bootstrap interval / Metalog / QFlex panel pair shared by the four
         empirical dataset sections. The PDF panel also shows a histogram of
         the raw data for reference. `bounds` selects the boundedness
         variant (see _qpd_prefix above) and is reflected in every legend
@@ -722,7 +722,7 @@ experiment.{_extra}
             x=np.concatenate([p_grid, p_grid[::-1]]),
             y=np.concatenate([eqf_hi, eqf_lo[::-1]]),
             fill="toself", fillcolor="rgba(59, 95, 160, 0.15)",
-            line=dict(width=0), hoverinfo="skip", name="95% bootstrap CI",
+            line=dict(width=0), hoverinfo="skip", name="95% bootstrap interval",
         ), row=1, col=1)
         _fig.add_trace(go.Scatter(
             x=p_grid, y=eqf_point, mode="lines", name="Empirical QF",
@@ -2747,7 +2747,7 @@ def _(mo, section_header_html):
         Metalog K / QFlex K / constraint controls, its own Hartigan dip
         test, and its own bootstrap batch analysis. Every panel shows the
         empirical quantile function (raw sorted data as a step-like curve)
-        with a pointwise 95% bootstrap CI, plus a Metalog/QFlex fit, plus
+        with a pointwise 95% bootstrap interval, plus a Metalog/QFlex fit, plus
         (on the density panel) a histogram of the raw data for reference.
         **Drag a rectangle on a plot to zoom**; double-click to reset.
 
@@ -2817,8 +2817,8 @@ def _(DATA_DIR, io, np, pd):
         return _df
 
     def eqf_bootstrap_ci(x_raw, p_grid, n_boot, seed=42, boot_source=None, jitter=0.0):
-        # Pointwise 95% percentile bootstrap CI on the EQF, matching the
-        # method used for the paper's own EQF+CI figures (the river-gauge
+        # Pointwise 95% percentile bootstrap interval on the EQF, matching the
+        # method used for the paper's own EQF + bootstrap interval figures (the river-gauge
         # EQF with bootstrap intervals): resample the raw data with replacement, interpolate
         # each resample's EQF onto a common probability grid, and take the
         # 2.5th/97.5th percentiles at each grid point across resamples.
@@ -2829,7 +2829,7 @@ def _(DATA_DIR, io, np, pd):
         # this by adding "±0.5 lb uniform jitter to the bootstrap
         # resamples" -- i.e. resample the raw, rounded values and add a
         # FRESH jitter draw to each resample, so the de-rounding
-        # uncertainty is part of what the CI measures. Jittering once up
+        # uncertainty is part of what the bootstrap interval measures. Jittering once up
         # front and then resampling that single jittered array (the obvious
         # shortcut) is a different and wrong procedure: it freezes one
         # arbitrary tie-breaking into every replicate and reports the noise
@@ -2876,7 +2876,7 @@ def _(mo, section_header_html):
         Aswath Damodaran. This dataset isn't one of the paper's own three
         empirical case studies below; it's included here as an additional
         real-world example. Pick a category below, then work through the
-        same Metalog/QFlex fit, EQF+CI plot, Hartigan dip test, and
+        same Metalog/QFlex fit, EQF + bootstrap interval plot, Hartigan dip test, and
         bootstrap batch analysis as the sections that follow.
 
         Annual returns can be negative, so this section fits plain
@@ -3276,7 +3276,7 @@ def _(mo):
             "spans a full pound — the paper's «±0.5 lb», and the same meaning "
             "`jitter=0.5` has in the repro scripts.*  \n"
             "*The fit shown below uses one fixed jitter realization, but the "
-            "bootstrap CI and the batch analysis resample the **raw** weights "
+            "bootstrap interval and the batch analysis resample the **raw** weights "
             "and re-jitter every replicate independently — matching the "
             "paper's «±0.5 lb uniform jitter to the bootstrap resamples», so "
             "the de-rounding uncertainty is part of what they measure.*"
@@ -3334,7 +3334,7 @@ def _(mo):
 @app.cell
 def _(eqf_bootstrap_ci, fish_jitter, fish_raw, fish_x, np):
     fish_p_grid = np.linspace(0.01, 0.99, len(PAPER.P_GRID))
-    # Point estimate from the displayed jittered sample; CI from resampling
+    # Point estimate from the displayed jittered sample; bootstrap interval from resampling
     # the RAW rounded weights with a fresh jitter draw per replicate, so the
     # band reflects de-rounding uncertainty rather than one frozen tie-break.
     fish_eqf_point, fish_eqf_lo, fish_eqf_hi = eqf_bootstrap_ci(

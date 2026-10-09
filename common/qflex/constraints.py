@@ -3,7 +3,7 @@ Constraint Solvers for QFlex
 
 Implements various constraint types for fitting QFlex coefficients:
     - A+: All coefficients non-negative (k >= 2)
-    - TL+: Leading tail coefficients non-negative
+    - TL+: Leading tail coefficients strictly positive (floor: see LEADING_TAIL_FLOOR_REL)
     - TA+: All tail coefficients non-negative
     - TC: Proposition 5 tail-center margin constraint
     - TC_mag: Proposition 4 grid-based constraint (m_tail > M_center)
@@ -20,6 +20,12 @@ from .basis import get_term_structure, BasisType, evaluate_basis_derivative
 
 PROB_EPS = 1e-12
 PROP4_STRICT_TOLERANCE = 1e-10
+# TL+ requires the leading tail coefficients to be strictly positive
+# (QFlex paper, Theorem 5 / Remark 6 / Corollary 3). A strict inequality cannot
+# be imposed directly in least squares (when it binds, no minimizer exists), so
+# it is imposed as a_lead >= eps with eps = LEADING_TAIL_FLOOR_REL * (max(x) - min(x)),
+# i.e. relative to the data range so the fit stays affine-equivariant in x.
+LEADING_TAIL_FLOOR_REL = 1e-6
 
 
 def _create_prop4_grid():
@@ -34,7 +40,7 @@ class ConstraintType(Enum):
     """Available constraint types for coefficient estimation."""
     NONE = "none"           # Unconstrained least squares
     A = "A+"                # All coefficients >= 0 for k >= 2
-    TL = "TL+"              # Leading tail coefficients >= 0
+    TL = "TL+"              # Leading tail coefficients > 0 (>= floor)
     TA = "TA+"              # All tail coefficients >= 0
     TC = "TC"               # Proposition 5: tail-center margin
     TC_MAG = "TC_mag"       # Proposition 4: m_tail > M_center on grid
@@ -221,9 +227,17 @@ def solve_positive_all(Y: np.ndarray, x_data: np.ndarray, terms: int, gamma: flo
 
 
 def solve_tail_leading(Y: np.ndarray, x_data: np.ndarray, terms: int, gamma: float) -> np.ndarray:
-    """Solve with only the leading (highest-order) tail coefficients non-negative."""
+    """Solve with only the leading (highest-order) tail coefficients strictly positive.
+
+    Imposed as a_lead >= eps, eps = LEADING_TAIL_FLOOR_REL * (max(x) - min(x)).
+    """
     tail_indices = get_tail_indices(terms, leading_only=True)
-    return solve_with_bounds(Y, x_data, terms, tail_indices)
+    x_range = float(np.max(x_data) - np.min(x_data))
+    eps = LEADING_TAIL_FLOOR_REL * (x_range if x_range > 0 else 1.0)
+    coefficients = solve_with_bounds(Y, x_data, terms, tail_indices, floor=eps)
+    if any(coefficients[idx] <= 0 for idx in tail_indices):
+        raise QFlexError("TL+ leading tail coefficient is not strictly positive")
+    return coefficients
 
 
 def solve_tail_all(Y: np.ndarray, x_data: np.ndarray, terms: int, gamma: float) -> np.ndarray:
@@ -233,9 +247,10 @@ def solve_tail_all(Y: np.ndarray, x_data: np.ndarray, terms: int, gamma: float) 
 
 
 def solve_with_bounds(Y: np.ndarray, x_data: np.ndarray, terms: int,
-                     bound_indices: List[int]) -> np.ndarray:
+                     bound_indices: List[int], floor: float = 0.0) -> np.ndarray:
     """
-    Helper: minimize ||Y @ a - x||^2 with specified coefficients bounded >= 0.
+    Helper: minimize ||Y @ a - x||^2 with specified coefficients bounded >= floor
+    (floor = 0 for TA+; a small positive floor for TL+).
 
     Uses scipy lsq_linear (BVLS active-set method) instead of SLSQP.
     BVLS works on Y directly via QR decomposition, so its numerical stability
@@ -246,7 +261,7 @@ def solve_with_bounds(Y: np.ndarray, x_data: np.ndarray, terms: int,
     """
     lb = np.full(terms, -np.inf)
     for idx in bound_indices:
-        lb[idx] = 0.0
+        lb[idx] = floor
     ub = np.full(terms, np.inf)
 
     result = lsq_linear(Y, x_data, bounds=(lb, ub),

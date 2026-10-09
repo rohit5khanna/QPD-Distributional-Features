@@ -335,7 +335,8 @@ experiment.{_extra}
     # not a generic "QFlex" label that hides which constraint was actually
     # used.
     # QFlex-T+ is the library's TL+ constraint: only the LEADING (highest-
-    # order) left- and right-tail coefficients >= 0. It is a notebook
+    # order) left- and right-tail coefficients > 0, imposed in the solver as
+    # >= 1e-6 x (data range) (constraints.LEADING_TAIL_FLOOR_REL). It is a notebook
     # addition -- the paper reports QFlex-U, QFlex-TA+ and QFlex-A+ only.
     QFLEX_LABELS = {"NONE": "QFlex-U", "TL": "QFlex-T+", "A": "QFlex-A+", "TA": "QFlex-TA+"}
 
@@ -1467,7 +1468,7 @@ def _(mo):
         _cons = mo_ref.ui.dropdown(
             options={
                 "Unconstrained": "NONE",
-                "T+  (leading tail coefficients ≥ 0)": "TL",
+                "T+  (leading tail coefficients > 0)": "TL",
                 "TA+  (tail coefficients ≥ 0)": "TA",
                 "A+  (all coefficients ≥ 0)": "A",
             },
@@ -2238,7 +2239,7 @@ def _(
         _km = mo.ui.slider(start=2, stop=15, step=1, value=12, label="Metalog K", show_value=True)
         _kq = mo.ui.slider(start=2, stop=15, step=1, value=12, label="QFlex K", show_value=True)
         _cons = mo.ui.dropdown(
-            options={"Unconstrained": "NONE", "T+  (leading tail coefficients ≥ 0)": "TL", "TA+  (tail coefficients ≥ 0)": "TA", "A+  (all coefficients ≥ 0)": "A"},
+            options={"Unconstrained": "NONE", "T+  (leading tail coefficients > 0)": "TL", "TA+  (tail coefficients ≥ 0)": "TA", "A+  (all coefficients ≥ 0)": "A"},
             value="TA+  (tail coefficients ≥ 0)", label="QFlex constraint",
         )
         return _delta, _ratio, _n, _km, _kq, _cons
@@ -3065,7 +3066,7 @@ def _(mo):
     returns_k_metalog = mo.ui.slider(start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True)
     returns_k_qflex = mo.ui.slider(start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True)
     returns_qflex_constraint = mo.ui.dropdown(
-        options={"Unconstrained": "NONE", "T+  (leading tail coefficients ≥ 0)": "TL", "TA+  (tail coefficients ≥ 0)": "TA", "A+  (all coefficients ≥ 0)": "A"},
+        options={"Unconstrained": "NONE", "T+  (leading tail coefficients > 0)": "TL", "TA+  (tail coefficients ≥ 0)": "TA", "A+  (all coefficients ≥ 0)": "A"},
         value="Unconstrained", label="QFlex constraint",
     )
     mo.vstack([mo.hstack([returns_k_metalog, returns_k_qflex], justify="start", gap=2), returns_qflex_constraint])
@@ -3242,7 +3243,7 @@ def _(mo):
     # Hydrology: the paper compares GEV and Log Metalog K=10 against
     # Log QFlex-A+ K=10 (A+ enforces unimodality).
     hydro_qflex_constraint = mo.ui.dropdown(
-        options={"Unconstrained": "NONE", "T+  (leading tail coefficients ≥ 0)": "TL", "TA+  (tail coefficients ≥ 0)": "TA", "A+  (all coefficients ≥ 0)": "A"},
+        options={"Unconstrained": "NONE", "T+  (leading tail coefficients > 0)": "TL", "TA+  (tail coefficients ≥ 0)": "TA", "A+  (all coefficients ≥ 0)": "A"},
         value="A+  (all coefficients ≥ 0)", label="QFlex constraint",
     )
     mo.vstack([mo.hstack([hydro_k_metalog, hydro_k_qflex], justify="start", gap=2), hydro_qflex_constraint])
@@ -3467,7 +3468,7 @@ def _(mo):
     # real evidence against unimodality, so a QPD able to represent two
     # modes is appropriate. Headline order K=10.
     fish_qflex_constraint = mo.ui.dropdown(
-        options={"Unconstrained": "NONE", "T+  (leading tail coefficients ≥ 0)": "TL", "TA+  (tail coefficients ≥ 0)": "TA", "A+  (all coefficients ≥ 0)": "A"},
+        options={"Unconstrained": "NONE", "T+  (leading tail coefficients > 0)": "TL", "TA+  (tail coefficients ≥ 0)": "TA", "A+  (all coefficients ≥ 0)": "A"},
         value="TA+  (tail coefficients ≥ 0)", label="QFlex constraint",
     )
     mo.vstack([mo.hstack([fish_k_metalog, fish_k_qflex], justify="start", gap=2), fish_qflex_constraint])
@@ -3634,7 +3635,7 @@ def _(mo):
     # Geyser: Log Metalog K=8 and Log QFlex-TA+ K=10 are the pairing in
     # the paper's mode-dispersion table.
     geyser_qflex_constraint = mo.ui.dropdown(
-        options={"Unconstrained": "NONE", "T+  (leading tail coefficients ≥ 0)": "TL", "TA+  (tail coefficients ≥ 0)": "TA", "A+  (all coefficients ≥ 0)": "A"},
+        options={"Unconstrained": "NONE", "T+  (leading tail coefficients > 0)": "TL", "TA+  (tail coefficients ≥ 0)": "TA", "A+  (all coefficients ≥ 0)": "A"},
         value="TA+  (tail coefficients ≥ 0)", label="QFlex constraint",
     )
     mo.vstack([mo.hstack([geyser_k_metalog, geyser_k_qflex], justify="start", gap=2), geyser_qflex_constraint])

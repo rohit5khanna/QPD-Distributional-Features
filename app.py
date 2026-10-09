@@ -135,13 +135,19 @@ def _(mo):
         resampling (Monte Carlo and bootstrap, run as two separate
         experiments) &middot; a bimodal-mixture playground (likewise)
         &middot; four empirical case studies (each with its own QPD fit,
-        Hartigan dip test, and bootstrap batch analysis). Every batch run
-        reports all 5 QPDs &mdash; Metalog, QFlex-U, QFlex-T+, QFlex-TA+,
-        QFlex-A+ &mdash; with the paper's validity / false-modality / W1
-        statistics, plus the Hartigan unimodality rejection rate.
-        **QFlex-T+** (only the leading, highest-order tail coefficients
-        constrained to be nonnegative) is added here for comparison; it is
-        not one of the paper's models.
+        Hartigan dip test, and bootstrap batch analysis).
+
+        **Models.** Every batch run fits all five QPDs below and reports the
+        paper's validity / false-modality / W1 statistics, plus the Hartigan
+        unimodality rejection rate:
+
+        - **Metalog**: unconstrained least-squares fit
+        - **QFlex-U**: unconstrained coefficients
+        - **QFlex-T+**: leading (highest-order) tail coefficients constrained
+          to be positive &mdash; added in this notebook for comparison; not one
+          of the paper's models
+        - **QFlex-TA+**: tail coefficients constrained to be nonnegative
+        - **QFlex-A+**: all coefficients constrained to be nonnegative
 
         **Everything is evaluated on one grid.** Every fit on this page is
         assessed within the defined grid $G$: validity,

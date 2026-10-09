@@ -151,26 +151,28 @@ def _(mo):
 
         **Everything is evaluated on one grid.** Every fit on this page is
         assessed within the defined grid $G$: validity,
-        densities, modes and W₁ are all computed on $G$, and nothing is
-        computed, extrapolated or drawn for a fitted QPD outside it. What a
+        densities and modes are all computed on $G$, and nothing is
+        computed, extrapolated or drawn for a fitted QPD outside it. The one
+        exception is W₁, which is measured at the sample's own points (below). What a
         fit does for $p < 0.001$ or $p > 0.999$ &mdash; including any mode at
         the edge of its support &mdash; is therefore not assessed. (The *true*
         reference densities are drawn exactly; the bounded Johnson SB is
         shown over its full support.)
 
         **How W₁ is measured, everywhere on this page.** The normalized
-        Wasserstein-1 distance between a fitted quantile function $Q_F$ and its
-        target $Q_T$, as the paper defines it in Equation 6:
+        Wasserstein-1 distance between a fitted quantile function $Q_F$ and
+        the sample it was fitted to, as the paper defines it in Equation 6,
+        evaluated at the sample points themselves:
 
-        $$W_1 \;=\; \frac{1}{Q_T(0.9) - Q_T(0.1)} \cdot \frac{1}{|G_N|}
-        \sum_{p \in G_N} \bigl|\,Q_F(p) - Q_T(p)\,\bigr|,
-        \qquad G_N = \Bigl\{p \in G : \tfrac{1}{N+1} \le p \le \tfrac{N}{N+1}\Bigr\}$$
+        $$W_1 \;=\; \frac{1}{Q_T(0.9) - Q_T(0.1)} \cdot \frac{1}{N}
+        \sum_{i=1}^{N} \bigl|\,Q_F(p_i) - x_{(i)}\,\bigr|,
+        \qquad p_i = \frac{i}{N+1}$$
 
-        where $G = \{0.001, 0.002, \dots, 0.999\}$ is the evaluation grid and
-        $Q_T$ is the target sample's EQF (order statistics at $i/(N+1)$,
-        linearly interpolated). Only grid points inside the data range are
-        used: the sample has no observation beyond its smallest and largest
-        plotting positions.
+        where $x_{(1)} \le \dots \le x_{(N)}$ is the sorted sample the model
+        was fitted to (in a bootstrap, the resample) and $Q_T$ is that
+        sample's EQF. No interpolation is involved except in $Q_T(0.9)$ and
+        $Q_T(0.1)$, which interpolate linearly between neighbouring order
+        statistics.
 
         **How validity, densities and modes are computed, everywhere on this
         page.** A fit is *valid* if its quantile function is strictly
@@ -226,15 +228,11 @@ def _(
     # here; render_empirical_panel's PDF-axis guard (below) keeps a single
     # spike from blowing out the whole y-axis when that happens.
     #
-    # FRAMEWORK (2026-10-08): ONE grid for everything -- drawing, validity,
-    # density, modes and W1 -- the paper's evaluation grid p = 0.001..0.999
-    # (EF.GRID). Nothing is computed or drawn outside it.
+    # FRAMEWORK (2026-10-08): ONE grid for drawing, validity, density and
+    # modes -- the paper's evaluation grid p = 0.001..0.999 (EF.GRID).
+    # W1 (2026-10-09) does not use the grid: it is measured at the fitted
+    # sample's own points, Q_F(i/(N+1)) vs x_(i) (EF.w1 / PAPER.w1).
     FIT_P_GRID = EF.GRID
-
-    # W1 uses the same grid but only the points INSIDE THE TARGET SAMPLE'S
-    # DATA RANGE [1/(N+1), N/(N+1)] (PAPER.w1(..., n=N)), divided by the
-    # TARGET's interdecile range.
-    W1_P_GRID = EF.GRID
 
     def _modes_paper_grid(fit):
         """The framework's mode count for a fitted QPD (EF.modes): interior
@@ -430,6 +428,7 @@ experiment.{_extra}
         return {
             "name": "Normal", "color": REFERENCE_COLORS["Normal"],
             "curve": (_xg, _pg), "n_modes": 1,
+            "quantile": (lambda p, _mu=_mu, _sd=_sd: scipy_norm.ppf(p, loc=_mu, scale=_sd)),
             "params": {"mu": _mu, "sigma": _sd},
         }
 
@@ -445,6 +444,8 @@ experiment.{_extra}
         return {
             "name": "GEV", "color": REFERENCE_COLORS["GEV"],
             "curve": (_xg, _pg), "n_modes": 1,
+            "quantile": (lambda p, _c=_c, _loc=_loc, _scale=_scale:
+                         scipy_gev.ppf(p, _c, loc=_loc, scale=_scale)),
             "params": {"xi": -float(_c), "loc": float(_loc), "scale": float(_scale)},
         }
 
@@ -780,20 +781,15 @@ experiment.{_extra}
         )
         style_fig(_fig, dense_ticks=True)
 
-        # W1 is measured against THIS REPLICATE'S OWN SAMPLE, not against the
-        # true distribution -- the paper's Monte Carlo tables (3 and A1) do the
-        # same. Distance-to-truth is a different quantity (estimation error);
-        # this one is fit to the data actually observed, which keeps the number
-        # comparable with the empirical sections, where no truth exists.
-        _eqf_on_w1 = PAPER.empirical_qf(x_sample, W1_P_GRID)
-        _L = PAPER.interdecile(_eqf_on_w1)
-        def _eq6(curve):
-            if curve is None:
+        # W1 is measured against THIS REPLICATE'S OWN SAMPLE, at its points
+        # (Equation 6; the paper's Tables 3 and A1 do the same), not against
+        # the true distribution.
+        def _eq6(fit, curve):
+            if curve is None or fit is None:
                 return None
-            _q = np.interp(W1_P_GRID, FIT_P_GRID, curve[0])
-            return PAPER.w1(_q, _eqf_on_w1, _L, n=len(x_sample))[1]
-        _metalog_w1 = _eq6(metalog_curve)
-        _qflex_w1 = _eq6(qflex_curve)
+            return PAPER.w1(fit, x_sample)[1]
+        _metalog_w1 = _eq6(metalog_fit, metalog_curve)
+        _qflex_w1 = _eq6(qflex_fit, qflex_curve)
 
         return mo.vstack([
             mode_summary_md(mo, fit_error, metalog_fit, metalog_modes, qflex_fit, qflex_modes, constraint_label,
@@ -967,29 +963,21 @@ experiment.{_extra}
         )
         style_fig(_fig)
 
-        # W1 (mean absolute quantile deviation) between each fit's quantile
-        # curve and the empirical quantile function itself -- a per-fit
-        # goodness-of-fit number in the same units/spirit as the "W1 vs
-        # full-sample fit" column reported by the bootstrap batch below,
-        # but here comparing the single current fit against the raw data
-        # rather than against a batch of resampled refits.
-        # Equation 6, against the observed sample's EQF.
-        _eqf_on_w1 = np.interp(W1_P_GRID, p_grid, eqf_point)
-        _L = PAPER.interdecile(_eqf_on_w1)
-        def _eq6(curve):
-            if curve is None:
+        # Equation 6 for the single current fit, at the points of the sample
+        # it was fitted to (x_raw: the displayed sample, jittered where the
+        # section jitters).
+        def _eq6(fit, curve):
+            if curve is None or fit is None:
                 return None
-            _q = np.interp(W1_P_GRID, FIT_P_GRID, curve[0])
-            return PAPER.w1(_q, _eqf_on_w1, _L, n=len(x_raw))[1]
-        _metalog_w1 = _eq6(metalog_curve)
-        _qflex_w1 = _eq6(qflex_curve)
+            return PAPER.w1(fit, x_raw)[1]
+        _metalog_w1 = _eq6(metalog_fit, metalog_curve)
+        _qflex_w1 = _eq6(qflex_fit, qflex_curve)
 
-        # Same W1 measure for each parametric baseline, on the same grid, so
+        # Same W1 measure for each parametric baseline, at the same points, so
         # the reference model and the QPDs are directly comparable.
         _ref_lines = []
         for _ref in (reference_fits or []):
-            _rw1 = PAPER.w1(np.interp(W1_P_GRID, FIT_P_GRID, _ref["curve"][0]),
-                            _eqf_on_w1, _L, n=len(x_raw))[1]
+            _rw1 = PAPER.w1(_ref["quantile"], x_raw)[1]
             _rn = _ref.get("n_modes")
             _rshape = f", {_rn} mode{'s' if _rn and _rn > 1 else ''}" if _rn else ""
             _ref_lines.append(
@@ -1040,22 +1028,14 @@ experiment.{_extra}
         per-iteration table -- since for 30-100 replicates x 5 models that
         table was mostly noise nobody read.
 
-        w1_ref: one of
-          * the string "own-sample" -- each replicate is measured against its
-            OWN sample's EQF, rebuilt per replicate. This is what the paper's
-            Monte Carlo tables do;
-          * a single quantile-grid array on FIT_P_GRID, used for all 5 models
-            (e.g. an empirical section's fixed observed EQF);
-          * a dict {model_label: array_or_None} for a per-model reference
-            (e.g. each section's own full-sample fit per model).
-        Whichever form is given, the reference reaching the W1 computation is
-        always an array on the grid.
+        w1_ref: None (no W1) or the string "own-sample": each replicate's
+            fit is measured against the sample it was fitted to (the drawn
+            sample in a Monte Carlo, the resample in a bootstrap), at that
+            sample's points -- Equation 6 as the paper uses it everywhere
+            (2026-10-09).
 
-        w1_ref_n: the size of the SAMPLE whose EQF is the reference, so W1 is
-        averaged over that sample's data range [1/(N+1), N/(N+1)], as in the
-        paper. Set automatically for "own-sample". Leave None only when the
-        reference is not an EQF (e.g. a full-sample FIT), which is defined on
-        the whole grid."""
+        w1_ref_n: ignored (W1 no longer takes a reference sample size);
+            kept so existing calls still work."""
         _constraints = {"QFlex-U": "NONE", "QFlex-T+": "TL", "QFlex-TA+": "TA", "QFlex-A+": "A"}
         # Whether draw_fn wants the replicate index is decided by INSPECTING it,
         # not by catching TypeError: a genuine TypeError raised inside a correct
@@ -1068,21 +1048,13 @@ experiment.{_extra}
         _dip_rejects = 0
 
         _OWN_SAMPLE = "own-sample"
-
-        def _ref_for(label, own_ref):
-            """Always returns a reference on W1_P_GRID (or None)."""
-            if w1_ref is None:
-                return None
-            if isinstance(w1_ref, str):
-                return own_ref
-            _a = w1_ref.get(label) if isinstance(w1_ref, dict) else w1_ref
-            return None if _a is None else np.interp(W1_P_GRID, FIT_P_GRID, _a)
+        if w1_ref is not None and not (isinstance(w1_ref, str) and w1_ref == _OWN_SAMPLE):
+            raise ValueError('w1_ref must be None or "own-sample": W1 is measured '
+                             'against the sample each model was fitted to')
+        _want_w1 = w1_ref is not None
 
         for _rep in range(n_reps):
             _x, _y = draw_fn(_rng, _rep) if _draw_takes_rep else draw_fn(_rng)
-            # Built once per replicate, not once per model.
-            _own_ref = (PAPER.empirical_qf(np.sort(_x), W1_P_GRID)
-                        if isinstance(w1_ref, str) and w1_ref == _OWN_SAMPLE else None)
 
             try:
                 _, _dip_pval, _dip_reject = hartigan_test(_x)
@@ -1092,7 +1064,6 @@ experiment.{_extra}
 
             for _model_name in MODEL_ORDER:
                 _row = {"Replicate": _rep + 1, "Model": _model_name}
-                _w1_ref_arr = _ref_for(_model_name, _own_ref)
                 try:
                     if _model_name == "Metalog":
                         _fit = _make_metalog(_x, _y, k_metalog_val, bounds)
@@ -1102,7 +1073,6 @@ experiment.{_extra}
                     # the grid; modes = interior peaks of the grid-difference
                     # density with prominence >= 1% of their own height,
                     # counted only for VALID fits; 0 peaks = unimodal.
-                    _xw = EF.quantile(_fit)
                     _valid = EF.is_valid(_fit)
                     _n_modes, _m_locs, _m_hgts = EF.modes(_fit)
                     _row["Valid"] = bool(_valid)
@@ -1116,19 +1086,14 @@ experiment.{_extra}
                     # geyser (see paper_defaults).
                     _row["_locs"] = _m_locs
                     _row["_hgts"] = _m_hgts
-                    if _w1_ref_arr is not None:
-                        # Equation 6: mean |Q_F - Q_T| over the grid points in
-                        # the reference sample's data range, divided by the
-                        # TARGET's interdecile range.
-                        _n_ref = (len(_x) if (isinstance(w1_ref, str) and w1_ref == _OWN_SAMPLE)
-                                  else w1_ref_n)
-                        _row[w1_label] = round(
-                            PAPER.w1(_xw, _w1_ref_arr,
-                                     PAPER.interdecile(_w1_ref_arr), n=_n_ref)[1], 4)
+                    if _want_w1:
+                        # Equation 6 at the points of the sample this fit was
+                        # made to: mean |Q_F(i/(N+1)) - x_(i)| / interdecile.
+                        _row[w1_label] = round(PAPER.w1(_fit, _x)[1], 4)
                 except (MetalogError, QFlexError):
                     _row["Valid"] = False
                     _row["Modes"] = None
-                    if _w1_ref_arr is not None:
+                    if _want_w1:
                         _row[w1_label] = None
                 _rows.append(_row)
 
@@ -1215,9 +1180,8 @@ experiment.{_extra}
                 _il, _ih, _sl_, _sh_, _np_, _ns_ = _mode_iqrs(_feas)
                 _denoms.append(f"{_name}: {len(_feas)} valid, {_np_} with a mode, {_ns_} with two")
                 if _fmt == "bootstrap":
-                    # Named, not just "W1 (Median)": this section measures each
-                    # replicate against the reference sample it was resampled
-                    # from, and the heading should say so.
+                    # Named, not just "W1 (Median)": the heading says what each
+                    # fit is measured against (its own resample).
                     _row_out = {"Model": _name, "K": _k_used, "Validity %": _feas_pct,
                                 "Mode location IQR": _r(_il), "Mode height IQR": _r(_ih),
                                 f"Median {w1_label}": _w1,
@@ -1751,7 +1715,7 @@ def _(mc_base_seed, mc_n_replicates, mc_run_batch, mo):
         mo.md(
             "**Full Monte Carlo simulation** — uses this experiment's own family, N, and K's; "
             "each replicate draws a brand-new sample from the true distribution. W1 is measured against "
-            "the **true** quantile function, which is known here."
+            "**that replicate's own sample**, at its points, as in the paper."
         ),
         mo.hstack([mc_n_replicates, mc_base_seed, mc_run_batch], justify="start", gap=2),
     ], gap=1)
@@ -2114,9 +2078,8 @@ def _(boot_n_replicates, boot_run_batch, mo):
     mo.vstack([
         mo.md(
             "**Full bootstrap simulation** — uses this experiment's own family, N, and K's; "
-            "each replicate resamples the fixed reference realization. W1 is measured against that "
-            "**reference sample's own EQF**, since in a real bootstrap the truth is exactly what you "
-            "do not have."
+            "each replicate resamples the fixed reference realization. W1 is measured against "
+            "**the resample each fit was made to**, at its points, as in the paper."
         ),
         mo.hstack([boot_n_replicates, boot_run_batch], justify="start", gap=2),
     ], gap=1)
@@ -2141,11 +2104,7 @@ def _(
     run_replicate_batch,
 ):
     if boot_run_batch.value:
-        # Reference for W1 is the fixed realization's own EQF, interpolated
-        # onto the fit grid -- the bootstrap analog of "the truth you have".
-        _n_ref = len(reference_sample)
-        _p_ref = np.arange(1, _n_ref + 1) / (_n_ref + 1)
-        _x_ref_grid = np.interp(FIT_P_GRID, _p_ref, reference_sample)
+        # W1: each fit against the resample it was made to (Equation 6).
 
         def _draw(rng, rep):
             # Per-replicate seeding on the paper's stream
@@ -2158,8 +2117,8 @@ def _(
 
         run_replicate_batch(
             mo, boot_n_replicates.value, boot_k_metalog.value, boot_k_qflex.value,
-            _draw, base_seed.value + 777, w1_ref=_x_ref_grid, w1_ref_n=_n_ref,
-            w1_label="W1 vs reference sample", bounds=boot_bounds,
+            _draw, base_seed.value + 777, w1_ref="own-sample",
+            w1_label="W1 vs resample", bounds=boot_bounds,
             table_format="bootstrap"
         )
     else:
@@ -2576,8 +2535,8 @@ def _(bimodal_n_replicates, bimodal_run_batch, mo):
     mo.vstack([
         mo.md(
             "**Full Monte Carlo simulation** — uses this experiment's own mixture, N, and K's; "
-            "each replicate draws a brand-new sample from the true mixture. W1 is measured against the "
-            "**true** quantile function."
+            "each replicate draws a brand-new sample from the true mixture. W1 is measured against "
+            "**that replicate's own sample**, at its points, as in the paper."
         ),
         mo.hstack([bimodal_n_replicates, bimodal_run_batch], justify="start", gap=2),
     ], gap=1)
@@ -2828,8 +2787,8 @@ def _(bimodal_boot_n_replicates, bimodal_boot_run_batch, mo):
     mo.vstack([
         mo.md(
             "**Full bootstrap simulation** — uses this experiment's own mixture, N, and K's; "
-            "each replicate resamples the fixed reference realization. W1 is measured against that "
-            "**reference sample's own EQF**."
+            "each replicate resamples the fixed reference realization. W1 is measured against "
+            "**the resample each fit was made to**, at its points."
         ),
         mo.hstack([bimodal_boot_n_replicates, bimodal_boot_run_batch], justify="start", gap=2),
     ], gap=1)
@@ -2852,9 +2811,6 @@ def _(
     run_replicate_batch,
 ):
     if bimodal_boot_run_batch.value:
-        _n_ref = len(bimodal_reference_sample)
-        _p_ref = np.arange(1, _n_ref + 1) / (_n_ref + 1)
-        _x_ref_grid = np.interp(FIT_P_GRID, _p_ref, bimodal_reference_sample)
 
         def _draw(rng, rep):
             # Per-replicate stream, so replicate b is reachable on its own
@@ -2867,8 +2823,8 @@ def _(
 
         run_replicate_batch(
             mo, bimodal_boot_n_replicates.value, bimodal_boot_k_metalog.value, bimodal_boot_k_qflex.value,
-            _draw, bimodal_seed.value + 777, w1_ref=_x_ref_grid, w1_ref_n=_n_ref,
-            w1_label="W1 vs reference sample", true_n_modes=bimodal_boot_scenario["true_modes"],
+            _draw, bimodal_seed.value + 777, w1_ref="own-sample",
+            w1_label="W1 vs resample", true_n_modes=bimodal_boot_scenario["true_modes"],
             table_format="bimodal"                 # Table 6 columns; the bootstrap twin has no table of its own
         )
     else:
@@ -3168,8 +3124,6 @@ def _(
     run_replicate_batch,
 ):
     if returns_run_batch.value:
-        _all_fits, _ = fit_all_qpds(returns_x, np.arange(1, len(returns_x) + 1) / (len(returns_x) + 1), returns_k_metalog.value, returns_k_qflex.value)
-        _w1_refs = {_label: (_r["curve"][0] if _r["curve"] is not None else None) for _label, _r in _all_fits.items()}
 
         def _draw(rng, rep):
             # Per-replicate stream (see the bimodal bootstrap above). The
@@ -3181,7 +3135,7 @@ def _(
 
         run_replicate_batch(
             mo, returns_n_replicates.value, returns_k_metalog.value, returns_k_qflex.value,
-            _draw, PAPER.RETURNS_BASE, w1_ref=_w1_refs, w1_label="W1 vs full-sample fit",
+            _draw, PAPER.RETURNS_BASE, w1_ref="own-sample", w1_label="W1 vs resample",
             table_format="bootstrap"               # notebook-only section: no paper table
         )
     else:
@@ -3218,7 +3172,7 @@ def _(mo, paper_settings_note):
         mo,
         "`42 + 40,000,000 + b`. GEV and every QPD see the **same** replicate *b*, so the curves are paired; the draft's own scripts drew GEV from seed 42 and the QPDs from 43.",
         [("Metalog K", "10"), ("QFlex K", "10"), ("QFlex constraint", "A+"), ("Jitter", "none &mdash; gauge heights are continuous"), ("Replicates", "1000")],
-        "Table 7 and the river-gauge figures. At these settings Log Metalog K=10 gives 37.2 % valid and median W1 0.0453; Log QFlex-A+ K=10 gives 100 % and 0.0467.",
+        "Table 7 and the river-gauge figures. At these settings Log Metalog K=10 gives 37.2 % valid and median W1 0.0224; Log QFlex-A+ K=10 gives 100 % and 0.0326.",
     )
     return
 
@@ -3346,8 +3300,6 @@ def _(
     run_replicate_batch,
 ):
     if hydro_run_batch.value:
-        _all_fits, _ = fit_all_qpds(hydro_x, hydro_y, hydro_k_metalog.value, hydro_k_qflex.value, bounds=(0, None))
-        _w1_refs = {_label: (_r["curve"][0] if _r["curve"] is not None else None) for _label, _r in _all_fits.items()}
 
         def _draw(rng, rep):
             # The paper's resampling: per-replicate seed, so replicate b is
@@ -3359,10 +3311,9 @@ def _(
         run_replicate_batch(
             mo, hydro_n_replicates.value, hydro_k_metalog.value, hydro_k_qflex.value,
             _draw, PAPER.hydro_seed(b=0),
-            # Equation 6 measures against the OBSERVED sample's EQF, not
-            # against the full-sample fit.
-            w1_ref=np.interp(FIT_P_GRID, hydro_p_grid, hydro_eqf_point), w1_ref_n=len(hydro_x),
-            w1_label="W1 vs empirical", bounds=(0, None),
+            # Equation 6: each fit against the resample it was made to.
+            w1_ref="own-sample",
+            w1_label="W1 vs resample", bounds=(0, None),
             table_format="hydrology"               # Table 7
         )
     else:
@@ -3556,8 +3507,6 @@ def _(
     run_replicate_batch,
 ):
     if fish_run_batch.value:
-        _all_fits, _ = fit_all_qpds(fish_x, fish_y, fish_k_metalog.value, fish_k_qflex.value, bounds=(0, None))
-        _w1_refs = {_label: (_r["curve"][0] if _r["curve"] is not None else None) for _label, _r in _all_fits.items()}
 
         def _draw(rng, rep):
             # Resample the RAW rounded weights and re-jitter each replicate,
@@ -3570,8 +3519,8 @@ def _(
         run_replicate_batch(
             mo, fish_n_replicates.value, fish_k_metalog.value, fish_k_qflex.value,
             _draw, PAPER.fish_seed(fish_jitter.value, 0),
-            w1_ref=np.interp(FIT_P_GRID, fish_p_grid, fish_eqf_point), w1_ref_n=len(fish_x),
-            w1_label="W1 vs empirical", bounds=(0, None),
+            w1_ref="own-sample",
+            w1_label="W1 vs resample", bounds=(0, None),
             true_n_modes=None,
             table_format="fish"                    # Table 9
         )
@@ -3724,8 +3673,6 @@ def _(
     run_replicate_batch,
 ):
     if geyser_run_batch.value:
-        _all_fits, _ = fit_all_qpds(geyser_x, geyser_y, geyser_k_metalog.value, geyser_k_qflex.value, bounds=(0, None))
-        _w1_refs = {_label: (_r["curve"][0] if _r["curve"] is not None else None) for _label, _r in _all_fits.items()}
 
         def _draw(rng, rep):
             # Waiting times are whole minutes, so the paper adds ±0.5 min
@@ -3737,8 +3684,8 @@ def _(
         run_replicate_batch(
             mo, geyser_n_replicates.value, geyser_k_metalog.value, geyser_k_qflex.value,
             _draw, PAPER.geyser_seed(b=0),
-            w1_ref=np.interp(FIT_P_GRID, geyser_p_grid, geyser_eqf_point), w1_ref_n=len(geyser_x),
-            w1_label="W1 vs empirical", bounds=(0, None),
+            w1_ref="own-sample",
+            w1_label="W1 vs resample", bounds=(0, None),
             true_n_modes=2,
             table_format="geyser"                  # Table 12
         )

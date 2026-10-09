@@ -19,16 +19,17 @@ density, modes and W1, imported by every section script and every figure.
                  or the end of the grid (the higher of the two lows). The
                  first and last grid points are never modes. A fit with no
                  peak is unimodal.
-    5. W1        Equation 6: mean of |Q_fit(p) - EQF(p)| over the grid
-                 points INSIDE THE DATA RANGE, 1/(N+1) <= p <= N/(N+1),
-                 divided by EQF(0.9) - EQF(0.1). EQF = the reference sample's
-                 order statistics at p_i = i/(N+1), linearly interpolated.
-                 Grid points beyond the data range (p < 1/(N+1) or
-                 p > N/(N+1)) are not used: the data carry no observation
-                 there. (eqf() still returns values on the whole grid, held at
-                 the smallest / largest observation, for drawing only.)
-                 w1_fullgrid() keeps the previous whole-grid definition for
-                 comparison.
+    5. W1        Equation 6, AT THE SAMPLE POINTS -- no interpolation:
+                     W1 = (1/N) sum_i |Q_fit(p_i) - x_(i)|,  p_i = i/(N+1),
+                 x_(1) <= ... <= x_(N) the reference sample (the sample the
+                 model was fitted to, unless a caller says otherwise).
+                 Normalized W1 = W1 / (EQF(0.9) - EQF(0.1)), the reference
+                 sample's interdecile range; EQF(0.9) and EQF(0.1) are the ONLY
+                 interpolated values (linear between the order statistics at
+                 p_i). W1 does not use the grid. For N > 999 the extreme p_i
+                 lie outside the grid; Q_fit is evaluated there as well (these
+                 are observed points). w1_grid_datarange() and w1_fullgrid()
+                 keep the two previous grid-based definitions for comparison.
 
 NUMERICS (no change to the definitions). For Log / Logit models the quantile
 is Q(p) = L + exp(z(p)) or L + (U-L) expit(z(p)), z the fitted QPD on the
@@ -175,9 +176,55 @@ def w1_on_grid(q_on_grid, eqf_on_grid, n, divisor=None):
     return raw, (raw / divisor if divisor else np.nan)
 
 
-def w1(q_on_grid, x_ref):
-    """Equation 6 against the reference sample x_ref, over its data range.
-    Returns (raw, normalized): raw in data units, normalized / interdecile."""
+def quantile_at(m, p):
+    """Q(p) on the data scale at arbitrary p in (0, 1): a fitted QPD (anything
+    with .quantile) or a plain callable p -> Q(p)."""
+    p = np.asarray(p, float)
+    with np.errstate(all='ignore'):
+        q = m.quantile(p) if hasattr(m, 'quantile') else m(p)
+    return np.asarray(q, float)
+
+
+def w1_points(q_at_pp, x_ref):
+    """Equation 6 from Q already evaluated at the reference sample's plotting
+    positions p_i = i/(N+1). Returns (raw, normalized)."""
+    x = np.sort(np.asarray(x_ref, float)); q = np.asarray(q_at_pp, float)
+    if q.shape != x.shape:
+        raise ValueError(f'W1 needs Q at the {x.size} plotting positions of the '
+                         f'reference sample, got shape {q.shape}')
+    raw = float(np.mean(np.abs(q - x)))
+    L = interdecile(x)
+    return raw, (raw / L if L > 0 else np.nan)
+
+
+def w1(m, x_ref):
+    """Equation 6 of a fitted model (or callable Q) against the reference
+    sample x_ref, at its plotting positions. Returns (raw, normalized)."""
+    if isinstance(m, np.ndarray):
+        raise TypeError('eval_framework.w1 takes a fitted model or a callable Q(p), '
+                        'not Q values on a grid: W1 is evaluated at the sample points')
+    x = np.sort(np.asarray(x_ref, float))
+    return w1_points(quantile_at(m, plotting_positions(x.size)), x)
+
+
+#: Bootstrap sections score each fit two ways and store both: against the
+#: RESAMPLE it was fitted to ('own') and against the ORIGINAL sample ('orig').
+#: This switch only decides which of the two fills the main W1 columns that the
+#: tables and figure legends report; both are always written. DECIDED 2026-10-09
+#: (author): 'own' -- every W1 in the paper is measured against the sample the
+#: model was fitted to, bootstrap included. The _orig columns are kept for record.
+BOOTSTRAP_W1_REFERENCE = 'own'
+
+
+def w1_both(m, x_own, x_orig):
+    """Bootstrap W1 both ways: dict(own=(raw, norm), orig=(raw, norm), main=...)."""
+    own, orig = w1(m, x_own), w1(m, x_orig)
+    return dict(own=own, orig=orig,
+                main=own if BOOTSTRAP_W1_REFERENCE == 'own' else orig)
+
+
+def w1_grid_datarange(q_on_grid, x_ref):
+    """Previous definition (grid points inside the data range). Comparison only."""
     return w1_on_grid(q_on_grid, eqf(x_ref), len(x_ref), interdecile(x_ref))
 
 
@@ -233,16 +280,26 @@ if __name__ == '__main__':
     n, _, _ = modes_from_density(xx, f_test); assert n == 2, n
     f_rip = 1.0 + 0.002 * np.sin(200 * xx) * (xx > 0.5) - (xx - 0.3) ** 2
     n, _, _ = modes_from_density(xx, f_rip); assert n == 1, n
-    # 5. W1: EQF reproduces the data at the plotting positions; W1 of the
-    #    EQF against itself is 0
+    # 5. W1 at the sample points: a Q that passes through every observation
+    #    has W1 = 0 whatever it does between them; a constant offset c gives c
     xs = np.sort(rng.normal(size=999)); assert np.allclose(eqf(xs), xs)
-    assert w1(eqf(xs), xs)[0] == 0.0
-    # 5b. W1 uses only the data range: a fit that differs from the EQF only
-    #     beyond the data has W1 = 0; the whole-grid version does not
+    pp9 = plotting_positions(999)
+    wiggly = lambda p: np.interp(p, pp9, xs) + 5.0 * np.sin(np.pi * (len(xs) + 1) * np.asarray(p)) ** 2
+    assert w1(wiggly, xs)[0] < 1e-9
+    raw, nrm = w1(lambda p: np.interp(p, pp9, xs) + 0.25, xs)
+    assert abs(raw - 0.25) < 1e-12 and abs(nrm - 0.25 / interdecile(xs)) < 1e-12
+    # 5b. a fitted model: w1 == the formula written out by hand
+    for m in fits:
+        xr = {'Metalog': xun, 'QFlex': xun}.get(type(m).__name__,
+              xpos if type(m).__name__.startswith('Log') and not type(m).__name__.startswith('Logit') else x01)
+        hand = float(np.mean(np.abs(m.quantile(pp) - np.sort(xr))))
+        assert abs(w1(m, xr)[0] - hand) < 1e-12, type(m).__name__
+    try:
+        w1(eqf(xs), xs); raise AssertionError('w1 must refuse a grid array')
+    except TypeError:
+        pass
     small5 = np.sort(rng.normal(size=50)); mk = data_mask(50)
     assert mk.sum() == int(np.sum((GRID >= 1/51) & (GRID <= 50/51)))
-    qq5 = eqf(small5).copy(); qq5[~mk] += 10.0
-    assert w1(qq5, small5)[0] == 0.0 and w1_fullgrid(qq5, small5)[0] > 0
     small = np.array([2.0, 5.0, 9.0])               # flat outside [1/4, 3/4]
     e = eqf(small); assert e[0] == 2.0 and e[-1] == 9.0 and abs(e[374] - 3.5) < 1e-12
     print('eval_framework self-test OK')

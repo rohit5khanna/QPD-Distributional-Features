@@ -68,38 +68,32 @@ N_BOOT = 1000
 
 
 def interdecile(qf_on_grid, grid=P_GRID):
-    """Q_T(0.9) - Q_T(0.1): Equation 6's divisor, taken from the TARGET.
-    0.1 and 0.9 are grid points, so this is exact for an interpolated EQF."""
+    """Q_T(0.9) - Q_T(0.1) of a quantile function given on the grid (0.1 and
+    0.9 are grid points). W1 itself uses EF.interdecile of the sample."""
     return float(np.interp(0.9, grid, qf_on_grid) - np.interp(0.1, grid, qf_on_grid))
 
 
 def empirical_qf(x_sorted, grid=P_GRID):
     """Interpolated EQF of a sample (order statistics at i/(N+1), linear in
     between) on the grid. Beyond [1/(N+1), N/(N+1)] np.interp holds it at the
-    smallest / largest observation -- for DRAWING only; W1 does not use those
-    points (see w1)."""
+    smallest / largest observation -- for DRAWING only; W1 does not use the
+    EQF at all (see w1)."""
     x_sorted = np.sort(np.asarray(x_sorted, float))
     return np.interp(grid, weibull(len(x_sorted)), x_sorted)
 
 
-def w1(qf_on_grid, target_on_grid, divisor=None, n=None):
-    """Returns (unnormalized, Equation 6).
+def w1(model, x_ref):
+    """Equation 6 at the sample points (eval_framework.w1, 2026-10-09).
+    Returns (unnormalized, normalized):
 
-    Equation 6 (framework of 2026-10-09):
-        W1 = mean over grid points with 1/(N+1) <= p <= N/(N+1) of
-             |Q_F(p) - Q_T(p)|,  divided by  Q_T(0.9) - Q_T(0.1).
-    Pass `n` = the size of the sample whose EQF is the target: the mean is
-    then taken over the DATA RANGE only (eval_framework.w1_on_grid), as in the
-    paper. n=None averages over the whole grid -- for a target defined
-    everywhere (a true quantile function or another fitted model), never for
-    an EQF. Pass `divisor` (the TARGET's interdecile range) for the
-    normalized form; the fit's own spread is NOT the divisor.
-    """
-    if n is not None:
-        return EF.w1_on_grid(qf_on_grid, target_on_grid, n, divisor)
-    raw = float(np.mean(np.abs(np.asarray(qf_on_grid, float)
-                               - np.asarray(target_on_grid, float))))
-    return raw, (raw / divisor if divisor else float('nan'))
+        W1 = (1/N) sum_i |Q_F(p_i) - x_(i)|,  p_i = i/(N+1),
+        normalized by Q_T(0.9) - Q_T(0.1) of x_ref (linear between order
+        statistics -- the only interpolation).
+
+    `model` is a fitted QPD (anything with .quantile) or a callable Q(p);
+    `x_ref` is the sample the model was fitted to (in a bootstrap, the
+    resample). No grid and no EQF interpolation are involved."""
+    return EF.w1(model, x_ref)
 
 
 # ---------------------------------------------------------------------------
@@ -472,7 +466,7 @@ def check_seed_families(n_boot=N_BOOT, verbose=False):
 if __name__ == '__main__':
     print(f'P_GRID {P_GRID[0]:.3f}..{P_GRID[-1]:.3f} ({len(P_GRID)} pts), N_BOOT {N_BOOT}')
     _x = np.sort(np.random.default_rng(0).normal(size=50)); _e = empirical_qf(_x)
-    assert w1(_e, _e, interdecile(_e), n=50)[0] == 0.0
+    assert w1(lambda p: np.interp(p, weibull(50), _x), _x)[0] < 1e-12
     print(f'MC seed for (N=200, rep=1): {mc_seed(200, 1)}  '
           f'-> bootstrap realization {BOOTSTRAP_SEED}  '
           f'{"OK" if mc_seed(200, 1) == BOOTSTRAP_SEED else "MISMATCH"}')

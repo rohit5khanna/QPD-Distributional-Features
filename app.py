@@ -136,9 +136,21 @@ def _(mo):
         experiments) &middot; a bimodal-mixture playground (likewise)
         &middot; four empirical case studies (each with its own QPD fit,
         Hartigan dip test, and bootstrap batch analysis). Every batch run
-        reports all 4 QPDs &mdash; Metalog, QFlex-U, QFlex-TA+, QFlex-A+
-        &mdash; with the paper's validity / false-modality / W1
+        reports all 5 QPDs &mdash; Metalog, QFlex-U, QFlex-T+, QFlex-TA+,
+        QFlex-A+ &mdash; with the paper's validity / false-modality / W1
         statistics, plus the Hartigan unimodality rejection rate.
+        **QFlex-T+** (only the leading, highest-order tail coefficients
+        constrained to be nonnegative) is added here for comparison; it is
+        not one of the paper's models.
+
+        **Everything is evaluated on one grid.** Every fit on this page is
+        assessed within the defined grid $G$: validity,
+        densities, modes and W₁ are all computed on $G$, and nothing is
+        computed, extrapolated or drawn for a fitted QPD outside it. What a
+        fit does for $p < 0.001$ or $p > 0.999$ &mdash; including any mode at
+        the edge of its support &mdash; is therefore not assessed. (The *true*
+        reference densities are drawn exactly; the bounded Johnson SB is
+        shown over its full support.)
 
         **How W₁ is measured, everywhere on this page.** The normalized
         Wasserstein-1 distance between a fitted quantile function $Q_F$ and its
@@ -158,7 +170,7 @@ def _(mo):
         page.** A fit is *valid* if its quantile function is strictly
         increasing along $G$. Densities are computed from the quantile values
         on $G$ (differences between neighbouring grid points), and every
-        curve is drawn on $G$ only. A *mode* is an interior local maximum of
+        fitted curve is drawn on $G$ only. A *mode* is an interior local maximum of
         that density whose prominence is at least 1% of its own height; the
         grid end points are never modes, and a fit with no interior peak
         counts as unimodal.
@@ -306,7 +318,7 @@ def _(
 These are the defaults, so an untouched notebook already reproduces the
 paper — every value here is shared with the scripts that produced the
 published tables. The **QFlex constraint** control drives only the single-fit
-panel; the batch summary always fits all four QPDs, and **K** selects which
+panel; the batch summary always fits all five QPDs, and **K** selects which
 block of the paper's table a run reproduces rather than changing the
 experiment.{_extra}
 ///
@@ -316,12 +328,15 @@ experiment.{_extra}
     # Paper convention: the constrained variants of QFlex get their own name,
     # not a generic "QFlex" label that hides which constraint was actually
     # used.
-    QFLEX_LABELS = {"NONE": "QFlex-U", "A": "QFlex-A+", "TA": "QFlex-TA+"}
+    # QFlex-T+ is the library's TL+ constraint: only the LEADING (highest-
+    # order) left- and right-tail coefficients >= 0. It is a notebook
+    # addition -- the paper reports QFlex-U, QFlex-TA+ and QFlex-A+ only.
+    QFLEX_LABELS = {"NONE": "QFlex-U", "TL": "QFlex-T+", "A": "QFlex-A+", "TA": "QFlex-TA+"}
 
-    # The 4 QPDs, in the order used consistently across this notebook and the
-    # companion Returns-analysis workbook: Metalog, then the 3 QFlex
-    # constraint variants with TA+ before A+.
-    MODEL_ORDER = ("Metalog", "QFlex-U", "QFlex-TA+", "QFlex-A+")
+    # The 5 QPDs, in the order used consistently across this notebook:
+    # Metalog, then the 4 QFlex constraint variants from least to most
+    # constrained -- U (none), T+ (leading tails), TA+ (all tails), A+ (all).
+    MODEL_ORDER = ("Metalog", "QFlex-U", "QFlex-T+", "QFlex-TA+", "QFlex-A+")
 
     # Same per-model palette as the companion Returns-analysis workbook, so a
     # color means the same model whether you're looking at this notebook or
@@ -330,18 +345,20 @@ experiment.{_extra}
     # the one piece of information (which constraint?) most worth encoding
     # visually -- the constraint dropdown's own text was the only way to
     # tell U/TA+/A+ apart at a glance.
-    # These four are RESERVED for the four QPDs and are used for nothing else,
-    # here or in the paper -- they are the same hex values as the paper's
-    # reproduction/scripts/figure_style.py. Anything that is not one of these
+    # These are RESERVED for the QPDs and are used for nothing else, here or
+    # in the paper -- the four paper models use the same hex values as the
+    # paper's reproduction/scripts/figure_style.py; QFlex-T+ (notebook only)
+    # gets pink. Anything that is not one of these
     # models (GEV, the population curve, observed data, bootstrap bands) draws
     # a colour from outside this dict.
     MODEL_COLORS = {
         "Metalog": "#1f77b4",
         "QFlex-U": "#9467bd",
+        "QFlex-T+": "#e377c2",   # notebook-only model; pink is used nowhere else here or in the paper
         "QFlex-TA+": "#ff7f0e",
         "QFlex-A+": "#2ca02c",
     }
-    _QFLEX_CONSTRAINTS = {"QFlex-U": "NONE", "QFlex-TA+": "TA", "QFlex-A+": "A"}
+    _QFLEX_CONSTRAINTS = {"QFlex-U": "NONE", "QFlex-T+": "TL", "QFlex-TA+": "TA", "QFlex-A+": "A"}
 
     # Boundedness support -- matching the paper's own convention of fitting
     # semi-bounded (Log Metalog / Log QFlex, exponential transform) or
@@ -500,11 +517,11 @@ experiment.{_extra}
         )
 
     def fit_all_qpds(x_sorted, y_plot_pos, k_metalog_val, k_qflex_val, bounds=None):
-        """Fit all 4 QPDs (Metalog + all 3 QFlex constraint variants) to one
+        """Fit all 5 QPDs (Metalog + all 4 QFlex constraint variants) to one
         (x, y) EQF sample. Never raises. Returns a dict keyed by MODEL_ORDER
         label -> {"fit", "curve", "modes"} (same shape per model), plus a
         combined error string (or None). Used wherever a batch/summary needs
-        all 4 models at once, rather than just the single QFlex constraint
+        all 5 models at once, rather than just the single QFlex constraint
         shown in a section's live 2-model panel. `bounds` selects the
         boundedness variant -- see _qpd_prefix above."""
         _results = {}
@@ -517,7 +534,7 @@ experiment.{_extra}
             _results["Metalog"] = {"fit": None, "curve": None, "modes": (None, None, None)}
             _errors.append(f"Metalog: {e}")
 
-        for _label in ("QFlex-U", "QFlex-TA+", "QFlex-A+"):
+        for _label in ("QFlex-U", "QFlex-T+", "QFlex-TA+", "QFlex-A+"):
             try:
                 _constraint = ConstraintType[_QFLEX_CONSTRAINTS[_label]]
                 _qf = _make_qflex(x_sorted, y_plot_pos, k_qflex_val, _constraint, bounds)
@@ -989,7 +1006,8 @@ experiment.{_extra}
     #: What each section's table corresponds to in the manuscript.
     TABLE_CAPTIONS = {
         "mc": "**Tables 3 and A1** &mdash; validity, false modality and median W1, "
-              "reported here for all four QPDs rather than the paper's two.",
+              "reported here for all five QPDs rather than the paper's two "
+              "(QFlex-T+ is a notebook addition, not in the paper).",
         "bootstrap": "**Table 5** &mdash; validity, mode-dispersion IQRs, median W1 and the "
                      "mode-count split. (The Hartigan rate below is Table 4.)",
         "bimodal": "**Table 6** &mdash; mode recovery against a genuinely bimodal population, "
@@ -1004,22 +1022,22 @@ experiment.{_extra}
     def run_replicate_batch(mo, n_reps, k_metalog_val, k_qflex_val, draw_fn, seed, w1_ref=None,
                               w1_label="W1 vs reference", bounds=None, true_n_modes=1,
                               table_format="mc", w1_ref_n=None):
-        """Run a batch of replicates, fitting all 4 QPDs (Metalog + all 3
+        """Run a batch of replicates, fitting all 5 QPDs (Metalog + all 4
         QFlex constraint variants) to each one, then leave a summary behind
         -- feasibility rate, false-modality rate, and (when a reference is
         given) median W1 distance per model, the same statistics behind the
-        paper's Tables 3 and A1, now covering all 4 QPDs rather than just the 2
+        paper's Tables 3 and A1, now covering all 5 QPDs rather than just the 2
         shown in the live panel above. Also runs the Hartigan dip test on
         each replicate's raw draw and reports the aggregate unimodality
         rejection rate. Only the final summary is shown -- not a
-        per-iteration table -- since for 30-100 replicates x 4 models that
+        per-iteration table -- since for 30-100 replicates x 5 models that
         table was mostly noise nobody read.
 
         w1_ref: one of
           * the string "own-sample" -- each replicate is measured against its
             OWN sample's EQF, rebuilt per replicate. This is what the paper's
             Monte Carlo tables do;
-          * a single quantile-grid array on FIT_P_GRID, used for all 4 models
+          * a single quantile-grid array on FIT_P_GRID, used for all 5 models
             (e.g. an empirical section's fixed observed EQF);
           * a dict {model_label: array_or_None} for a per-model reference
             (e.g. each section's own full-sample fit per model).
@@ -1031,7 +1049,7 @@ experiment.{_extra}
         paper. Set automatically for "own-sample". Leave None only when the
         reference is not an EQF (e.g. a full-sample FIT), which is defined on
         the whole grid."""
-        _constraints = {"QFlex-U": "NONE", "QFlex-TA+": "TA", "QFlex-A+": "A"}
+        _constraints = {"QFlex-U": "NONE", "QFlex-T+": "TL", "QFlex-TA+": "TA", "QFlex-A+": "A"}
         # Whether draw_fn wants the replicate index is decided by INSPECTING it,
         # not by catching TypeError: a genuine TypeError raised inside a correct
         # draw_fn used to be swallowed and silently demote the section to the
@@ -1108,7 +1126,7 @@ experiment.{_extra}
                 _rows.append(_row)
 
             if _rep == 0 or (_rep + 1) % 5 == 0 or _rep == n_reps - 1:
-                mo.output.replace(mo.md(f"Running replicate {_rep + 1} / {n_reps} (4 QPDs each)..."))
+                mo.output.replace(mo.md(f"Running replicate {_rep + 1} / {n_reps} (5 QPDs each)..."))
 
         _df = pd.DataFrame(_rows)
 
@@ -1123,7 +1141,7 @@ experiment.{_extra}
         #   "geyser"    Table 10       1/2/>2 split + primary and secondary (min)
         #
         # The paper lays Tables 3 / A1 out WIDE (two models side by side) to fit
-        # the page; the notebook reports four QPDs, so the same columns are given
+        # the page; the notebook reports five QPDs, so the same columns are given
         # one model per row. Contents are the paper's, the layout is long.
         _fmt = table_format or "mc"
         _rank = {"geyser": PAPER.rank_modes_by_position}.get(_fmt, PAPER.rank_modes_by_height)
@@ -1237,7 +1255,7 @@ experiment.{_extra}
 
         mo.output.replace(
             mo.vstack([
-                mo.md(f"**Done — {n_reps} replicates × 4 QPDs.**"),
+                mo.md(f"**Done — {n_reps} replicates × 5 QPDs.**"),
                 mo.md("**Summary across all replicates** &mdash; " + _caption + _denom_md),
                 mo.ui.table(_summary_rows, selection=None, show_download=False, pagination=False),
                 mo.md(
@@ -1443,8 +1461,9 @@ def _(mo):
         _cons = mo_ref.ui.dropdown(
             options={
                 "Unconstrained": "NONE",
-                "A+  (all coefficients ≥ 0)": "A",
+                "T+  (leading tail coefficients ≥ 0)": "TL",
                 "TA+  (tail coefficients ≥ 0)": "TA",
+                "A+  (all coefficients ≥ 0)": "A",
             },
             # A+ is the comparator in the paper's unimodal Monte Carlo and
             # bootstrap sections -- its mode-count-and-dispersion figures put
@@ -1770,7 +1789,7 @@ def _(
         )
     else:
         mo.output.replace(
-            mo.md("*Click **▶ Run Monte Carlo Analysis** to draw fresh samples repeatedly and summarize all 4 QPDs.*")
+            mo.md("*Click **▶ Run Monte Carlo Analysis** to draw fresh samples repeatedly and summarize all 5 QPDs.*")
         )
     return
 
@@ -2138,7 +2157,7 @@ def _(
         )
     else:
         mo.output.replace(
-            mo.md("*Click **▶ Run Bootstrap Analysis** to resample the fixed reference repeatedly and summarize all 4 QPDs.*")
+            mo.md("*Click **▶ Run Bootstrap Analysis** to resample the fixed reference repeatedly and summarize all 5 QPDs.*")
         )
     return
 
@@ -2213,7 +2232,7 @@ def _(
         _km = mo.ui.slider(start=2, stop=15, step=1, value=12, label="Metalog K", show_value=True)
         _kq = mo.ui.slider(start=2, stop=15, step=1, value=12, label="QFlex K", show_value=True)
         _cons = mo.ui.dropdown(
-            options={"Unconstrained": "NONE", "A+  (all coefficients ≥ 0)": "A", "TA+  (tail coefficients ≥ 0)": "TA"},
+            options={"Unconstrained": "NONE", "T+  (leading tail coefficients ≥ 0)": "TL", "TA+  (tail coefficients ≥ 0)": "TA", "A+  (all coefficients ≥ 0)": "A"},
             value="TA+  (tail coefficients ≥ 0)", label="QFlex constraint",
         )
         return _delta, _ratio, _n, _km, _kq, _cons
@@ -2589,7 +2608,7 @@ def _(
         )
     else:
         mo.output.replace(
-            mo.md("*Click **▶ Run Monte Carlo Analysis** to draw fresh samples repeatedly and summarize all 4 QPDs.*")
+            mo.md("*Click **▶ Run Monte Carlo Analysis** to draw fresh samples repeatedly and summarize all 5 QPDs.*")
         )
     return
 
@@ -2847,7 +2866,7 @@ def _(
         )
     else:
         mo.output.replace(
-            mo.md("*Click **▶ Run Bootstrap Analysis** to resample the fixed reference repeatedly and summarize all 4 QPDs.*")
+            mo.md("*Click **▶ Run Bootstrap Analysis** to resample the fixed reference repeatedly and summarize all 5 QPDs.*")
         )
     return
 
@@ -3040,7 +3059,7 @@ def _(mo):
     returns_k_metalog = mo.ui.slider(start=2, stop=15, step=1, value=7, label="Metalog K", show_value=True)
     returns_k_qflex = mo.ui.slider(start=2, stop=15, step=1, value=7, label="QFlex K", show_value=True)
     returns_qflex_constraint = mo.ui.dropdown(
-        options={"Unconstrained": "NONE", "A+  (all coefficients ≥ 0)": "A", "TA+  (tail coefficients ≥ 0)": "TA"},
+        options={"Unconstrained": "NONE", "T+  (leading tail coefficients ≥ 0)": "TL", "TA+  (tail coefficients ≥ 0)": "TA", "A+  (all coefficients ≥ 0)": "A"},
         value="Unconstrained", label="QFlex constraint",
     )
     mo.vstack([mo.hstack([returns_k_metalog, returns_k_qflex], justify="start", gap=2), returns_qflex_constraint])
@@ -3124,7 +3143,7 @@ def _(
 def _(mo):
     returns_n_replicates = mo.ui.slider(start=5, stop=1000, step=5, value=PAPER.N_BOOT, label="Replicates", show_value=True)
     returns_run_batch = mo.ui.run_button(label="▶ Run Bootstrap Analysis")
-    mo.md("**Full simulation for this category** — bootstrap-resample the annual returns and refit repeatedly, across all 4 QPDs.")
+    mo.md("**Full simulation for this category** — bootstrap-resample the annual returns and refit repeatedly, across all 5 QPDs.")
     mo.hstack([returns_n_replicates, returns_run_batch], justify="start", gap=2)
     return returns_n_replicates, returns_run_batch
 
@@ -3217,7 +3236,7 @@ def _(mo):
     # Hydrology: the paper compares GEV and Log Metalog K=10 against
     # Log QFlex-A+ K=10 (A+ enforces unimodality).
     hydro_qflex_constraint = mo.ui.dropdown(
-        options={"Unconstrained": "NONE", "A+  (all coefficients ≥ 0)": "A", "TA+  (tail coefficients ≥ 0)": "TA"},
+        options={"Unconstrained": "NONE", "T+  (leading tail coefficients ≥ 0)": "TL", "TA+  (tail coefficients ≥ 0)": "TA", "A+  (all coefficients ≥ 0)": "A"},
         value="A+  (all coefficients ≥ 0)", label="QFlex constraint",
     )
     mo.vstack([mo.hstack([hydro_k_metalog, hydro_k_qflex], justify="start", gap=2), hydro_qflex_constraint])
@@ -3297,7 +3316,7 @@ def _(
 def _(mo):
     hydro_n_replicates = mo.ui.slider(start=5, stop=1000, step=5, value=PAPER.N_BOOT, label="Replicates", show_value=True)
     hydro_run_batch = mo.ui.run_button(label="▶ Run Bootstrap Analysis")
-    mo.md("**Full simulation for this dataset** — bootstrap-resample the gauge-height data and refit repeatedly, across all 4 QPDs.")
+    mo.md("**Full simulation for this dataset** — bootstrap-resample the gauge-height data and refit repeatedly, across all 5 QPDs.")
     mo.hstack([hydro_n_replicates, hydro_run_batch], justify="start", gap=2)
     return hydro_n_replicates, hydro_run_batch
 
@@ -3442,7 +3461,7 @@ def _(mo):
     # real evidence against unimodality, so a QPD able to represent two
     # modes is appropriate. Headline order K=10.
     fish_qflex_constraint = mo.ui.dropdown(
-        options={"Unconstrained": "NONE", "A+  (all coefficients ≥ 0)": "A", "TA+  (tail coefficients ≥ 0)": "TA"},
+        options={"Unconstrained": "NONE", "T+  (leading tail coefficients ≥ 0)": "TL", "TA+  (tail coefficients ≥ 0)": "TA", "A+  (all coefficients ≥ 0)": "A"},
         value="TA+  (tail coefficients ≥ 0)", label="QFlex constraint",
     )
     mo.vstack([mo.hstack([fish_k_metalog, fish_k_qflex], justify="start", gap=2), fish_qflex_constraint])
@@ -3505,7 +3524,7 @@ def _(
 def _(mo):
     fish_n_replicates = mo.ui.slider(start=5, stop=1000, step=5, value=PAPER.N_BOOT, label="Replicates", show_value=True)
     fish_run_batch = mo.ui.run_button(label="▶ Run Bootstrap Analysis")
-    mo.md("**Full simulation for this dataset** — bootstrap-resample the raw fish weights, re-jitter each replicate, and refit repeatedly, across all 4 QPDs.")
+    mo.md("**Full simulation for this dataset** — bootstrap-resample the raw fish weights, re-jitter each replicate, and refit repeatedly, across all 5 QPDs.")
     mo.hstack([fish_n_replicates, fish_run_batch], justify="start", gap=2)
     return fish_n_replicates, fish_run_batch
 
@@ -3609,7 +3628,7 @@ def _(mo):
     # Geyser: Log Metalog K=8 and Log QFlex-TA+ K=10 are the pairing in
     # the paper's mode-dispersion table.
     geyser_qflex_constraint = mo.ui.dropdown(
-        options={"Unconstrained": "NONE", "A+  (all coefficients ≥ 0)": "A", "TA+  (tail coefficients ≥ 0)": "TA"},
+        options={"Unconstrained": "NONE", "T+  (leading tail coefficients ≥ 0)": "TL", "TA+  (tail coefficients ≥ 0)": "TA", "A+  (all coefficients ≥ 0)": "A"},
         value="TA+  (tail coefficients ≥ 0)", label="QFlex constraint",
     )
     mo.vstack([mo.hstack([geyser_k_metalog, geyser_k_qflex], justify="start", gap=2), geyser_qflex_constraint])
@@ -3675,7 +3694,7 @@ def _(
 def _(mo):
     geyser_n_replicates = mo.ui.slider(start=5, stop=1000, step=5, value=PAPER.N_BOOT, label="Replicates", show_value=True)
     geyser_run_batch = mo.ui.run_button(label="▶ Run Bootstrap Analysis")
-    mo.md("**Full simulation for this dataset** — bootstrap-resample the waiting times and refit repeatedly, across all 4 QPDs.")
+    mo.md("**Full simulation for this dataset** — bootstrap-resample the waiting times and refit repeatedly, across all 5 QPDs.")
     mo.hstack([geyser_n_replicates, geyser_run_batch], justify="start", gap=2)
     return geyser_n_replicates, geyser_run_batch
 

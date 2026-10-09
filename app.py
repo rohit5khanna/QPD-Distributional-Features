@@ -44,7 +44,9 @@ def _():
     from common.qflex.constraints import QFlexError
     from common.qflex.transforms import LogQFlex, LogitQFlex
     from common.jpse.johnson import JohnsonSU, JohnsonSL, JohnsonSB
-    from common.mode_utils import detect_modes_from_arrays
+    # The paper's evaluation framework (grid, validity, density, modes, W1),
+    # the same module as QPD_Overfitting_Repro/code/common/eval_framework.py.
+    from common import eval_framework as EF
     # Pure-Python/NumPy port of the Hartigan dip test, vendored (GPLv3,
     # see the header of common/dip_test.py) because the compiled `diptest`
     # PyPI package has no pure-Python wheel: a single unavailable wheel
@@ -70,7 +72,24 @@ def _():
     from scipy.stats import norm as scipy_norm, genextreme as scipy_gev
 
     DATA_DIR = mo.notebook_location() / "public"
+
+    def detect_modes_from_arrays(x_vals, pdf_vals):
+        """The framework's mode rule on arbitrary (x, density) arrays -- used
+        for TRUE densities (e.g. the bimodal mixture). A mode is an interior
+        local maximum whose prominence is at least 1% of its own height
+        (EF.RELATIVE_PROMINENCE); the first and last points are never modes.
+        Returns (n_peaks, locations, heights); -1 for an unusable density."""
+        from scipy.signal import find_peaks
+        x_vals = np.asarray(x_vals, float); pdf_vals = np.asarray(pdf_vals, float)
+        if (x_vals.shape != pdf_vals.shape or not np.all(np.isfinite(pdf_vals))
+                or np.max(pdf_vals) <= 0):
+            return -1, None, None
+        _pk, _pr = find_peaks(pdf_vals, prominence=0.0)
+        _pk = _pk[_pr["prominences"] >= EF.RELATIVE_PROMINENCE * pdf_vals[_pk]]
+        return int(len(_pk)), x_vals[_pk], pdf_vals[_pk]
+
     return (
+        EF,
         ConstraintType,
         DATA_DIR,
         DipConsts,
@@ -125,12 +144,26 @@ def _(mo):
         Wasserstein-1 distance between a fitted quantile function $Q_F$ and its
         target $Q_T$, as the paper defines it in Equation 6:
 
-        $$W_1 \;=\; \frac{1}{Q_T(0.9) - Q_T(0.1)}
-        \int_0^1 \bigl|\,Q_F(p) - Q_T(p)\,\bigr| \; dp$$
+        $$W_1 \;=\; \frac{1}{Q_T(0.9) - Q_T(0.1)} \cdot \frac{1}{|G_N|}
+        \sum_{p \in G_N} \bigl|\,Q_F(p) - Q_T(p)\,\bigr|,
+        \qquad G_N = \Bigl\{p \in G : \tfrac{1}{N+1} \le p \le \tfrac{N}{N+1}\Bigr\}$$
 
-        Evaluated here on $p \in [0.01,\, 0.99]$, since an empirical quantile
-        function is undefined outside its smallest and largest plotting
-        positions. Only the **target** changes from section to section: a Monte
+        where $G = \{0.001, 0.002, \dots, 0.999\}$ is the evaluation grid and
+        $Q_T$ is the target sample's EQF (order statistics at $i/(N+1)$,
+        linearly interpolated). Only grid points inside the data range are
+        used: the sample has no observation beyond its smallest and largest
+        plotting positions.
+
+        **How validity, densities and modes are computed, everywhere on this
+        page.** A fit is *valid* if its quantile function is strictly
+        increasing along $G$. Densities are computed from the quantile values
+        on $G$ (differences between neighbouring grid points), and every
+        curve is drawn on $G$ only. A *mode* is an interior local maximum of
+        that density whose prominence is at least 1% of its own height; the
+        grid end points are never modes, and a fit with no interior peak
+        counts as unimodal.
+
+        Only the **target** changes from section to section: a Monte
         Carlo replicate is measured against its own sample, a bootstrap
         replicate against the reference sample it was drawn from, and an
         empirical section against the observed data. Each table names its
@@ -144,6 +177,7 @@ def _(mo):
 def _(
     ConstraintType,
     DipConsts,
+    EF,
     LogMetalog,
     LogQFlex,
     LogitMetalog,
@@ -173,28 +207,33 @@ def _(
     # plots. QFlex-U in particular can still spike or go infeasible out
     # here; render_empirical_panel's PDF-axis guard (below) keeps a single
     # spike from blowing out the whole y-axis when that happens.
-    FIT_P_GRID = np.linspace(0.001, 0.999, 1000)
+    #
+    # FRAMEWORK (2026-10-08): ONE grid for everything -- drawing, validity,
+    # density, modes and W1 -- the paper's evaluation grid p = 0.001..0.999
+    # (EF.GRID). Nothing is computed or drawn outside it.
+    FIT_P_GRID = EF.GRID
 
-    # W1 IS NOT COMPUTED ON FIT_P_GRID. That grid is deliberately wide so the
-    # drawn PDFs reach the edges of the plots. Equation 6 integrates over
-    # [0.01, 0.99] -- an empirical quantile function is undefined outside
-    # [p_1, p_N] -- and divides by the TARGET's interdecile range. Mixing the
-    # two up is what made this notebook's W1 disagree with the paper's.
-    W1_P_GRID = PAPER.P_GRID
+    # W1 uses the same grid but only the points INSIDE THE TARGET SAMPLE'S
+    # DATA RANGE [1/(N+1), N/(N+1)] (PAPER.w1(..., n=N)), divided by the
+    # TARGET's interdecile range.
+    W1_P_GRID = EF.GRID
 
     def _modes_paper_grid(fit):
-        """Mode count on the PAPER's interval, [0.01, 0.99].
+        """The framework's mode count for a fitted QPD (EF.modes): interior
+        local maxima of the grid-difference density with prominence >= 1% of
+        their own height. (n_peaks, locations, heights); n_peaks = -1 for an
+        INVALID fit, whose modes are not counted."""
+        return EF.modes(fit)
 
-        The live panels draw on FIT_P_GRID, which reaches much closer to p=0/1
-        so the curves span the plots. Counting modes out there disagrees with
-        the paper -- mode_utils.detect_modes_in_pdf uses [0.01, 0.99], and the
-        extreme tails are exactly where spurious bumps appear. Without this the
-        live panel and the batch summary could report different mode counts for
-        the same fit.
-        """
-        _x = np.asarray(fit.quantile(W1_P_GRID), float)
-        _p = np.clip(np.asarray(fit.pdf(W1_P_GRID), float), 0, None)   # as the paper does
-        return detect_modes_from_arrays(_x, _p)
+    def _curve(fit):
+        """(Q, f) on the grid for drawing. f comes from quantile differences
+        (EF.density); for an INVALID fit, stretches where Q decreases are NaN
+        and are left blank in the plots."""
+        if EF.is_valid(fit):
+            return EF.density(fit)
+        _q = EF.quantile(fit)
+        _f = EF.density_from_quantile(_q)
+        return _q, np.where(_f > 0, _f, np.nan)
 
     def paper_settings_note(mo_ref, seed_text, settings, note=None):
         """A compact "to reproduce the paper, use these" callout.
@@ -314,7 +353,7 @@ experiment.{_extra}
         _mu = float(np.mean(x_raw))
         _sd = float(np.std(x_raw, ddof=1))
         _xg = scipy_norm.ppf(FIT_P_GRID, loc=_mu, scale=_sd)
-        _pg = scipy_norm.pdf(_xg, loc=_mu, scale=_sd)
+        _pg = EF.density_from_quantile(_xg)       # same density rule as the QPDs
         return {
             "name": "Normal", "color": REFERENCE_COLORS["Normal"],
             "curve": (_xg, _pg), "n_modes": 1,
@@ -329,7 +368,7 @@ experiment.{_extra}
         the whole point of using it as the stable baseline here."""
         _c, _loc, _scale = scipy_gev.fit(np.asarray(x_raw, dtype=float))
         _xg = scipy_gev.ppf(FIT_P_GRID, _c, loc=_loc, scale=_scale)
-        _pg = scipy_gev.pdf(_xg, _c, loc=_loc, scale=_scale)
+        _pg = EF.density_from_quantile(_xg)       # same density rule as the QPDs
         return {
             "name": "GEV", "color": REFERENCE_COLORS["GEV"],
             "curve": (_xg, _pg), "n_modes": 1,
@@ -423,7 +462,7 @@ experiment.{_extra}
         _errors = []
         try:
             _mf = _make_metalog(x_sorted, y_plot_pos, k_metalog_val, bounds)
-            _xg, _pg = _mf.quantile(FIT_P_GRID), _mf.pdf(FIT_P_GRID)
+            _xg, _pg = _curve(_mf)
             _results["Metalog"] = {"fit": _mf, "curve": (_xg, _pg), "modes": _modes_paper_grid(_mf)}
         except MetalogError as e:
             _results["Metalog"] = {"fit": None, "curve": None, "modes": (None, None, None)}
@@ -433,7 +472,7 @@ experiment.{_extra}
             try:
                 _constraint = ConstraintType[_QFLEX_CONSTRAINTS[_label]]
                 _qf = _make_qflex(x_sorted, y_plot_pos, k_qflex_val, _constraint, bounds)
-                _xg, _pg = _qf.quantile(FIT_P_GRID), _qf.pdf(FIT_P_GRID)
+                _xg, _pg = _curve(_qf)
                 _results[_label] = {"fit": _qf, "curve": (_xg, _pg), "modes": _modes_paper_grid(_qf)}
             except QFlexError as e:
                 _results[_label] = {"fit": None, "curve": None, "modes": (None, None, None)}
@@ -495,8 +534,7 @@ experiment.{_extra}
 
         try:
             _mf = _make_metalog(x_sorted, y_plot_pos, k_metalog_val, bounds)
-            _xg = _mf.quantile(FIT_P_GRID)
-            _pg = _mf.pdf(FIT_P_GRID)
+            _xg, _pg = _curve(_mf)
             _metalog_fit = _mf
             _metalog_curve = (_xg, _pg)
             _metalog_modes = _modes_paper_grid(_mf)
@@ -506,8 +544,7 @@ experiment.{_extra}
         try:
             _constraint = ConstraintType[constraint_label]
             _qf = _make_qflex(x_sorted, y_plot_pos, k_qflex_val, _constraint, bounds)
-            _xg = _qf.quantile(FIT_P_GRID)
-            _pg = _qf.pdf(FIT_P_GRID)
+            _xg, _pg = _curve(_qf)
             _qflex_fit = _qf
             _qflex_curve = (_xg, _pg)
             _qflex_modes = _modes_paper_grid(_qf)
@@ -538,8 +575,10 @@ experiment.{_extra}
         _qflex_name = _prefix + QFLEX_LABELS[constraint_label]
 
         def _shape_text(n_modes):
-            if not n_modes:
-                return "no modes detected"
+            if n_modes is None or n_modes < 0:
+                return "modes not counted (invalid fit)"
+            if n_modes == 0:
+                n_modes = 1          # no interior peak: unimodal (framework)
             if n_modes == 1:
                 return "unimodal" if (true_n_modes is None or true_n_modes == 1) else "1 mode — misses the true structure"
             if true_n_modes is None:
@@ -551,7 +590,7 @@ experiment.{_extra}
         def _line(name, fit, modes, w1):
             if fit is None:
                 return f"**{name}:** fit failed"
-            _feas = "valid" if fit.is_feasible else "⚠️ not valid (PDF goes negative)"
+            _feas = "valid" if EF.is_valid(fit) else "⚠️ not valid (quantile function not increasing on the grid)"
             _w1_txt = f" | **W1 vs {w1_label}** = {w1:.4f}" if w1 is not None else ""
             return f"**{name}:** {_feas}, {_shape_text(modes[0])}{_w1_txt}"
 
@@ -594,7 +633,7 @@ experiment.{_extra}
             horizontal_spacing=0.09,
         )
 
-        _p_true = np.linspace(0.005, 0.995, 400)
+        _p_true = FIT_P_GRID                      # population QF on the evaluation grid too
         _x_true = true_dist.quantile(_p_true)
         _x_dense = np.linspace(x_range[0], x_range[1], 400)
         _pdf_true = true_dist.pdf(_x_dense)
@@ -678,7 +717,7 @@ experiment.{_extra}
             if curve is None:
                 return None
             _q = np.interp(W1_P_GRID, FIT_P_GRID, curve[0])
-            return PAPER.w1(_q, _eqf_on_w1, _L)[1]
+            return PAPER.w1(_q, _eqf_on_w1, _L, n=len(x_sample))[1]
         _metalog_w1 = _eq6(metalog_curve)
         _qflex_w1 = _eq6(qflex_curve)
 
@@ -806,10 +845,10 @@ experiment.{_extra}
             density=True)
         _hist_max = float(np.max(_hist_counts)) if len(_hist_counts) else 0.0
         _feasible_maxes = []
-        if metalog_fit is not None and getattr(metalog_fit, "is_feasible", False) and metalog_curve is not None:
-            _feasible_maxes.append(float(np.max(metalog_curve[1])))
-        if qflex_fit is not None and getattr(qflex_fit, "is_feasible", False) and qflex_curve is not None:
-            _feasible_maxes.append(float(np.max(qflex_curve[1])))
+        if metalog_fit is not None and EF.is_valid(metalog_fit) and metalog_curve is not None:
+            _feasible_maxes.append(float(np.nanmax(metalog_curve[1])))
+        if qflex_fit is not None and EF.is_valid(qflex_fit) and qflex_curve is not None:
+            _feasible_maxes.append(float(np.nanmax(qflex_curve[1])))
         # Reference fits are parametric and always well-behaved, so they can
         # anchor the density axis unconditionally.
         for _ref in (reference_fits or []):
@@ -818,7 +857,7 @@ experiment.{_extra}
         if _hist_max > 0 or _feasible_maxes:
             _pdf_y_max = max([_hist_max] + _feasible_maxes) * 1.25
         else:
-            _fallback_maxes = [float(np.max(_c[1])) for _c in (metalog_curve, qflex_curve) if _c is not None]
+            _fallback_maxes = [float(np.nanmax(_c[1])) for _c in (metalog_curve, qflex_curve) if _c is not None]
             _pdf_y_max = (max(_fallback_maxes) * 1.1) if _fallback_maxes else 1.0
 
         _fig.update_xaxes(title_text="Cumulative probability", range=[0, 1], row=1, col=1)
@@ -867,7 +906,7 @@ experiment.{_extra}
             if curve is None:
                 return None
             _q = np.interp(W1_P_GRID, FIT_P_GRID, curve[0])
-            return PAPER.w1(_q, _eqf_on_w1, _L)[1]
+            return PAPER.w1(_q, _eqf_on_w1, _L, n=len(x_raw))[1]
         _metalog_w1 = _eq6(metalog_curve)
         _qflex_w1 = _eq6(qflex_curve)
 
@@ -876,7 +915,7 @@ experiment.{_extra}
         _ref_lines = []
         for _ref in (reference_fits or []):
             _rw1 = PAPER.w1(np.interp(W1_P_GRID, FIT_P_GRID, _ref["curve"][0]),
-                            _eqf_on_w1, _L)[1]
+                            _eqf_on_w1, _L, n=len(x_raw))[1]
             _rn = _ref.get("n_modes")
             _rshape = f", {_rn} mode{'s' if _rn and _rn > 1 else ''}" if _rn else ""
             _ref_lines.append(
@@ -908,13 +947,13 @@ experiment.{_extra}
         "hydrology": "**Table 7** &mdash; the primary mode is the TALLEST peak of each fit.",
         "fish": "**Table 9** &mdash; the primary mode is the TALLEST peak, the secondary the "
                 "next tallest.",
-        "geyser": "**Table 10** &mdash; the primary mode is the one at the LONGER waiting time, "
+        "geyser": "**Table 12** &mdash; the primary mode is the one at the LONGER waiting time, "
                   "as the manuscript defines it, not the taller peak.",
     }
 
     def run_replicate_batch(mo, n_reps, k_metalog_val, k_qflex_val, draw_fn, seed, w1_ref=None,
                               w1_label="W1 vs reference", bounds=None, true_n_modes=1,
-                              table_format="mc"):
+                              table_format="mc", w1_ref_n=None):
         """Run a batch of replicates, fitting all 4 QPDs (Metalog + all 3
         QFlex constraint variants) to each one, then leave a summary behind
         -- feasibility rate, false-modality rate, and (when a reference is
@@ -935,8 +974,13 @@ experiment.{_extra}
           * a dict {model_label: array_or_None} for a per-model reference
             (e.g. each section's own full-sample fit per model).
         Whichever form is given, the reference reaching the W1 computation is
-        always an array on W1_P_GRID, so Equation 6 is evaluated on the paper's
-        interval and never on the wider drawing grid."""
+        always an array on the grid.
+
+        w1_ref_n: the size of the SAMPLE whose EQF is the reference, so W1 is
+        averaged over that sample's data range [1/(N+1), N/(N+1)], as in the
+        paper. Set automatically for "own-sample". Leave None only when the
+        reference is not an EQF (e.g. a full-sample FIT), which is defined on
+        the whole grid."""
         _constraints = {"QFlex-U": "NONE", "QFlex-TA+": "TA", "QFlex-A+": "A"}
         # Whether draw_fn wants the replicate index is decided by INSPECTING it,
         # not by catching TypeError: a genuine TypeError raised inside a correct
@@ -979,25 +1023,18 @@ experiment.{_extra}
                         _fit = _make_metalog(_x, _y, k_metalog_val, bounds)
                     else:
                         _fit = _make_qflex(_x, _y, k_qflex_val, ConstraintType[_constraints[_model_name]], bounds)
-                    # Modes and W1 are BOTH evaluated on the paper's grid,
-                    # [0.01, 0.99]. FIT_P_GRID is the wide DRAWING grid; the
-                    # extreme tails it reaches are exactly where spurious bumps
-                    # appear, so counting modes out there reads high against
-                    # the paper, whose detect_modes_in_pdf uses [0.01, 0.99].
-                    _xw = np.asarray(_fit.quantile(W1_P_GRID), float)
-                    # CLIPPED AT ZERO, as every reproduction script does before
-                    # calling detect_modes_from_arrays. A negative trough left
-                    # in place inflates a neighbouring peak's prominence, so an
-                    # unclipped PDF can report more modes than the paper. On the
-                    # paper's own data it never bites -- no fit tested, feasible
-                    # or not, dips below zero on [0.01, 0.99] -- but the two
-                    # would disagree silently the first time one did.
-                    _pw = np.clip(np.asarray(_fit.pdf(W1_P_GRID), float), 0, None)
-                    _n_modes, _m_locs, _m_hgts = detect_modes_from_arrays(_xw, _pw)
-                    _row["Valid"] = bool(_fit.is_feasible)
-                    # -1 marks an unusable PDF. The paper drops those from the
-                    # modality denominator rather than scoring them as 0 modes.
-                    _row["Modes"] = int(_n_modes) if _n_modes is not None else -1
+                    # The framework (EF): validity = Q strictly increasing on
+                    # the grid; modes = interior peaks of the grid-difference
+                    # density with prominence >= 1% of their own height,
+                    # counted only for VALID fits; 0 peaks = unimodal.
+                    _xw = EF.quantile(_fit)
+                    _valid = EF.is_valid(_fit)
+                    _n_modes, _m_locs, _m_hgts = EF.modes(_fit)
+                    _row["Valid"] = bool(_valid)
+                    # -1 marks an invalid fit / unusable density; those are not
+                    # in the modality denominator. 0 interior peaks counts as 1.
+                    _row["Modes"] = (EF.n_modes(_n_modes) if (_n_modes is not None and _n_modes >= 0)
+                                     else -1)
                     # Mode positions feed the paper's mode-IQR columns. Ranking
                     # happens later, per section, because the rule differs:
                     # tallest peak for fish and hydrology, longest wait for the
@@ -1005,13 +1042,14 @@ experiment.{_extra}
                     _row["_locs"] = _m_locs
                     _row["_hgts"] = _m_hgts
                     if _w1_ref_arr is not None:
-                        # Equation 6: mean |Q_F - Q_T| over [0.01, 0.99],
-                        # divided by the TARGET's interdecile range. The old
-                        # sum(|.|)*dp on FIT_P_GRID was neither normalised nor
-                        # on the right interval.
+                        # Equation 6: mean |Q_F - Q_T| over the grid points in
+                        # the reference sample's data range, divided by the
+                        # TARGET's interdecile range.
+                        _n_ref = (len(_x) if (isinstance(w1_ref, str) and w1_ref == _OWN_SAMPLE)
+                                  else w1_ref_n)
                         _row[w1_label] = round(
                             PAPER.w1(_xw, _w1_ref_arr,
-                                     PAPER.interdecile(_w1_ref_arr))[1], 4)
+                                     PAPER.interdecile(_w1_ref_arr), n=_n_ref)[1], 4)
                 except (MetalogError, QFlexError):
                     _row["Valid"] = False
                     _row["Modes"] = None
@@ -2031,7 +2069,7 @@ def _(
 
         run_replicate_batch(
             mo, boot_n_replicates.value, boot_k_metalog.value, boot_k_qflex.value,
-            _draw, base_seed.value + 777, w1_ref=_x_ref_grid,
+            _draw, base_seed.value + 777, w1_ref=_x_ref_grid, w1_ref_n=_n_ref,
             w1_label="W1 vs reference sample", bounds=boot_bounds,
             table_format="bootstrap"
         )
@@ -2258,8 +2296,9 @@ def _(mo, paper_settings_note):
     paper_settings_note(
         mo,
         "`42 + 60,000,000 + replication`. Each replicate is an independent draw from the analytic mixture &mdash; the paper's Table 6 was re-run this way, replacing an earlier pooled bootstrap of subsamples.",
-        [("Mixture", "60 / 40, second component shifted 3.5 SD left"), ("Sample size N", "200"), ("Metalog K", "12"), ("QFlex K", "12"), ("QFlex constraint", "TA+"), ("Replicates", "1000")],
-        "Table 6 and the bimodal reference figure, which span K = 4 to 14.",
+        [("Mixture", "60 / 40, second component shifted 3.5 SD left"), ("Sample size N", "200"), ("Metalog K", "12"), ("QFlex K", "12"), ("QFlex constraint", "TA+"), ("Replicates", "1000"),
+         ("Replicate shown (Figure 8)", "436")],
+        "Table 6 spans K = 4 to 13; Figure 8 shows replicate 436 at K = 12.",
     )
     return
 
@@ -2310,7 +2349,9 @@ def _(mo):
     # The sample number is shared STATE, not the button's click count, so the
     # dice and the box are two views of ONE value: the dice steps it, the box
     # jumps straight to any sample.
-    get_bimodal_rep, set_bimodal_rep = mo.state(1)
+    # Starts at replicate 436: the illustrative sample shown in the paper's
+    # Figure 8 (K = 12, N = 200; reproduction/scripts/bimodal_fig8.py FIXED_REP).
+    get_bimodal_rep, set_bimodal_rep = mo.state(436)
     return get_bimodal_rep, set_bimodal_rep
 
 
@@ -2723,7 +2764,7 @@ def _(
 
         run_replicate_batch(
             mo, bimodal_boot_n_replicates.value, bimodal_boot_k_metalog.value, bimodal_boot_k_qflex.value,
-            _draw, bimodal_seed.value + 777, w1_ref=_x_ref_grid,
+            _draw, bimodal_seed.value + 777, w1_ref=_x_ref_grid, w1_ref_n=_n_ref,
             w1_label="W1 vs reference sample", true_n_modes=bimodal_boot_scenario["true_modes"],
             table_format="bimodal"                 # Table 6 columns; the bootstrap twin has no table of its own
         )
@@ -2931,7 +2972,7 @@ def _(mo):
 
 @app.cell
 def _(eqf_bootstrap_ci, returns_x, np):
-    returns_p_grid = np.linspace(0.01, 0.99, len(PAPER.P_GRID))
+    returns_p_grid = PAPER.P_GRID          # the evaluation grid, 0.001..0.999
     returns_eqf_point, returns_eqf_lo, returns_eqf_hi = eqf_bootstrap_ci(returns_x, returns_p_grid, n_boot=PAPER.N_BOOT, seed=42)
     return returns_eqf_hi, returns_eqf_lo, returns_eqf_point, returns_p_grid
 
@@ -3108,7 +3149,7 @@ def _(mo):
 
 @app.cell
 def _(eqf_bootstrap_ci, hydro_x, np):
-    hydro_p_grid = np.linspace(0.01, 0.99, len(PAPER.P_GRID))
+    hydro_p_grid = PAPER.P_GRID          # the evaluation grid, 0.001..0.999
     hydro_eqf_point, hydro_eqf_lo, hydro_eqf_hi = eqf_bootstrap_ci(hydro_x, hydro_p_grid, n_boot=PAPER.N_BOOT, seed=42)
     return hydro_eqf_hi, hydro_eqf_lo, hydro_eqf_point, hydro_p_grid
 
@@ -3217,7 +3258,7 @@ def _(
             _draw, PAPER.hydro_seed(b=0),
             # Equation 6 measures against the OBSERVED sample's EQF, not
             # against the full-sample fit.
-            w1_ref=np.interp(FIT_P_GRID, hydro_p_grid, hydro_eqf_point),
+            w1_ref=np.interp(FIT_P_GRID, hydro_p_grid, hydro_eqf_point), w1_ref_n=len(hydro_x),
             w1_label="W1 vs empirical", bounds=(0, None),
             table_format="hydrology"               # Table 7
         )
@@ -3333,7 +3374,7 @@ def _(mo):
 
 @app.cell
 def _(eqf_bootstrap_ci, fish_jitter, fish_raw, fish_x, np):
-    fish_p_grid = np.linspace(0.01, 0.99, len(PAPER.P_GRID))
+    fish_p_grid = PAPER.P_GRID          # the evaluation grid, 0.001..0.999
     # Point estimate from the displayed jittered sample; bootstrap interval from resampling
     # the RAW rounded weights with a fresh jitter draw per replicate, so the
     # band reflects de-rounding uncertainty rather than one frozen tie-break.
@@ -3426,7 +3467,7 @@ def _(
         run_replicate_batch(
             mo, fish_n_replicates.value, fish_k_metalog.value, fish_k_qflex.value,
             _draw, PAPER.fish_seed(fish_jitter.value, 0),
-            w1_ref=np.interp(FIT_P_GRID, fish_p_grid, fish_eqf_point),
+            w1_ref=np.interp(FIT_P_GRID, fish_p_grid, fish_eqf_point), w1_ref_n=len(fish_x),
             w1_label="W1 vs empirical", bounds=(0, None),
             true_n_modes=None,
             table_format="fish"                    # Table 9
@@ -3500,7 +3541,7 @@ def _(mo):
 
 @app.cell
 def _(eqf_bootstrap_ci, geyser_x, np):
-    geyser_p_grid = np.linspace(0.01, 0.99, len(PAPER.P_GRID))
+    geyser_p_grid = PAPER.P_GRID          # the evaluation grid, 0.001..0.999
     # The recorded waiting times are whole minutes (52 distinct values in
     # 299 observations), so the paper adds +/-0.5 min uniform jitter to the
     # bootstrap resamples. Without it the resamples are riddled with ties,
@@ -3593,10 +3634,10 @@ def _(
         run_replicate_batch(
             mo, geyser_n_replicates.value, geyser_k_metalog.value, geyser_k_qflex.value,
             _draw, PAPER.geyser_seed(b=0),
-            w1_ref=np.interp(FIT_P_GRID, geyser_p_grid, geyser_eqf_point),
+            w1_ref=np.interp(FIT_P_GRID, geyser_p_grid, geyser_eqf_point), w1_ref_n=len(geyser_x),
             w1_label="W1 vs empirical", bounds=(0, None),
             true_n_modes=2,
-            table_format="geyser"                  # Table 10
+            table_format="geyser"                  # Table 12
         )
     else:
         mo.output.replace(mo.md("*Click **▶ Run Bootstrap Analysis** to bootstrap-resample and refit repeatedly.*"))

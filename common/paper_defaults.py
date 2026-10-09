@@ -29,8 +29,9 @@ WHAT WAS WRONG BEFORE (and is fixed by using this module)
    the inconsistency that was found and corrected during the reproduction work.
 
 3. W1 WAS NOT EQUATION 6. The notebook integrated |Q_F - Q_T| over
-   [0.001, 0.999] and did not normalize. Equation 6 is the MEAN over
-   [0.01, 0.99], divided by the target's interdecile range Q_T(0.9) - Q_T(0.1).
+   [0.001, 0.999] and did not normalize. Equation 6 (current framework) is the
+   MEAN over the grid points inside the data range [1/(N+1), N/(N+1)],
+   divided by the target's interdecile range Q_T(0.9) - Q_T(0.1).
 
 4. THE GEYSER FILE WAS DEFECTIVE. `public/geyser.txt` held 298 rows: it was
    missing the first observation and recorded one waiting time as 55 where
@@ -42,6 +43,11 @@ the constant's comment, so a reader can check it against the text.
 """
 import numpy as np
 
+try:                                    # notebook / WASM build: `common` package
+    from common import eval_framework as EF
+except ImportError:                     # run from inside common/
+    import eval_framework as EF
+
 # ---------------------------------------------------------------------------
 # Conventions that apply everywhere in the paper
 # ---------------------------------------------------------------------------
@@ -51,33 +57,46 @@ def weibull(n):
     return np.arange(1, n + 1) / (n + 1)
 
 
-#: The probability grid every W1 in the paper is evaluated on.
-#: An empirical quantile function is undefined outside [p_1, p_N], which is why
-#: the integral in Equation 6 runs over [0.01, 0.99] rather than literally [0, 1].
-P_GRID = np.linspace(0.01, 0.99, 1000)
+#: The evaluation grid of the paper's framework (eval_framework.GRID):
+#: p = 0.001, 0.002, ..., 0.999. Validity, density, modes and W1 are all
+#: evaluated on it and nothing is evaluated outside it. (Was linspace(0.01,
+#: 0.99, 1000) before the framework revision of 2026-10-08.)
+P_GRID = EF.GRID
 
 #: Bootstrap replicates per experiment, throughout the paper.
 N_BOOT = 1000
 
 
 def interdecile(qf_on_grid, grid=P_GRID):
-    """Q_T(0.9) - Q_T(0.1): Equation 6's divisor, taken from the TARGET."""
+    """Q_T(0.9) - Q_T(0.1): Equation 6's divisor, taken from the TARGET.
+    0.1 and 0.9 are grid points, so this is exact for an interpolated EQF."""
     return float(np.interp(0.9, grid, qf_on_grid) - np.interp(0.1, grid, qf_on_grid))
 
 
 def empirical_qf(x_sorted, grid=P_GRID):
-    """EQF of a sample, at Weibull positions, on the W1 grid."""
+    """Interpolated EQF of a sample (order statistics at i/(N+1), linear in
+    between) on the grid. Beyond [1/(N+1), N/(N+1)] np.interp holds it at the
+    smallest / largest observation -- for DRAWING only; W1 does not use those
+    points (see w1)."""
     x_sorted = np.sort(np.asarray(x_sorted, float))
     return np.interp(grid, weibull(len(x_sorted)), x_sorted)
 
 
-def w1(qf_on_grid, target_on_grid, divisor=None):
+def w1(qf_on_grid, target_on_grid, divisor=None, n=None):
     """Returns (unnormalized, Equation 6).
 
-    Equation 6:  W1 = mean |Q_F(p) - Q_T(p)|  /  (Q_T(0.9) - Q_T(0.1))
-    over p in [0.01, 0.99].  Pass `divisor` (the TARGET's interdecile range) to
-    get the normalized form; the fit's own spread is NOT the divisor.
+    Equation 6 (framework of 2026-10-09):
+        W1 = mean over grid points with 1/(N+1) <= p <= N/(N+1) of
+             |Q_F(p) - Q_T(p)|,  divided by  Q_T(0.9) - Q_T(0.1).
+    Pass `n` = the size of the sample whose EQF is the target: the mean is
+    then taken over the DATA RANGE only (eval_framework.w1_on_grid), as in the
+    paper. n=None averages over the whole grid -- for a target defined
+    everywhere (a true quantile function or another fitted model), never for
+    an EQF. Pass `divisor` (the TARGET's interdecile range) for the
+    normalized form; the fit's own spread is NOT the divisor.
     """
+    if n is not None:
+        return EF.w1_on_grid(qf_on_grid, target_on_grid, n, divisor)
     raw = float(np.mean(np.abs(np.asarray(qf_on_grid, float)
                                - np.asarray(target_on_grid, float))))
     return raw, (raw / divisor if divisor else float('nan'))
@@ -452,6 +471,8 @@ def check_seed_families(n_boot=N_BOOT, verbose=False):
 
 if __name__ == '__main__':
     print(f'P_GRID {P_GRID[0]:.3f}..{P_GRID[-1]:.3f} ({len(P_GRID)} pts), N_BOOT {N_BOOT}')
+    _x = np.sort(np.random.default_rng(0).normal(size=50)); _e = empirical_qf(_x)
+    assert w1(_e, _e, interdecile(_e), n=50)[0] == 0.0
     print(f'MC seed for (N=200, rep=1): {mc_seed(200, 1)}  '
           f'-> bootstrap realization {BOOTSTRAP_SEED}  '
           f'{"OK" if mc_seed(200, 1) == BOOTSTRAP_SEED else "MISMATCH"}')

@@ -235,6 +235,55 @@ def _(
         _f = EF.density_from_quantile(_q)
         return _q, np.where(_f > 0, _f, np.nan)
 
+    def johnson_pdf(dist, x):
+        """EXACT density of a Johnson SU / SL / SB reference distribution
+        (closed form; any other distribution falls back to its own .pdf).
+
+        jpse's .pdf(x) interpolates on p in [0.001, 0.999] and returns 0
+        OUTSIDE it, so a true density drawn beyond those quantiles dropped to
+        zero in mid-air -- most visibly for Johnson SB, whose density is still
+        0.09 at x = Q(0.001) and 0.04 at Q(0.999). With u = (x - xi)/lam and
+        phi the standard normal density:
+            SU  delta / (lam sqrt(1+u^2))  phi(gamma + delta asinh u)
+            SL  delta / (lam u)            phi(gamma + delta ln u),        u > 0
+            SB  delta / (lam u (1-u))      phi(gamma + delta logit u),  0 < u < 1
+        Checked against 1/Q'(p) to 4e-9 (relative)."""
+        _nm = type(dist).__name__
+        if _nm not in ("JohnsonSU", "JohnsonSL", "JohnsonSB"):
+            return np.asarray(dist.pdf(x), float)
+        x = np.asarray(x, float)
+        _u = (x - dist.xi) / dist.lam
+        _c = dist.delta / np.sqrt(2.0 * np.pi)
+        with np.errstate(all="ignore"):
+            if _nm == "JohnsonSU":
+                _f = _c / (dist.lam * np.sqrt(1.0 + _u * _u)) * np.exp(-0.5 * (dist.gamma + dist.delta * np.arcsinh(_u)) ** 2)
+            elif _nm == "JohnsonSL":
+                _f = np.where(_u > 0, _c / (dist.lam * _u) * np.exp(-0.5 * (dist.gamma + dist.delta * np.log(_u)) ** 2), 0.0)
+            else:
+                _f = np.where((_u > 0) & (_u < 1),
+                              _c / (dist.lam * _u * (1.0 - _u))
+                              * np.exp(-0.5 * (dist.gamma + dist.delta * np.log(_u / (1.0 - _u))) ** 2), 0.0)
+        return np.nan_to_num(_f)
+
+    #: Log-spaced tails for drawing a BOUNDED population all the way to its
+    #: bounds, as the paper's Figure 1 does for Johnson SB.
+    _SB_TAIL = np.geomspace(1e-14, 1e-3, 200, endpoint=False)
+
+    def population_p_grid(dist):
+        """p values for DRAWING a reference (population) curve. Johnson SB:
+        the evaluation grid plus log-spaced tails to 1e-14, so the curve
+        reaches the bounds of its support (Figure 1). Everything else: the
+        evaluation grid. Fitted QPDs are never drawn outside the grid."""
+        if type(dist).__name__ == "JohnsonSB":
+            return np.concatenate([_SB_TAIL, FIT_P_GRID, (1.0 - _SB_TAIL)[::-1]])
+        return FIT_P_GRID
+
+    def population_x_range(dist, x_lo, x_hi):
+        """Johnson SB: its full support [xi, xi + lam]; otherwise (x_lo, x_hi)."""
+        if type(dist).__name__ == "JohnsonSB":
+            return [float(dist.xi), float(dist.xi + dist.lam)]
+        return [x_lo, x_hi]
+
     def paper_settings_note(mo_ref, seed_text, settings, note=None):
         """A compact "to reproduce the paper, use these" callout.
 
@@ -606,10 +655,11 @@ experiment.{_extra}
         sample or changing K doesn't rescale the axes out from under you."""
         _p = np.linspace(p_lo, p_hi, n_grid)
         _x = dist.quantile(_p)
-        _pdf = dist.pdf(_x)
+        _pdf = johnson_pdf(dist, _x)
         _lo, _hi = float(np.min(_x)), float(np.max(_x))
         _span = max(_hi - _lo, 1e-9)
-        x_range = [_lo - 0.04 * _span, _hi + 0.04 * _span]
+        # Johnson SB: the whole support, so the density reaches its bounds.
+        x_range = population_x_range(dist, _lo - 0.04 * _span, _hi + 0.04 * _span)
         y_range = [0.0, float(np.max(_pdf)) * y_headroom]
         return x_range, y_range
 
@@ -633,10 +683,10 @@ experiment.{_extra}
             horizontal_spacing=0.09,
         )
 
-        _p_true = FIT_P_GRID                      # population QF on the evaluation grid too
+        _p_true = population_p_grid(true_dist)    # SB: tails to its bounds (Figure 1)
         _x_true = true_dist.quantile(_p_true)
-        _x_dense = np.linspace(x_range[0], x_range[1], 400)
-        _pdf_true = true_dist.pdf(_x_dense)
+        _x_dense = np.linspace(x_range[0], x_range[1], 800)
+        _pdf_true = johnson_pdf(true_dist, _x_dense)   # exact; jpse .pdf is 0 beyond Q(0.001), Q(0.999)
 
         _fig.add_trace(
             go.Scatter(x=_p_true, y=_x_true, mode="lines", name="True QF",
@@ -1207,10 +1257,13 @@ experiment.{_extra}
         fit_metalog_qflex,
         hartigan_line_md,
         hartigan_test,
+        johnson_pdf,
         make_gev_reference,
         make_normal_reference,
         mode_summary_md,
         paper_settings_note,
+        population_p_grid,
+        population_x_range,
         render_empirical_panel,
         render_mc_panel,
         run_replicate_batch,
@@ -1283,7 +1336,7 @@ def _(JohnsonSB, JohnsonSL, JohnsonSU, gamma_j, delta_j, xi_j, lam_j):
 
 
 @app.cell
-def _(PLOTLY_CONFIG, go, make_subplots, mo, np, sb_dist, sl_dist, style_fig, su_dist):
+def _(PLOTLY_CONFIG, go, johnson_pdf, make_subplots, mo, np, population_p_grid, population_x_range, sb_dist, sl_dist, style_fig, su_dist):
     _fig = make_subplots(
         rows=1, cols=3,
         subplot_titles=("Johnson SU (unbounded)", "Johnson SL (semi-bounded)", "Johnson SB (bounded)"),
@@ -1299,13 +1352,20 @@ def _(PLOTLY_CONFIG, go, make_subplots, mo, np, sb_dist, sl_dist, style_fig, su_
     # zoom-frame colour, so that red does double duty.)
     _specs = [(su_dist, "#d62728", 1), (sl_dist, "#17becf", 2), (sb_dist, "#bcbd22", 3)]
     for _dist, _color, _col in _specs:
-        _x = _dist.quantile(_p)
-        _pdf = _dist.pdf(_x)
+        # Johnson SB is drawn over its WHOLE support [0, 1] with its exact
+        # density, as in the paper's Figure 1. It used to stop at
+        # Q(0.002) = 0.057 and Q(0.998) = 0.879, starting and ending in
+        # mid-air, and the x-axis followed it.
+        _pp = population_p_grid(_dist) if type(_dist).__name__ == "JohnsonSB" else _p
+        _x = np.asarray(_dist.quantile(_pp), float)
+        _pdf = johnson_pdf(_dist, _x)
         _fig.add_trace(
             go.Scatter(x=_x, y=_pdf, mode="lines", line=dict(color=_color, width=2.4), showlegend=False),
             row=1, col=_col,
         )
         _fig.update_xaxes(title_text="Value", row=1, col=_col)
+        if type(_dist).__name__ == "JohnsonSB":
+            _fig.update_xaxes(range=population_x_range(_dist, None, None), row=1, col=_col)
         if _col == 1:
             _fig.update_yaxes(title_text="Density", row=1, col=_col)
 
@@ -1888,9 +1948,11 @@ def _(
     boot_true_dist,
     go,
     hartigan_line_md,
+    johnson_pdf,
     make_subplots,
     mo,
     np,
+    population_p_grid,
     reference_sample,
     style_fig,
 ):
@@ -1918,8 +1980,9 @@ def _(
     _figr.add_trace(go.Histogram(x=_xr, histnorm="probability density", nbinsx=30,
                                  marker=dict(color="#999"), opacity=0.55,
                                  name="Reference sample", showlegend=False), row=1, col=2)
-    _xg = boot_true_dist.quantile(_pg)
-    _figr.add_trace(go.Scatter(x=_xg, y=boot_true_dist.pdf(_xg), mode="lines",
+    _pg_pop = population_p_grid(boot_true_dist) if type(boot_true_dist).__name__ == "JohnsonSB" else _pg
+    _xg = np.asarray(boot_true_dist.quantile(_pg_pop), float)
+    _figr.add_trace(go.Scatter(x=_xg, y=johnson_pdf(boot_true_dist, _xg), mode="lines",
                                line=dict(color="#d62728", width=2.2),
                                name="True density", showlegend=False), row=1, col=2)
     _figr.update_xaxes(title_text="Value", range=_xlim, row=1, col=1)
@@ -2112,6 +2175,7 @@ def _(mo, section_header_html):
 def _(
     PAPER,
     detect_modes_from_arrays,
+    johnson_pdf,
     mo,
     np,
     su_dist,):
@@ -2206,25 +2270,38 @@ def _(
             return self._base.quantile(p) + self._offset
 
         def pdf(self, x):
-            return self._base.pdf(np.asarray(x) - self._offset)
+            # exact Johnson SU density (jpse's .pdf is 0 beyond Q(0.001), Q(0.999))
+            return johnson_pdf(self._base, np.asarray(x, float) - self._offset)
 
     class _MixtureDist:
-        """Numeric PDF + quantile for the mixture, used only for the "true
-        curve" overlay and the true-mode count -- actual sampling inverts
-        each component's exact quantile function directly, not this
-        numeric approximation."""
+        """PDF + quantile of the two-component mixture, used for the "true
+        curve" overlay and the true-mode count (sampling uses each
+        component's exact quantile function, not this).
+
+        EXACT: the component CDFs are the Johnson SU closed form
+        Phi(gamma + delta asinh((x - xi)/lam)), and the component densities
+        come from johnson_pdf. The x grid is the union of both components'
+        quantiles on a dense p grid with tails to 1e-9, so the quantile is
+        interpolated from an exact CDF everywhere. (It used to integrate
+        jpse's .pdf -- which is 0 beyond each component's Q(0.001), Q(0.999)
+        -- over a truncated x range, putting the "True QF" 0.38 off at
+        p = 0.001.)"""
         def __init__(self, comp_a, comp_b, weight_a):
-            _lo = min(comp_a.quantile(0.0005), comp_b.quantile(0.0005))
-            _hi = max(comp_a.quantile(0.9995), comp_b.quantile(0.9995))
-            _span = _hi - _lo
-            self._x_grid = np.linspace(_lo - 0.05 * _span, _hi + 0.05 * _span, 4000)
-            self._pdf_grid = (
-                weight_a * comp_a.pdf(self._x_grid) + (1 - weight_a) * comp_b.pdf(self._x_grid)
-            )
-            _cdf = np.cumsum(self._pdf_grid)
-            _dx = self._x_grid[1] - self._x_grid[0]
-            _cdf = _cdf * _dx
-            self._cdf_grid = _cdf / _cdf[-1]
+            from scipy.stats import norm as _norm
+            _w = float(weight_a)
+            _t = np.geomspace(1e-9, 1e-3, 400, endpoint=False)
+            _pp = np.concatenate([_t, np.linspace(1e-3, 1 - 1e-3, 6000), (1 - _t)[::-1]])
+            self._x_grid = np.unique(np.concatenate([np.asarray(comp_a.quantile(_pp), float),
+                                                     np.asarray(comp_b.quantile(_pp), float)]))
+
+            def _cdf(c, x):
+                _base, _off = (c._base, c._offset) if isinstance(c, _ShiftedSU) else (c, 0.0)
+                _u = (np.asarray(x, float) - _off - _base.xi) / _base.lam
+                return _norm.cdf(_base.gamma + _base.delta * np.arcsinh(_u))
+
+            self._cdf_grid = _w * _cdf(comp_a, self._x_grid) + (1 - _w) * _cdf(comp_b, self._x_grid)
+            self._pdf_grid = (_w * johnson_pdf(comp_a, self._x_grid)
+                              + (1 - _w) * comp_b.pdf(self._x_grid))
 
         def pdf(self, x):
             return np.interp(x, self._x_grid, self._pdf_grid, left=0.0, right=0.0)

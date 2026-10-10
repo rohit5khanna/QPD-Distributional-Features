@@ -165,12 +165,13 @@ def _(mo):
         evaluated at the sample points themselves:
 
         $$W_1 \;=\; \frac{1}{Q_T(0.9) - Q_T(0.1)} \cdot \frac{1}{N}
-        \sum_{i=1}^{N} \bigl|\,Q_F(p_i) - x_{(i)}\,\bigr|,
+        \sum_{i=1}^{N} \bigl|\,Q_F(p_i) - q_i\,\bigr|,
         \qquad p_i = \frac{i}{N+1}$$
 
-        where $x_{(1)} \le \dots \le x_{(N)}$ is the sorted sample the model
-        was fitted to (in a bootstrap, the resample) and $Q_T$ is that
-        sample's EQF. No interpolation is involved except in $Q_T(0.9)$ and
+        where $q_1 \le \dots \le q_N$ are the sample quantiles &mdash; the
+        sorted values of the sample the model was fitted to (in a bootstrap,
+        the resample), so $q_i = Q_T(p_i)$ &mdash; and $Q_T$ is that sample's
+        EQF. No interpolation is involved except in $Q_T(0.9)$ and
         $Q_T(0.1)$, which interpolate linearly between neighbouring order
         statistics.
 
@@ -231,7 +232,7 @@ def _(
     # FRAMEWORK (2026-10-08): ONE grid for drawing, validity, density and
     # modes -- the paper's evaluation grid p = 0.001..0.999 (EF.GRID).
     # W1 (2026-10-09) does not use the grid: it is measured at the fitted
-    # sample's own points, Q_F(i/(N+1)) vs x_(i) (EF.w1 / PAPER.w1).
+    # sample's own points, Q_F(i/(N+1)) vs q_i (EF.w1 / PAPER.w1).
     FIT_P_GRID = EF.GRID
 
     def _modes_paper_grid(fit):
@@ -1088,7 +1089,7 @@ experiment.{_extra}
                     _row["_hgts"] = _m_hgts
                     if _want_w1:
                         # Equation 6 at the points of the sample this fit was
-                        # made to: mean |Q_F(i/(N+1)) - x_(i)| / interdecile.
+                        # made to: mean |Q_F(i/(N+1)) - q_i| / interdecile.
                         _row[w1_label] = round(PAPER.w1(_fit, _x)[1], 4)
                 except (MetalogError, QFlexError):
                     _row["Valid"] = False

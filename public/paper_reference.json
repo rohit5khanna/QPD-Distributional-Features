@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "generated": "2026-10-09T16:36:37",
+    "generated": "2026-10-10T18:44:03",
     "source": "QPD_Overfitting_Repro/reproduction",
     "basis": "REGENERATED values, not the current draft's printed ones; see reproduction/OPEN_ITEMS.md for where they differ",
     "conventions": {
@@ -89,10 +89,10 @@
         "distribution": "Johnson SB",
         "model": "QFlex-A+",
         "K": 13,
-        "validity_pct": 99.6,
+        "validity_pct": 100.0,
         "false_modality_pct": 0.6,
         "median_w1_eq6": 0.0122,
-        "n_valid": 996
+        "n_valid": 1000
       },
       {
         "distribution": "Johnson SB",
@@ -233,10 +233,10 @@
         "distribution": "Johnson SL",
         "model": "QFlex-A+",
         "K": 13,
-        "validity_pct": 99.6,
+        "validity_pct": 100.0,
         "false_modality_pct": 4.2,
         "median_w1_eq6": 0.0184,
-        "n_valid": 996
+        "n_valid": 1000
       },
       {
         "distribution": "Johnson SL",
@@ -377,10 +377,10 @@
         "distribution": "Johnson SU",
         "model": "QFlex-A+",
         "K": 13,
-        "validity_pct": 99.8,
+        "validity_pct": 100.0,
         "false_modality_pct": 0.0,
         "median_w1_eq6": 0.0194,
-        "n_valid": 998
+        "n_valid": 1000
       },
       {
         "distribution": "Johnson SU",
@@ -534,10 +534,10 @@
         "distribution": "Johnson SB",
         "model": "QFlex-A+",
         "K": 13,
-        "validity_pct": 99.7,
+        "validity_pct": 100.0,
         "false_modality_pct": 5.9,
         "median_w1_eq6": 0.0224,
-        "n_valid": 997
+        "n_valid": 1000
       },
       {
         "distribution": "Johnson SB",
@@ -678,10 +678,10 @@
         "distribution": "Johnson SL",
         "model": "QFlex-A+",
         "K": 13,
-        "validity_pct": 99.7,
+        "validity_pct": 100.0,
         "false_modality_pct": 7.6,
-        "median_w1_eq6": 0.0275,
-        "n_valid": 997
+        "median_w1_eq6": 0.0276,
+        "n_valid": 1000
       },
       {
         "distribution": "Johnson SL",
@@ -822,10 +822,10 @@
         "distribution": "Johnson SU",
         "model": "QFlex-A+",
         "K": 13,
-        "validity_pct": 99.3,
+        "validity_pct": 100.0,
         "false_modality_pct": 0.0,
         "median_w1_eq6": 0.0281,
-        "n_valid": 993
+        "n_valid": 1000
       },
       {
         "distribution": "Johnson SU",
@@ -1176,7 +1176,7 @@
         "model": "QFlex-A+",
         "K": 13,
         "original_n_modes": 1,
-        "n_valid": 999,
+        "n_valid": 1000,
         "persist_pct": 100.0,
         "max_modes": 1
       },

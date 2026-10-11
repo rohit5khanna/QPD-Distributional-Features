@@ -173,7 +173,9 @@ def _(mo):
         the resample), so $q_i = Q_T(p_i)$ &mdash; and $Q_T$ is that sample's
         EQF. No interpolation is involved except in $Q_T(0.9)$ and
         $Q_T(0.1)$, which interpolate linearly between neighbouring order
-        statistics.
+        statistics. $W_1$ is reported as a percentage (multiplied by 100,
+        two decimals): the mean quantile error as a share of the sample's
+        10&ndash;90 range.
 
         **How validity, densities and modes are computed, everywhere on this
         page.** A fit is *valid* if its quantile function is strictly
@@ -666,7 +668,7 @@ experiment.{_extra}
             if fit is None:
                 return f"**{name}:** fit failed"
             _feas = "valid" if EF.is_valid(fit) else "⚠️ not valid (quantile function not increasing on the grid)"
-            _w1_txt = f" | **W1 vs {w1_label}** = {w1:.4f}" if w1 is not None else ""
+            _w1_txt = f" | **W1 vs {w1_label}** = {100 * w1:.2f}%" if w1 is not None else ""
             return f"**{name}:** {_feas}, {_shape_text(modes[0])}{_w1_txt}"
 
         return mo.md(
@@ -982,7 +984,7 @@ experiment.{_extra}
             _rn = _ref.get("n_modes")
             _rshape = f", {_rn} mode{'s' if _rn and _rn > 1 else ''}" if _rn else ""
             _ref_lines.append(
-                f"**{_ref['name']}:** reference fit{_rshape} | **W1 vs empirical** = {_rw1:.4f}"
+                f"**{_ref['name']}:** reference fit{_rshape} | **W1 vs empirical** = {100 * _rw1:.2f}%"
             )
 
         _summary_block = mode_summary_md(
@@ -1090,7 +1092,7 @@ experiment.{_extra}
                     if _want_w1:
                         # Equation 6 at the points of the sample this fit was
                         # made to: mean |Q_F(i/(N+1)) - q_i| / interdecile.
-                        _row[w1_label] = round(PAPER.w1(_fit, _x)[1], 4)
+                        _row[w1_label] = round(100 * PAPER.w1(_fit, _x)[1], 4)   # shown as %
                 except (MetalogError, QFlexError):
                     _row["Valid"] = False
                     _row["Modes"] = None
@@ -1156,7 +1158,7 @@ experiment.{_extra}
                             if len(_usable) else 0.0)
             _k_used = k_metalog_val if _model == "Metalog" else k_qflex_val
             _prefix = _qpd_prefix(bounds)
-            _w1 = (round(_feas[w1_label].median(), 4)
+            _w1 = (round(_feas[w1_label].median(), 2)
                    if (w1_label in _g.columns and len(_feas)) else float("nan"))
             _max_modes = int(_usable["Modes"].max()) if len(_usable) else 0
 
@@ -1170,13 +1172,13 @@ experiment.{_extra}
             if _fmt == "mc":
                 _row_out = {"Model": _name, "K": _k_used, "Validity %": _feas_pct,
                             "False Modality %": round(_false_modal, 1),
-                            "Median W1": _w1}
+                            "Median W1 (%)": _w1}
             elif _fmt == "bimodal":
                 _row_out = {"QPD": _name, "Order (K)": _k_used,
                             "Max # Modes": _max_modes, "Valid (%)": _feas_pct,
                             "Unimodal (%)": round(_p1, 1), "Bimodal (%)": round(_p2, 1),
                             ">2 Modes (%)": round(_pg2, 1),
-                            "Median W1 Distance": _w1}
+                            "Median W1 Distance (%)": _w1}
             else:
                 _il, _ih, _sl_, _sh_, _np_, _ns_ = _mode_iqrs(_feas)
                 _denoms.append(f"{_name}: {len(_feas)} valid, {_np_} with a mode, {_ns_} with two")
@@ -1185,7 +1187,7 @@ experiment.{_extra}
                     # fit is measured against (its own resample).
                     _row_out = {"Model": _name, "K": _k_used, "Validity %": _feas_pct,
                                 "Mode location IQR": _r(_il), "Mode height IQR": _r(_ih),
-                                f"Median {w1_label}": _w1,
+                                f"Median {w1_label} (%)": _w1,
                                 "1 mode %": round(_p1, 1), "2 modes %": round(_p2, 1),
                                 ">2 modes %": round(_pg2, 1)}
                 elif _fmt == "hydrology":
@@ -1194,7 +1196,7 @@ experiment.{_extra}
                                 ">2 modes %": round(_pg2, 1),
                                 f"Primary Mode Location ({_unit[0]})": _r(_il),
                                 f"Primary Mode Height ({_unit[1]})": _r(_ih),
-                                "W1 (Median)": _w1}
+                                "W1 (Median, %)": _w1}
                 elif _fmt == "fish":
                     _row_out = {"Model": _name, "Validity %": _feas_pct,
                                 "1 mode %": round(_p1, 1), "2 modes %": round(_p2, 1),
@@ -1202,7 +1204,7 @@ experiment.{_extra}
                                 f"Primary Height ({_unit[1]})": _r(_ih),
                                 f"Secondary Location ({_unit[0]})": _r(_sl_),
                                 f"Secondary Height ({_unit[1]})": _r(_sh_),
-                                "Median W1": _w1}
+                                "Median W1 (%)": _w1}
                 else:                                    # geyser
                     _row_out = {"Model": _name, "K": _k_used, "Validity %": _feas_pct,
                                 "1 mode %": round(_p1, 1), "2 modes %": round(_p2, 1),
@@ -1211,7 +1213,7 @@ experiment.{_extra}
                                 f"Primary Height ({_unit[1]})": _r(_ih),
                                 f"Secondary Location ({_unit[0]})": _r(_sl_),
                                 f"Secondary Height ({_unit[1]})": _r(_sh_),
-                                "W1 Median": _w1}
+                                "W1 Median (%)": _w1}
             _summary_rows.append(_row_out)
 
         _caption = TABLE_CAPTIONS.get(_fmt, "")

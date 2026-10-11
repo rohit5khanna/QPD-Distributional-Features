@@ -212,18 +212,24 @@ def get_initial_guess(Y: np.ndarray, x_data: np.ndarray, terms: int) -> np.ndarr
 
 def solve_positive_all(Y: np.ndarray, x_data: np.ndarray, terms: int, gamma: float) -> np.ndarray:
     """
-    Solve with all coefficients non-negative for k >= 2.
-    Uses scipy's lsq_linear for efficient bound-constrained least squares.
+    Solve with all coefficients non-negative for k >= 2 (QFlex-A+).
+
+    Uses the same solver and tolerances as TA+ and TL+ (solve_with_bounds:
+    lsq_linear method='bvls', tol=1e-14, max_iter=10000).
+
+    Previously this called lsq_linear with its default method ('trf') and
+    default iteration cap. At K = 12-13 the design matrix is ill-conditioned
+    and 'trf' sometimes hit that cap and raised, so the fit was counted as
+    invalid (24 of 132,000 Monte Carlo A+ fits). BVLS solves all of them; on
+    the fits that already succeeded the two solvers agree to ~1e-7 (relative)
+    in the coefficients, with identical validity and mode counts.
     """
-    lb = np.full(terms, -np.inf)
-    lb[1:] = 0.0
-    ub = np.full(terms, np.inf)
-    
-    result = lsq_linear(Y, x_data, bounds=(lb, ub))
-    if not result.success:
-        raise QFlexError(f"Positive coefficients optimization failed: {result.message}")
-    
-    return result.x
+    a = solve_with_bounds(Y, x_data, terms, list(range(1, terms)), floor=0.0)
+    # BVLS can return a coefficient that sits on the bound as -1e-16 from
+    # rounding. A+ validity rests on a_k >= 0 exactly (QFlex Theorem 1), so
+    # put those back on the bound; this moves the fit by ~1e-16.
+    a[1:] = np.maximum(a[1:], 0.0)
+    return a
 
 
 def solve_tail_leading(Y: np.ndarray, x_data: np.ndarray, terms: int, gamma: float) -> np.ndarray:

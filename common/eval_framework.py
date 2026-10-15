@@ -45,6 +45,7 @@ from scipy.signal import find_peaks
 GRID = np.round(np.arange(1, 1000) * 1e-3, 3)        # 0.001 .. 0.999
 DELTA = 0.001
 RELATIVE_PROMINENCE = 0.01          # of the peak's own height
+F_FLOOR = np.nextafter(0.0, 1.0)    # smallest positive double, ~4.9e-324 (see density)
 
 
 # ---------------------------------------------------------------- the model
@@ -101,8 +102,16 @@ def density(m):
     lf[1:-1] = np.log(GRID[2:] - GRID[:-2]) - _log_dq(z[:-2], z[2:], kind, lb, ub)
     lf[0] = np.log(GRID[1] - GRID[0]) - _log_dq(z[0], z[1], kind, lb, ub)
     lf[-1] = np.log(GRID[-1] - GRID[-2]) - _log_dq(z[-2], z[-1], kind, lb, ub)
-    with np.errstate(over='ignore'):
+    with np.errstate(over='ignore', under='ignore'):
         f = np.exp(np.minimum(lf, np.log(1e300)))
+    # A valid fit has f > 0 everywhere, but where Q explodes in the far tail
+    # (e.g. Log fits with z ~ 800, Q ~ e^800) exp(lf) underflows to exactly 0
+    # and the mode rule would refuse the whole density (n_peaks = -1, which the
+    # tables then counted as 'not multimodal'). Floor such points at the
+    # smallest positive double: only exact zeros change, the floored points are
+    # the density's minimum (so they can never be peaks), and every fit whose
+    # density was already positive is untouched. (Audit 2026-10-11, issue I1.)
+    f = np.maximum(f, F_FLOOR)
     return quantile(m), f
 
 

@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "generated": "2026-10-10T18:44:03",
+    "generated": "2026-10-11T03:09:05",
     "source": "QPD_Overfitting_Repro/reproduction",
     "basis": "REGENERATED values, not the current draft's printed ones; see reproduction/OPEN_ITEMS.md for where they differ",
     "conventions": {
@@ -751,7 +751,7 @@
         "model": "QFlex-U",
         "K": 13,
         "validity_pct": 5.0,
-        "false_modality_pct": 90.0,
+        "false_modality_pct": 98.0,
         "median_w1_eq6": 0.0145,
         "n_valid": 50
       },

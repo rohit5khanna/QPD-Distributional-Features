@@ -1769,6 +1769,73 @@ def _(
 
 
 @app.cell
+def _(mo):
+    # Sensitivity of false multimodality to the 1% prominence rule, from the paper's own
+    # Monte Carlo fits (precomputed: common/prominence_sensitivity.py; refitting 1000
+    # replicates x 5 QPDs x 3 distributions x 2 sample sizes is far too slow in a browser).
+    from common import prominence_sensitivity as _PS
+
+    _ks = (7, 10, 13)
+    _ths = ((1, "0.5%"), (2, "1%"), (3, "2%"))          # positions in each DATA tuple
+    _th_css = "padding:3px 8px;border:1px solid #d0d4dc;text-align:center;"
+    _paper_bg = "background:#FFF2CC;"
+    _head_bg = "background:#EEF1F8;font-weight:700;"
+
+    def _table(dist):
+        _h = [f"<table style='border-collapse:collapse;font-size:13px;margin:6px 0;'>",
+              "<tr>",
+              f"<th rowspan='2' style='{_th_css}{_head_bg}'>N</th>",
+              f"<th rowspan='2' style='{_th_css}{_head_bg}'>QPD</th>"]
+        for _k in _ks:
+            _h.append(f"<th colspan='3' style='{_th_css}{_head_bg}'>K = {_k}</th>")
+        _h.append(f"<th rowspan='2' style='{_th_css}{_head_bg}'>Max change<br>from 1% (pp)</th></tr><tr>")
+        for _k in _ks:
+            for _i, _lab in _ths:
+                _bg = _paper_bg if _lab == "1%" else "background:#F5F6F9;"
+                _h.append(f"<th style='{_th_css}{_bg}font-weight:600;'>{_lab}</th>")
+        _h.append("</tr>")
+        for _n in _PS.SAMPLE_SIZES:
+            for _j, _m in enumerate(_PS.MODELS):
+                _row = _PS.DATA[(dist, _n, _m)]
+                _h.append("<tr>")
+                if _j == 0:
+                    _h.append(f"<td rowspan='{len(_PS.MODELS)}' style='{_th_css}font-weight:700;'>{_n}</td>")
+                _h.append(f"<td style='{_th_css}text-align:left;'>{_m}</td>")
+                _chg = 0.0
+                for _k in _ks:
+                    _v = _row[_k]
+                    for _i, _lab in _ths:
+                        _x = _v[_i]
+                        _bg = _paper_bg if _lab == "1%" else ""
+                        _tip = f" title='{_v[0]} valid fits of 1000'" if _lab == "1%" else ""
+                        _h.append(f"<td style='{_th_css}{_bg}'{_tip}>{'—' if _x is None else f'{_x:.1f}'}</td>")
+                    if _v[0] and None not in _v[1:4]:
+                        _chg = max(_chg, abs(_v[1] - _v[2]), abs(_v[3] - _v[2]))
+                _h.append(f"<td style='{_th_css}font-weight:600;'>{_chg:.1f}</td></tr>")
+        _h.append("</table>")
+        return mo.Html("".join(_h))
+
+    _intro = mo.md(
+        "A local maximum of a fitted density counts as a **mode** when its prominence is at least "
+        "**1% of its own height** (the paper's rule). How much do the Monte Carlo conclusions depend "
+        "on that 1%? The tables below re-count the modes of the **same** fits at 0.5% and 2%.\n\n"
+        "Entries are the **false multimodality rate**: the % of *valid* fits with more than one mode "
+        "(the truth is unimodal). 1000 replicates per distribution and N, exactly the paper's draws; "
+        "the shaded 1% columns reproduce Tables 3 and A1. Hover a 1% cell to see how many of the 1000 "
+        "fits were valid.\n\n"
+        "**Reading it:** moving from 0.5% to 2% shifts the rate by at most about 5 percentage points, "
+        "and QFlex-A+ has the lowest rate (or is within 0.1 points of it) in every cell at every threshold."
+    )
+    mo.accordion({
+        "Sensitivity of false multimodality to the prominence threshold (0.5% – 2%)": mo.vstack([
+            _intro,
+            mo.ui.tabs({f"Johnson {_d}": _table(_d) for _d in _PS.DISTS}),
+        ])
+    })
+    return
+
+
+@app.cell
 def _(mo, section_header_html):
     mo.md(
         rf"""

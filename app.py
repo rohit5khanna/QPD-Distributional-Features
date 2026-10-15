@@ -1836,6 +1836,9 @@ def _(mo):
 
     def _table(dist):
         _h = ["<table style='border-collapse:collapse;font-size:13px;margin:6px 0;'>",
+              "<caption style='caption-side:top;text-align:left;padding:4px 0 6px 0;font-size:14px;'>"
+              f"<b>False multimodality rate (%), Johnson {dist}</b>: % of valid fits with more "
+              "than one mode, at prominence threshold τ = 0.5%, 1% and 2%</caption>",
               "<tr>",
               f"<th rowspan='2' style='{_cell}{_head_bg}'>N</th>",
               f"<th rowspan='2' style='{_cell}{_head_bg}'>QPD</th>"]

@@ -1821,8 +1821,7 @@ def _(mo):
 
         $$\frac{\mathrm{prom}_i}{f_i} \;\ge\; \tau, \qquad \tau = 0.01.$$
 
-        The fit's **mode count** is the number of peaks that pass, with a fit that has no
-        qualifying interior peak counted as unimodal (one mode). Because the threshold is
+        The fit's **mode count** is the number of peaks that pass. Because the threshold is
         *relative* to each peak's own height, a small peak in a low-density region is judged
         on the same footing as a tall one. In the Monte Carlo, where the true density is
         unimodal, a valid fit with more than one mode is a **false multimodality**.

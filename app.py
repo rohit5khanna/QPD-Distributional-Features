@@ -189,8 +189,8 @@ def _(mo):
 
         Only the **target** changes from section to section: a Monte
         Carlo replicate is measured against its own sample, a bootstrap
-        replicate against the reference sample it was drawn from, and an
-        empirical section against the observed data. Each table names its
+        replicate against its own resample (the sample it was fitted to), and
+        an empirical section against the observed data. Each table names its
         target in the W₁ column heading.
         """
     )

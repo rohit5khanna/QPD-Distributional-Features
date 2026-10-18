@@ -177,21 +177,37 @@ def _(mo):
         two decimals): the mean quantile error as a share of the sample's
         10&ndash;90 range.
 
-        **How validity, densities and modes are computed, everywhere on this
-        page.** A fit is *valid* if its quantile function is strictly
-        increasing along $G$. Densities are computed from the quantile values
-        on $G$ (differences between neighbouring grid points), and every
-        fitted curve is drawn on $G$ only. A *mode* is an interior local maximum of
-        that density whose prominence is at least 1% of its own height; the
-        grid end points are never modes, and a fit with no interior peak
-        counts as unimodal. The full procedure, with formulas, is under *Mode
-        identification* in the Monte Carlo section below.
-
         Only the **target** changes from section to section: a Monte
         Carlo replicate is measured against its own sample, a bootstrap
         replicate against its own resample (the sample it was fitted to), and
         an empirical section against the observed data. Each table names its
         target in the W₁ column heading.
+
+        **How validity, densities and modes are computed, everywhere on this
+        page.** A fit is *valid* if its quantile function is strictly
+        increasing along $G$ ($\delta$-$p$ monotonicity with $\delta p = 0.001$).
+        For a valid fit, the density at grid point $p_j = j/1000$ is computed
+        from the neighbouring quantile values,
+
+        $$f_j \;=\; \frac{p_{j+1} - p_{j-1}}{Q_F(p_{j+1}) - Q_F(p_{j-1})},$$
+
+        with one-sided differences at the two end points, and every fitted
+        curve is drawn on $G$ only. Modes are then identified in three steps:
+
+        1. *Candidate peaks.* Interior grid points with $f_i > f_{i-1}$ and
+           $f_i > f_{i+1}$, $2 \le i \le 998$. The end points of $G$ are never modes.
+        2. *Prominence.* From $i$, move left until a density higher than $f_i$
+           is reached (or the grid ends), and likewise to the right. With $f_L$
+           and $f_R$ the lowest densities met on the two walks,
+           $\mathrm{prom}_i = f_i - \max(f_L, f_R)$: how far the peak rises
+           above the higher of its two surrounding valleys.
+        3. *Mode rule.* Peak $i$ is a mode if $\mathrm{prom}_i / f_i \ge \tau$,
+           with $\tau = 1\%$. The threshold is relative to the peak's own
+           height, so small fluctuations in the fitted density are not
+           counted as modes wherever they occur.
+
+        When the true density is unimodal, a valid fit with more than one
+        mode is a *false multimodality*.
         """
     )
     return
@@ -1766,133 +1782,6 @@ def _(
         mo.output.replace(
             mo.md("*Click **▶ Run Monte Carlo Analysis** to draw fresh samples repeatedly and summarize all 5 QPDs.*")
         )
-    return
-
-
-@app.cell
-def _(mo):
-    # Mini-section of "A. Monte Carlo": how a mode is counted (the paper's procedure,
-    # with formulas) and how much the Monte Carlo results depend on the 1% prominence
-    # rule. The sensitivity numbers are precomputed from the paper's own Monte Carlo
-    # fits (common/prominence_sensitivity.py) -- refitting 1000 replicates x 5 QPDs x
-    # 3 distributions x 2 sample sizes is far too slow in a browser.
-    from common import prominence_sensitivity as _PS
-
-    _subhead = lambda _t: mo.Html(
-        f'<div style="margin:22px 0 8px 0;padding:4px 0 4px 12px;border-left:4px solid #8E5AA6;">'
-        f'<span style="font-size:17px;font-weight:700;color:#2A2A2A;">{_t}</span></div>'
-    )
-
-    _procedure = mo.md(
-        r"""
-        Every fitted QPD on this page is assessed on the probability grid
-
-        $$G = \{p_1, \dots, p_{999}\}, \qquad p_j = \frac{j}{1000}.$$
-
-        **1. Validity.** A fit is *valid* if its quantile function is strictly increasing
-        at every successive grid point ($\delta$-$p$ monotonicity with $\delta p = 0.001$):
-
-        $$Q(p_1) < Q(p_2) < \cdots < Q(p_{999}).$$
-
-        Modes are identified only for valid fits.
-
-        **2. Density on the grid.** The density at each grid point is taken from the
-        quantile differences between neighbouring grid points,
-
-        $$f_j \;=\; \frac{p_{j+1} - p_{j-1}}{Q(p_{j+1}) - Q(p_{j-1})}, \qquad 2 \le j \le 998,$$
-
-        with one-sided differences at $j = 1$ and $j = 999$. Nothing outside
-        $[0.001,\, 0.999]$ (99.8% of the probability mass) is evaluated.
-
-        **3. Candidate peaks.** Only interior points can be modes; the end points
-        $p_1 = 0.001$ and $p_{999} = 0.999$ never are. Grid point $i$ is a candidate
-        peak if
-
-        $$f_i > f_{i-1} \quad\text{and}\quad f_i > f_{i+1}, \qquad 2 \le i \le 998.$$
-
-        **4. Prominence.** From $i$, move left until a point higher than $f_i$ is reached
-        (or the grid ends), and likewise to the right. Let $f_L$ and $f_R$ be the lowest
-        density encountered on the left and right walks. The prominence of peak $i$ is
-
-        $$\mathrm{prom}_i \;=\; f_i - \max(f_L,\, f_R).$$
-
-        **5. Mode rule.** Peak $i$ is a **mode** if its prominence is at least 1% of its
-        own height:
-
-        $$\frac{\mathrm{prom}_i}{f_i} \;\ge\; \tau, \qquad \tau = 0.01.$$
-
-        The fit's **mode count** is the number of peaks that pass. Because the threshold is
-        *relative* to each peak's own height, a small peak in a low-density region is judged
-        on the same footing as a tall one. In the Monte Carlo, where the true density is
-        unimodal, a valid fit with more than one mode is a **false multimodality**.
-        """
-    )
-
-    _ks = (7, 10, 13)
-    _ths = ((1, "0.5%"), (2, "1%"), (3, "2%"))          # positions in each DATA tuple
-    _cell = "padding:3px 8px;border:1px solid #d0d4dc;text-align:center;"
-    _paper_bg = "background:#FFF2CC;"
-    _head_bg = "background:#EEF1F8;font-weight:700;"
-
-    def _table(dist):
-        _h = ["<table style='border-collapse:collapse;font-size:13px;margin:6px 0;'>",
-              "<caption style='caption-side:top;text-align:left;padding:4px 0 6px 0;font-size:14px;'>"
-              f"<b>False multimodality rate (%), Johnson {dist}</b>: % of valid fits with more "
-              "than one mode, at prominence threshold τ = 0.5%, 1% and 2%</caption>",
-              "<tr>",
-              f"<th rowspan='2' style='{_cell}{_head_bg}'>N</th>",
-              f"<th rowspan='2' style='{_cell}{_head_bg}'>QPD</th>"]
-        for _k in _ks:
-            _h.append(f"<th colspan='3' style='{_cell}{_head_bg}'>K = {_k}</th>")
-        _h.append(f"<th rowspan='2' style='{_cell}{_head_bg}'>Max change<br>from 1% (pp)</th></tr><tr>")
-        for _k in _ks:
-            for _i, _lab in _ths:
-                _bg = _paper_bg if _lab == "1%" else "background:#F5F6F9;"
-                _h.append(f"<th style='{_cell}{_bg}font-weight:600;'>τ = {_lab}</th>")
-        _h.append("</tr>")
-        for _n in _PS.SAMPLE_SIZES:
-            for _j, _m in enumerate(_PS.MODELS):
-                _row = _PS.DATA[(dist, _n, _m)]
-                _h.append("<tr>")
-                if _j == 0:
-                    _h.append(f"<td rowspan='{len(_PS.MODELS)}' style='{_cell}font-weight:700;'>{_n}</td>")
-                _h.append(f"<td style='{_cell}text-align:left;'>{_m}</td>")
-                _chg = 0.0
-                for _k in _ks:
-                    _v = _row[_k]
-                    for _i, _lab in _ths:
-                        _x = _v[_i]
-                        _bg = _paper_bg if _lab == "1%" else ""
-                        _tip = f" title='{_v[0]} valid fits of 1000'" if _lab == "1%" else ""
-                        _h.append(f"<td style='{_cell}{_bg}'{_tip}>{'—' if _x is None else f'{_x:.1f}'}</td>")
-                    if _v[0] and None not in _v[1:4]:
-                        _chg = max(_chg, abs(_v[1] - _v[2]), abs(_v[3] - _v[2]))
-                _h.append(f"<td style='{_cell}font-weight:600;'>{_chg:.1f}</td></tr>")
-        _h.append("</table>")
-        return mo.Html("".join(_h))
-
-    _sens_intro = mo.md(
-        r"""
-        How much do the Monte Carlo conclusions depend on the choice $\tau = 1\%$? The
-        tables re-count the modes of the **same** fits at $\tau = 0.5\%$ and $\tau = 2\%$.
-        Entries are the **false multimodality rate** &mdash; the % of *valid* fits with more
-        than one mode &mdash; over the paper's 1000 replicates per distribution and $N$. The
-        shaded $\tau = 1\%$ columns reproduce Tables 3 and A1; hover over one of them to see
-        how many of the 1000 fits were valid.
-
-        **Reading it:** moving $\tau$ from 0.5% to 2% changes the rate by at most about 5
-        percentage points, and QFlex-A+ has the lowest rate (or is within 0.1 points of it)
-        in every cell at every threshold.
-        """
-    )
-
-    mo.vstack([
-        _subhead("Mode identification"),
-        _procedure,
-        _subhead("Sensitivity to the prominence threshold τ"),
-        _sens_intro,
-        mo.ui.tabs({f"Johnson {_d}": _table(_d) for _d in _PS.DISTS}),
-    ])
     return
 
 

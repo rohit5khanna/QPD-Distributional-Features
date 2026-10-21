@@ -1,16 +1,15 @@
 """
 Shared mode-detection utilities used across experiments.
 
-This file intentionally matches the mode-detection logic used in:
-`Modality Tests/MC_UnimodalTruth/mc_unimodal_experiment.py::count_modes_in_pdf`
+This file keeps the mode-detection logic of the original unimodal-truth
+Monte Carlo experiment (count_modes_in_pdf).
 
 Key properties:
 - Evaluate PDF on probability grid y ∈ [0.01, 0.99]
 - Use scipy.signal.find_peaks with prominence = 0.01 * max(PDF)
 - Return -1 for invalid PDF values or if mode detection errors
 
-Updated: 2026-02-04
-- Prominence threshold is set to 1% to preserve historical experiment behavior
+- Prominence threshold is 1% of the maximum PDF value
 """
 
 from __future__ import annotations

@@ -9,17 +9,14 @@ null-bootstrap resampling schemes) -- do not substitute one for the other
 without re-validating against the numbers already reported in the paper.
 
   1. MC-SYNTHETIC FAMILY  (apply_silverman_test, apply_hartigan_dip_test)
-     Used by: MC_Cloud/mc_jpse_comprehensive.py,
-              MC_Cloud_Bimodal/mc_bimodal_comprehensive.py,
-              MC_Cloud_Empirical/bootstrap_empirical.py
+     Written for the Monte Carlo, bimodal and empirical-bootstrap experiments.
      Silverman: bisects h between [0.01*h0, 5*h0] (h0 = 1.06*std*n^-0.2),
      counts modes via a manual Gaussian-KDE grid + scipy.signal.find_peaks
      (prominence=1e-4), and calibrates the null via Hall & York (2001)
      resampling from gaussian_kde(x, bw=h_null/std).
 
   2. FISH-JITTER FAMILY  (jitter_find_h_crit, jitter_silverman_pvalue)
-     Used by: Fish_Modality_Tests/fish_silverman_jitter_sweep.py,
-              Fish_Modality_Tests/fish_silverman_jitter_sweep_cloud.py
+     Written for the fish-weight jitter sweep.
      Silverman: bisects h starting from h_max = 0.9*std*n^-0.2 (expand x2,
      contract /2), counts modes via a manual Gaussian-KDE grid +
      scipy.signal.find_peaks (prominence = 5% of peak PDF height), and
@@ -27,7 +24,7 @@ without re-validating against the numbers already reported in the paper.
      variance-preserving bootstrap formula
          x* = mu + (X_boot - mu + h_crit * Z) / sqrt(1 + h_crit^2 / s^2).
 
-  Fish_Modality_Tests/fish_kde_bandwidth_robustness.py has its OWN third
+  The fish KDE-bandwidth robustness check has its OWN third
   find_h_crit/silverman_pvalue variant (different bisection constants) that
   is intentionally NOT included here -- it is used nowhere else, so there is
   nothing to de-duplicate, and merging it into either family above would risk
@@ -35,9 +32,9 @@ without re-validating against the numbers already reported in the paper.
 
   Hartigan dip test: only the MC-synthetic family duplicated this test
   identically across three files, so only that one is shared here
-  (apply_hartigan_dip_test). Fish_Modality_Tests/fish_hartigan_jitter_sweep.py
-  calls `diptest.diptest(sample, sort_x=True)` directly, appears nowhere
-  else, and is left as its own inline call.
+  (apply_hartigan_dip_test). The fish Hartigan jitter sweep calls
+  `diptest.diptest(sample, sort_x=True)` directly, appears nowhere else, and
+  is left as its own inline call.
 """
 
 import numpy as np
@@ -46,9 +43,6 @@ from scipy.signal import find_peaks
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MC-SYNTHETIC FAMILY
-# Identical (byte-for-byte, modulo one docstring wording tweak) across
-# MC_Cloud/mc_jpse_comprehensive.py, MC_Cloud_Bimodal/mc_bimodal_comprehensive.py,
-# and MC_Cloud_Empirical/bootstrap_empirical.py before this consolidation.
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _count_kde_modes(x_sample, bandwidth, grid_size=2000):
@@ -121,9 +115,6 @@ def apply_hartigan_dip_test(x_sample):
 
 # ══════════════════════════════════════════════════════════════════════════════
 # FISH-JITTER FAMILY
-# Identical (modulo type hints / n_inner default) between
-# Fish_Modality_Tests/fish_silverman_jitter_sweep.py and
-# fish_silverman_jitter_sweep_cloud.py before this consolidation.
 # ══════════════════════════════════════════════════════════════════════════════
 
 JITTER_N_GRID     = 128   # KDE evaluation grid points

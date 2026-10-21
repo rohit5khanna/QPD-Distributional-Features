@@ -110,7 +110,7 @@ def density(m):
     # tables then counted as 'not multimodal'). Floor such points at the
     # smallest positive double: only exact zeros change, the floored points are
     # the density's minimum (so they can never be peaks), and every fit whose
-    # density was already positive is untouched. (Audit 2026-10-11, issue I1.)
+    # density was already positive is untouched.
     f = np.maximum(f, F_FLOOR)
     return quantile(m), f
 
@@ -219,8 +219,8 @@ def w1(m, x_ref):
 #: Bootstrap sections score each fit two ways and store both: against the
 #: RESAMPLE it was fitted to ('own') and against the ORIGINAL sample ('orig').
 #: This switch only decides which of the two fills the main W1 columns that the
-#: tables and figure legends report; both are always written. DECIDED 2026-10-09
-#: (author): 'own' -- every W1 in the paper is measured against the sample the
+#: tables and figure legends report; both are always written. Set to 'own':
+#: every W1 in the paper is measured against the sample the
 #: model was fitted to, bootstrap included. The _orig columns are kept for record.
 BOOTSTRAP_W1_REFERENCE = 'own'
 

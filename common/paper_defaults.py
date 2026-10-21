@@ -23,13 +23,10 @@ WHAT WAS WRONG BEFORE (and is fixed by using this module)
    have made the numbers agree.
 
 2. THE BOOTSTRAP SECTION DEFAULTED TO THE WRONG REALIZATION. Seed 200612 was
-   the default; the paper's pinned realization is 200110 (replication 68; it
-   was 200043, replication 1, before the paper moved). 200612 is the
-   realization the paper's own pipeline used in one place and not another --
-   the inconsistency that was found and corrected during the reproduction work.
+   the default; the paper's pinned realization is 200110 (replication 68).
 
 3. W1 WAS NOT EQUATION 6. The notebook integrated |Q_F - Q_T| over
-   [0.001, 0.999] and did not normalize. Equation 6 (current framework) is the
+   [0.001, 0.999] and did not normalize. Equation 6 is the
    MEAN over the grid points inside the data range [1/(N+1), N/(N+1)],
    divided by the target's interdecile range Q_T(0.9) - Q_T(0.1).
 
@@ -59,8 +56,7 @@ def weibull(n):
 
 #: The evaluation grid of the paper's framework (eval_framework.GRID):
 #: p = 0.001, 0.002, ..., 0.999. Validity, density, modes and W1 are all
-#: evaluated on it and nothing is evaluated outside it. (Was linspace(0.01,
-#: 0.99, 1000) before the framework revision of 2026-10-08.)
+#: evaluated on it and nothing is evaluated outside it.
 P_GRID = EF.GRID
 
 #: Bootstrap replicates per experiment, throughout the paper.
@@ -83,7 +79,7 @@ def empirical_qf(x_sorted, grid=P_GRID):
 
 
 def w1(model, x_ref):
-    """Equation 6 at the sample points (eval_framework.w1, 2026-10-09).
+    """Equation 6 at the sample points (eval_framework.w1).
     Returns (unnormalized, normalized):
 
         W1 = (1/N) sum_i |Q_F(p_i) - x_(i)|,  p_i = i/(N+1),
@@ -97,7 +93,7 @@ def w1(model, x_ref):
 
 
 # ---------------------------------------------------------------------------
-# Section 1 -- Johnson Monte Carlo (Tables 3, A1; Figures 2, 3, A1-A4)
+# Section 4.4 -- Johnson Monte Carlo (Tables 4, A1; Figures 3, 4, O1-O4)
 # ---------------------------------------------------------------------------
 
 #: Shared by all three reference distributions (SU, SL, SB).
@@ -130,18 +126,17 @@ def mc_draw(dist, sample_size, replication, base=None):
 
 
 # ---------------------------------------------------------------------------
-# Section 2 -- Bootstrap diagnostics (Table 4; Figures 4-7)
+# Section 4.5 -- Bootstrap diagnostics (Tables 5, 6; Figures 6-8, O5-O7)
 # ---------------------------------------------------------------------------
 
 #: The paper's pinned realization: Johnson SU, N = 200, replication 68.
 #: 200110 = 42 + 200*1000 + 68, i.e. mc_seed(200, 68).
 #:
-#: Was 200043 (replication 1) until the paper moved to replication 68. Why 68:
-#: it is a realization whose ORIGINAL-SAMPLE fits are feasible for all four
+#: Why 68: it is a realization whose ORIGINAL-SAMPLE fits are feasible for all four
 #: models at every order 3-13. On replication 1 the Metalog original fit is
 #: infeasible at K = 11, 12 and 13 and QFlex-U from K = 9 up, which left gaps
 #: in the section's figures. Note that 68 was SELECTED on that feasibility, so
-#: it is not an arbitrary draw -- the paper has to say so where it uses it.
+#: it is not an arbitrary draw.
 BOOTSTRAP_SEED = 200110
 BOOTSTRAP_N = 200
 BOOTSTRAP_K = [4, 7, 10, 13]      # the paper's standard order set
@@ -164,7 +159,7 @@ def bootstrap_resample(x_unsorted, b):
 
 
 # ---------------------------------------------------------------------------
-# Sections 3-5 -- the empirical datasets
+# Section 5 -- the empirical datasets (5.1 hydrology, 5.2 fish, 5.3 geyser)
 #
 # Each gets its own stream base so no two sections can ever share draws. The
 # ranges are disjoint by construction and asserted in `check_seed_families()`.
@@ -271,7 +266,7 @@ def jitter_original(x_raw, jitter, base_stream, draw=0, floor=None):
 
 
 # ---------------------------------------------------------------------------
-# Section 6 -- bimodal recovery (Table 5, Figure 8)
+# Section 4.6 -- bimodal recovery (Table 7, Figure 9)
 # ---------------------------------------------------------------------------
 
 BIMODAL_N = 200
@@ -294,11 +289,11 @@ def base_sigma(xi=0.0, lam=1.0, gamma=0.5, delta=1.2):
         E[sinh^2 W] = (e^{2 s^2} * cosh(2 mu) - 1) / 2
         Var[X]      = lam^2 * (E[sinh^2 W] - E[sinh W]^2)
 
-    Exact -- no grid, no draws, no seed.  Two WRONG values were in use before:
-    the notebook took np.std of the quantile function on a 5000-point grid
-    over [0.0005, 0.9995] (1.3244, 3.26 % low, because that truncation loses
-    real tail), and the paper's generator took np.std of 10,000 rvs draws
-    under default_rng(9999) (1.3792, 0.74 % high). The manuscript says the
+    Exact -- no grid, no draws, no seed.  Approximations miss it: np.std of
+    the quantile function on a 5000-point grid over [0.0005, 0.9995] gives
+    1.3244 (3.26 % low, because that truncation loses real tail), and np.std
+    of 10,000 rvs draws under default_rng(9999) gives 1.3792 (0.74 % high).
+    The manuscript says the
     second component sits 3.5 standard deviations away; only this value makes
     that sentence true.
     """
@@ -324,8 +319,7 @@ def bimodal_seed(replication):
 def bimodal_draw(dist, n, seed_base, offset, weight_a=None):
     """One sample from a two-component mixture, by the paper's sampler.
 
-    Mirrors generate_bimodal_source.sample_bimodal_mixture (and therefore
-    reproduction/scripts/bimodal_common.sample_mixture): the component split is
+    Mirrors reproduction/scripts/bimodal_common.sample_mixture: the component split is
     a single binomial on the mixture rng, then each component is drawn by
     jpse's `rvs` on its own offset seed. `rng.random(n) < w` per draw plus
     inverse-CDF is an equally valid sampler and gives a DIFFERENT sample from
@@ -343,13 +337,13 @@ def bimodal_draw(dist, n, seed_base, offset, weight_a=None):
 # columns. THEY ARE NOT UNIFORM ACROSS SECTIONS, and the difference is
 # deliberate, so they are separate functions rather than one with a flag:
 #
-#   hydrology (Table 6)  primary = the TALLEST peak            (hydrology_tables.py)
-#   fish      (Table 9)  primary = the TALLEST peak            (fish_summary.py::_rank_modes)
-#   geyser    (Table 11) primary = the peak at the LONGER WAIT (geyser_tables.py)
+#   hydrology (Table 8)  primary = the TALLEST peak            (hydrology_tables.py)
+#   fish      (Table 10) primary = the TALLEST peak            (fish_summary.py::_rank_modes)
+#   geyser    (Table 13) primary = the peak at the LONGER WAIT (geyser_tables.py)
 #
 # Denominators are the same in all three: the primary columns are summarised
 # over valid fits with at least ONE mode, the secondary columns over valid fits
-# with at least TWO. (Verified against Table10_geyser_mode_iqr.csv, where
+# with at least TWO. (Verified against Table13_geyser_mode_iqr.csv, where
 # n_primary at Log Metalog K=4 equals the 159 feasible fits and n_secondary is
 # the 3 bimodal ones.)
 # ---------------------------------------------------------------------------
@@ -391,7 +385,7 @@ def rank_modes_by_position(locs, hgts):
     "second longest" wait instead of the shortest gives a K=8 secondary-location
     IQR of 0.9365 against the published 0.6469, because 135 of the 719 bimodal-
     or-more fits at that order have a middle mode. Checked against
-    Table10_geyser_mode_iqr.csv, which is what the manuscript's Table 11 prints.
+    Table13_geyser_mode_iqr.csv, which is what the manuscript's Table 13 prints.
     """
     if locs is None or hgts is None or len(locs) == 0:
         return (float('nan'),) * 4

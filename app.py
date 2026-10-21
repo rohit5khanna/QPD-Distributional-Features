@@ -45,7 +45,7 @@ def _():
     from common.qflex.transforms import LogQFlex, LogitQFlex
     from common.jpse.johnson import JohnsonSU, JohnsonSL, JohnsonSB
     # The paper's evaluation framework (grid, validity, density, modes, W1),
-    # the same module as QPD_Overfitting_Repro/code/common/eval_framework.py.
+    # the same module as code/common/eval_framework.py in the paper repository.
     from common import eval_framework as EF
     # Pure-Python/NumPy port of the Hartigan dip test, vendored (GPLv3,
     # see the header of common/dip_test.py) because the compiled `diptest`
@@ -241,16 +241,16 @@ def _(
     #
     # Deliberately stops short of p=0/1 exactly (numerical blowup there for
     # unbounded/unconstrained fits) but reaches much closer to the edges
-    # than an earlier, more conservative (0.01, 0.99) grid did -- that
-    # narrower grid left every fitted curve visibly short of the data's own
-    # min/max, making PDFs look like they don't extend to the ends of the
+    # than a (0.01, 0.99) grid would -- that narrower grid leaves every
+    # fitted curve visibly short of the data's own min/max, making PDFs
+    # look like they don't extend to the ends of the
     # plots. QFlex-U in particular can still spike or go infeasible out
     # here; render_empirical_panel's PDF-axis guard (below) keeps a single
     # spike from blowing out the whole y-axis when that happens.
     #
-    # FRAMEWORK (2026-10-08): ONE grid for drawing, validity, density and
+    # FRAMEWORK: ONE grid for drawing, validity, density and
     # modes -- the paper's evaluation grid p = 0.001..0.999 (EF.GRID).
-    # W1 (2026-10-09) does not use the grid: it is measured at the fitted
+    # W1 does not use the grid: it is measured at the fitted
     # sample's own points, Q_F(i/(N+1)) vs q_i (EF.w1 / PAPER.w1).
     FIT_P_GRID = EF.GRID
 
@@ -365,21 +365,19 @@ experiment.{_extra}
 
     # Same per-model palette as the companion Returns-analysis workbook, so a
     # color means the same model whether you're looking at this notebook or
-    # that spreadsheet. Previously every QFlex curve was plotted in the same
-    # green no matter which constraint was active, which quietly discarded
-    # the one piece of information (which constraint?) most worth encoding
-    # visually -- the constraint dropdown's own text was the only way to
-    # tell U/TA+/A+ apart at a glance.
-    # These are RESERVED for the QPDs and are used for nothing else, here or
-    # in the paper -- the four paper models use the same hex values as the
-    # paper's reproduction/scripts/figure_style.py; QFlex-T+ (notebook only)
-    # gets pink. Anything that is not one of these
+    # that spreadsheet. Each QFlex constraint gets its own colour, because
+    # which constraint is active is the information most worth encoding
+    # visually.
+    # These are RESERVED for the QPDs and are used for nothing else on this
+    # page. The hex values are the original model palette listed in the
+    # paper's reproduction/scripts/figure_style.py (its _OLD map), QFlex-T+
+    # pink included. Anything that is not one of these
     # models (GEV, the population curve, observed data, bootstrap bands) draws
     # a colour from outside this dict.
     MODEL_COLORS = {
         "Metalog": "#1f77b4",
         "QFlex-U": "#9467bd",
-        "QFlex-T+": "#e377c2",   # notebook-only model; pink is used nowhere else here or in the paper
+        "QFlex-T+": "#e377c2",   # pink is used for nothing else on this page
         "QFlex-TA+": "#ff7f0e",
         "QFlex-A+": "#2ca02c",
     }
@@ -607,9 +605,7 @@ experiment.{_extra}
         evidence -- it can mean the population is unimodal OR that the test
         lacks power at this N -- so it cannot be reported as the test endorsing
         unimodality, and certainly not as it ruling out spurious modes, which
-        is a claim about the FIT rather than about the data. This line used to
-        read "rejects spurious modes" in that branch, which asserted exactly
-        that."""
+        is a claim about the FIT rather than about the data."""
         _dip, _pval, _reject = hartigan_test(x)
         _verdict = ("**rejects** unimodality" if _reject
                     else "does **not** reject unimodality")
@@ -802,7 +798,7 @@ experiment.{_extra}
         style_fig(_fig, dense_ticks=True)
 
         # W1 is measured against THIS REPLICATE'S OWN SAMPLE, at its points
-        # (Equation 6; the paper's Tables 3 and A1 do the same), not against
+        # (Equation 6; the paper's Tables 4 and A1 do the same), not against
         # the true distribution.
         def _eq6(fit, curve):
             if curve is None or fit is None:
@@ -1020,17 +1016,17 @@ experiment.{_extra}
 
     #: What each section's table corresponds to in the manuscript.
     TABLE_CAPTIONS = {
-        "mc": "**Tables 3 and A1** &mdash; validity, false modality and median W1, "
+        "mc": "**Tables 4 and A1** &mdash; validity, false modality and median W1, "
               "reported here for all five QPDs rather than the paper's two "
-              "(QFlex-T+ is a notebook addition, not in the paper).",
-        "bootstrap": "**Table 5** &mdash; validity, mode-dispersion IQRs, median W1 and the "
-                     "mode-count split. (The Hartigan rate below is Table 4.)",
-        "bimodal": "**Table 6** &mdash; mode recovery against a genuinely bimodal population, "
+              "(the paper gives QFlex-T+ separately, in Table A2).",
+        "bootstrap": "**Table 6** &mdash; validity, mode-dispersion IQRs, median W1 and the "
+                     "mode-count split. (The Hartigan rate below is Table 5.)",
+        "bimodal": "**Table 7** &mdash; mode recovery against a genuinely bimodal population, "
                    "so 2 modes is the correct answer and *>2 Modes* is the overfitting column.",
-        "hydrology": "**Table 7** &mdash; the primary mode is the TALLEST peak of each fit.",
-        "fish": "**Table 9** &mdash; the primary mode is the TALLEST peak, the secondary the "
+        "hydrology": "**Table 8** &mdash; the primary mode is the TALLEST peak of each fit.",
+        "fish": "**Table 10** &mdash; the primary mode is the TALLEST peak, the secondary the "
                 "next tallest.",
-        "geyser": "**Table 12** &mdash; the primary mode is the one at the LONGER waiting time, "
+        "geyser": "**Table 13** &mdash; the primary mode is the one at the LONGER waiting time, "
                   "as the manuscript defines it, not the taller peak.",
     }
 
@@ -1041,7 +1037,7 @@ experiment.{_extra}
         QFlex constraint variants) to each one, then leave a summary behind
         -- feasibility rate, false-modality rate, and (when a reference is
         given) median W1 distance per model, the same statistics behind the
-        paper's Tables 3 and A1, now covering all 5 QPDs rather than just the 2
+        paper's Tables 4 and A1, now covering all 5 QPDs rather than just the 2
         shown in the live panel above. Also runs the Hartigan dip test on
         each replicate's raw draw and reports the aggregate unimodality
         rejection rate. Only the final summary is shown -- not a
@@ -1051,16 +1047,15 @@ experiment.{_extra}
         w1_ref: None (no W1) or the string "own-sample": each replicate's
             fit is measured against the sample it was fitted to (the drawn
             sample in a Monte Carlo, the resample in a bootstrap), at that
-            sample's points -- Equation 6 as the paper uses it everywhere
-            (2026-10-09).
+            sample's points -- Equation 6 as the paper uses it everywhere.
 
         w1_ref_n: ignored (W1 no longer takes a reference sample size);
             kept so existing calls still work."""
         _constraints = {"QFlex-U": "NONE", "QFlex-T+": "TL", "QFlex-TA+": "TA", "QFlex-A+": "A"}
         # Whether draw_fn wants the replicate index is decided by INSPECTING it,
-        # not by catching TypeError: a genuine TypeError raised inside a correct
-        # draw_fn used to be swallowed and silently demote the section to the
-        # legacy single-stream RNG, losing per-replicate seeding without a word.
+        # not by catching TypeError: catching it would swallow a genuine
+        # TypeError raised inside a correct draw_fn and silently fall back to the
+        # single-stream RNG, losing per-replicate seeding without a word.
         _draw_takes_rep = (getattr(draw_fn, "__code__", None) is not None
                            and draw_fn.__code__.co_argcount >= 2)
         _rng = np.random.default_rng(seed)
@@ -1125,14 +1120,14 @@ experiment.{_extra}
         # TABLE FORMAT PER SECTION. Each section reports the columns of the
         # paper table it corresponds to, not one generic shape:
         #
-        #   "mc"        Tables 3 / A1  Validity %, False Modality %, Median W1
-        #   "bootstrap" Table 5        + mode IQRs and the 1/2/>2 split
-        #   "bimodal"   Table 6        Max # Modes, Valid, Unimodal, Bimodal, >2
-        #   "hydrology" Table 7        1/2/>2 split + PRIMARY mode IQRs (ft)
-        #   "fish"      Table 9        1/2 split + primary AND secondary IQRs (lb)
-        #   "geyser"    Table 10       1/2/>2 split + primary and secondary (min)
+        #   "mc"        Tables 4 / A1  Validity %, False Modality %, Median W1
+        #   "bootstrap" Table 6        + mode IQRs and the 1/2/>2 split
+        #   "bimodal"   Table 7        Max # Modes, Valid, Unimodal, Bimodal, >2
+        #   "hydrology" Table 8        1/2/>2 split + PRIMARY mode IQRs (ft)
+        #   "fish"      Table 10       1/2 split + primary AND secondary IQRs (lb)
+        #   "geyser"    Table 13       1/2/>2 split + primary and secondary (min)
         #
-        # The paper lays Tables 3 / A1 out WIDE (two models side by side) to fit
+        # The paper lays Tables 4 / A1 out WIDE (two models side by side) to fit
         # the page; the notebook reports five QPDs, so the same columns are given
         # one model per row. Contents are the paper's, the layout is long.
         _fmt = table_format or "mc"
@@ -1354,17 +1349,13 @@ def _(PLOTLY_CONFIG, go, johnson_pdf, make_subplots, mo, np, population_p_grid, 
 
     _p = np.linspace(0.002, 0.998, 500)
     # figure_style.REFERENCE in the reproduction -- the three reference
-    # distributions get colours that are NOT any model's. The previous trio
-    # (#3B5FA0 / #2E8B57 / #A66A16) sat right next to Metalog, QFlex-A+ and
-    # QFlex-TA+ respectively, which is the collision the paper's
-    # reference-distributions figure was rebuilt to remove. (Open item, paper side: REFERENCE[0] #d62728 is also the KDE and
-    # zoom-frame colour, so that red does double duty.)
+    # distributions get colours that are NOT any model's, so a reference curve
+    # is never mistaken for Metalog, QFlex-A+ or QFlex-TA+.
     _specs = [(su_dist, "#d62728", 1), (sl_dist, "#17becf", 2), (sb_dist, "#bcbd22", 3)]
     for _dist, _color, _col in _specs:
         # Johnson SB is drawn over its WHOLE support [0, 1] with its exact
-        # density, as in the paper's Figure 1. It used to stop at
-        # Q(0.002) = 0.057 and Q(0.998) = 0.879, starting and ending in
-        # mid-air, and the x-axis followed it.
+        # density, as in the paper's Figure 1, rather than stopping at
+        # Q(0.002) = 0.057 and Q(0.998) = 0.879 in mid-air.
         _pp = population_p_grid(_dist) if type(_dist).__name__ == "JohnsonSB" else _p
         _x = np.asarray(_dist.quantile(_pp), float)
         _pdf = johnson_pdf(_dist, _x)
@@ -1556,8 +1547,8 @@ def _(mo, paper_settings_note):
         mo,
         "`42 + N×1000 + replication`, drawn with jpse's `rvs` &mdash; at N=200 that is `200042, 200043, …`. The paper's Monte Carlo uses this exact formula; drawing `quantile(rng.random(n))` instead gives a different sample from the same seed.",
         [("Reference distribution", "Johnson SU (ξ=0, λ=1, γ=0.5, δ=1.2)"), ("Sample size N", "200"), ("Metalog K", "10"), ("QFlex K", "10"), ("Replicates", "1000")],
-        "Tables 3 and A1, and the Monte Carlo results figures (Johnson SU in the main "
-        "text, SL and SB in the appendix). The paper reports K = 4, 7, 10 and 13; one run "
+        "Tables 4 and A1, and the Monte Carlo results figures (Johnson SU in Figures 3 and 4, "
+        "SL and SB in Figures O1-O4 of the Online Supplement). The paper reports K = 4, 7, 10 and 13; one run "
         "reproduces one of those blocks.",
     )
     return
@@ -1649,10 +1640,8 @@ def _(get_mc_rep, mc_redraw, mc_rep_box, mo):
 def _(PAPER, get_mc_rep, mc_base_seed, mc_n_effective, mc_true_dist):
     # The live panel shows REPLICATE (redraw + 1) of the paper's own Monte
     # Carlo, so an untouched notebook displays the paper's first replicate and
-    # the redraw button walks through 2, 3, ... Previously this drew from
-    # `quantile(rng.random(n))` on an unrelated 10_000 + redraw stream, so the
-    # panel above and the batch below were fitting different sample families
-    # in the same section -- and neither matched the seed the callout states.
+    # the redraw button walks through 2, 3, ... The panel and the batch below
+    # therefore fit the same sample family, on the seed the callout states.
     mc_x_sample = PAPER.mc_draw(mc_true_dist, mc_n_effective,
                                 get_mc_rep(), base=mc_base_seed.value)
     _n = len(mc_x_sample)
@@ -1776,7 +1765,7 @@ def _(
             mo, mc_n_replicates.value, mc_k_metalog.value, mc_k_qflex.value,
             _draw, PAPER.mc_seed(mc_n_effective, 1, mc_base_seed.value),
             w1_ref="own-sample", w1_label="W1 vs sample", bounds=mc_bounds,
-            table_format="mc"                      # Tables 3 / A1
+            table_format="mc"                      # Tables 4 / A1
         )
     else:
         mo.output.replace(
@@ -1812,7 +1801,7 @@ def _(mo, paper_settings_note):
         mo,
         "reference realization `200110` (= `42 + 200×1000 + 68`, i.e. replication 68 of the Monte Carlo above); each resample uses `200110×10000 + b`, so replicate *b* is reachable on its own rather than by replaying a loop.",
         [("Reference-sample seed", "200110"), ("Sample size N", "200"), ("Metalog K", "10"), ("QFlex K", "10"), ("Replicates", "1000")],
-        "Tables 4 and 5, and the bootstrap figures. The paper reports K = 4, 7, 10 and 13; "
+        "Tables 5 and 6, and the bootstrap figures (Figures 6-8; O5-O7 in the Online Supplement). The paper reports K = 4, 7, 10 and 13; "
         "persistence at K = 4 / 7 / 10 is 100 / 66.3 / 37.9 %.",
     )
     return
@@ -1876,12 +1865,10 @@ def _(mo, set_boot_b):
         start=0, stop=999_999, step=1, value=PAPER.BOOTSTRAP_SEED,
         label="Reference-sample seed",
     )
-    # ONE control decides WHICH realization is bootstrapped: the seed box.
-    # A "↻ draw a new realization" button used to sit beside it doing the same
-    # job by adding an invisible offset to that seed, so two controls moved the
-    # same thing and the box stopped showing the seed actually in use. The dice
-    # button stays: it does something different -- it holds the realization
-    # fixed and draws another resample from it, which is the bootstrap step.
+    # ONE control decides WHICH realization is bootstrapped: the seed box, so
+    # the box always shows the seed actually in use. The dice button does
+    # something different -- it holds the realization fixed and draws another
+    # resample from it, which is the bootstrap step.
     # Depends on the SETTER only, via the functional update form, so this cell
     # does not read the state and the button is not rebuilt on every change.
     boot_redraw = mo.ui.button(
@@ -1929,12 +1916,10 @@ def _(base_seed, boot_n_effective, boot_true_dist, np):
     # realization" button is clicked, or N changes (so it always matches the
     # current sample-size setting).
     #
-    # DRAWN THE PAPER'S WAY. This used to be
-    # `np.sort(dist.quantile(rng.random(n)))`, which is precisely the generator
-    # path paper_defaults documents as wrong: jpse's `rvs` goes through the
-    # legacy np.random.seed + inverse-CDF route, so the two produce DIFFERENT
-    # samples from the same nominal seed. The whole bootstrap section was
-    # therefore conditioned on a realization the paper never used.
+    # DRAWN THE PAPER'S WAY, through jpse's `rvs` (PAPER.mc_draw), not
+    # `np.sort(dist.quantile(rng.random(n)))`: `rvs` goes through the legacy
+    # np.random.seed + inverse-CDF route, so the two produce DIFFERENT samples
+    # from the same nominal seed, and only `rvs` gives the paper's realization.
     #
     # Two forms are returned. `reference_sample_raw` is in GENERATION order and
     # is what resampling must use -- rng.choice selects by INDEX, so drawing
@@ -2129,9 +2114,9 @@ def _(
         def _draw(rng, rep):
             # Per-replicate seeding on the paper's stream
             # (BOOTSTRAP_SEED*10_000 + b), from the generation-order copy.
-            # Previously this took only `rng`, so run_replicate_batch's
-            # signature check fell back to one shared stream and replicate b
-            # was not the paper's replicate b.
+            # It takes (rng, rep) so run_replicate_batch's signature check
+            # passes the replicate index and replicate b is the paper's
+            # replicate b.
             _x = np.sort(PAPER.bootstrap_resample(reference_sample_raw, rep))
             return _x, PAPER.weibull(len(_x))
 
@@ -2193,12 +2178,10 @@ def _(
         # N = 200, and K = 12 -- the order at which the paper's bimodal
         # reference figure shows
         # QFlex-TA+ recovering both modes.
-        # The slider is SIGNED and starts at the paper's -3.5. It used to
-        # run 0..6 with value=abs(PAPER.BIMODAL_SEPARATION), which threw the
-        # sign away and contradicted the comment three lines above: the
-        # notebook opened on a mixture shifted RIGHT. Because the base SU is
-        # skewed (c = 0.5), that is not the mirror image but a different
-        # population, W1 = 0.589 from the paper's.
+        # The slider is SIGNED and starts at the paper's -3.5. The sign
+        # matters: because the base SU is skewed (c = 0.5), a mixture shifted
+        # RIGHT is not the mirror image but a different population, W1 = 0.589
+        # from the paper's.
         # show_value is off on all three: marimo renders that number in a very
         # light grey beside the track, which is easy to miss on the one control
         # whose exact value decides the experiment. render_bimodal_controls
@@ -2229,11 +2212,9 @@ def _(
         render_model_controls).
 
         Each control gets its own row, a full-sentence label saying what it
-        decides, and its current value in body text. The previous version put
-        the separation and weight sliders side by side with terse labels -- one
-        of them said only "share on component A", with nothing on the page
-        saying what A was, how many components there were, or that the weights
-        sum to one."""
+        decides, and its current value in body text, so the page says what
+        each component is, how many there are, and that the weights sum to
+        one."""
         _sd = PAPER.BIMODAL_BASE_SIGMA
         _delta, _wa = float(delta_ui.value), float(ratio_ui.value)
         _side = "left" if _delta < 0 else ("right" if _delta > 0 else "on top of A")
@@ -2287,10 +2268,9 @@ def _(
         Phi(gamma + delta asinh((x - xi)/lam)), and the component densities
         come from johnson_pdf. The x grid is the union of both components'
         quantiles on a dense p grid with tails to 1e-9, so the quantile is
-        interpolated from an exact CDF everywhere. (It used to integrate
-        jpse's .pdf -- which is 0 beyond each component's Q(0.001), Q(0.999)
-        -- over a truncated x range, putting the "True QF" 0.38 off at
-        p = 0.001.)"""
+        interpolated from an exact CDF everywhere. (Integrating jpse's .pdf
+        instead -- which is 0 beyond each component's Q(0.001), Q(0.999) --
+        over a truncated x range puts the "True QF" 0.38 off at p = 0.001.)"""
         def __init__(self, comp_a, comp_b, weight_a):
             from scipy.stats import norm as _norm
             _w = float(weight_a)
@@ -2346,10 +2326,10 @@ def _(
         """The paper's mixture sampler: one binomial for the component split,
         then each component drawn by jpse's `rvs` on its own offset seed.
 
-        This used to pick a component per draw (`rng.random(n) < w`) and invert
-        that component's quantile. Both are exact samplers of the same mixture,
-        but they give DIFFERENT samples from the same seed, so the notebook's
-        bimodal section could not reproduce the paper's. Verified bit-identical
+        Picking a component per draw (`rng.random(n) < w`) and inverting that
+        component's quantile is an equally exact sampler of the same mixture,
+        but it gives a DIFFERENT sample from the same seed, so it could not
+        reproduce the paper's bimodal section. Verified bit-identical
         to reproduction/scripts/bimodal_common.draw for replicates 0, 1, 7,
         436, 607 and 999."""
         return PAPER.bimodal_draw(scenario["base"], n, int(seed_base),
@@ -2377,10 +2357,10 @@ def _(mo, section_header_html):
 def _(mo, paper_settings_note):
     paper_settings_note(
         mo,
-        "`42 + 60,000,000 + replication`. Each replicate is an independent draw from the analytic mixture &mdash; the paper's Table 6 was re-run this way, replacing an earlier pooled bootstrap of subsamples.",
+        "`42 + 60,000,000 + replication`. Each replicate is an independent draw from the analytic mixture, as in the paper's Table 7.",
         [("Mixture", "60 / 40, second component shifted 3.5 SD left"), ("Sample size N", "200"), ("Metalog K", "12"), ("QFlex K", "12"), ("QFlex constraint", "TA+"), ("Replicates", "1000"),
-         ("Replicate shown (Figure 8)", "436")],
-        "Table 6 spans K = 4 to 13; Figure 8 shows replicate 436 at K = 12.",
+         ("Replicate shown (Figure 9)", "436")],
+        "Table 7 spans K = 4 to 13; Figure 9 shows replicate 436 at K = 12.",
     )
     return
 
@@ -2432,7 +2412,7 @@ def _(mo):
     # dice and the box are two views of ONE value: the dice steps it, the box
     # jumps straight to any sample.
     # Starts at replicate 436: the illustrative sample shown in the paper's
-    # Figure 8 (K = 12, N = 200; reproduction/scripts/bimodal_fig8.py FIXED_REP).
+    # Figure 9 (K = 12, N = 200; reproduction/scripts/bimodal_figure.py FIXED_REP).
     get_bimodal_rep, set_bimodal_rep = mo.state(436)
     return get_bimodal_rep, set_bimodal_rep
 
@@ -2470,8 +2450,7 @@ def _(bimodal_redraw, bimodal_rep_box, get_bimodal_rep, mo):
 @app.cell
 def _(PAPER, bimodal_mc_n_effective, bimodal_mc_scenario, draw_mixture, get_bimodal_rep, np):
     # Replicate (redraw + 1) of the paper's bimodal Monte Carlo stream
-    # (42 + 60,000,000 + replication), matching the batch below; this used to
-    # be an unrelated 20_000 + redraw stream.
+    # (42 + 60,000,000 + replication), matching the batch below.
     bimodal_mc_x_sample = draw_mixture(
         PAPER.bimodal_seed(get_bimodal_rep()),
         bimodal_mc_scenario, bimodal_mc_n_effective)
@@ -2580,8 +2559,8 @@ def _(
     if bimodal_run_batch.value:
         def _draw(rng, rep):
             # Per-replicate seeding on the paper's bimodal stream
-            # (42 + 60,000,000 + replication), replacing a single arbitrary
-            # 606_060 stream consumed in a loop.
+            # (42 + 60,000,000 + replication), so replicate r is reachable on
+            # its own rather than by replaying a loop.
             _x = draw_mixture(PAPER.bimodal_seed(rep + 1),
                               bimodal_mc_scenario, bimodal_mc_n_effective)
             return _x, PAPER.weibull(len(_x))
@@ -2590,7 +2569,7 @@ def _(
             mo, bimodal_n_replicates.value, bimodal_mc_k_metalog.value, bimodal_mc_k_qflex.value,
             _draw, PAPER.bimodal_seed(1), w1_ref="own-sample", w1_label="W1 vs sample",
             true_n_modes=bimodal_mc_scenario["true_modes"],
-            table_format="bimodal"                 # Table 6
+            table_format="bimodal"                 # Table 7
         )
     else:
         mo.output.replace(
@@ -2674,12 +2653,10 @@ def _(mo, set_bimodal_boot_b):
         start=0, stop=999_999, step=1, value=PAPER.MC_BASE_SEED,
         label="Reference-sample seed",
     )
-    # ONE control decides WHICH realization is bootstrapped: the seed box.
-    # A "↻ draw a new realization" button used to sit beside it doing the same
-    # job by adding an invisible offset to that seed, so two controls moved the
-    # same thing and the box stopped showing the seed actually in use. The dice
-    # button stays: it does something different -- it holds the realization
-    # fixed and draws another resample from it, which is the bootstrap step.
+    # ONE control decides WHICH realization is bootstrapped: the seed box, so
+    # the box always shows the seed actually in use. The dice button does
+    # something different -- it holds the realization fixed and draws another
+    # resample from it, which is the bootstrap step.
     # Depends on the SETTER only, via the functional update form, so this cell
     # does not read the state and the button is not rebuilt on every change.
     bimodal_boot_redraw = mo.ui.button(
@@ -2845,7 +2822,7 @@ def _(
             mo, bimodal_boot_n_replicates.value, bimodal_boot_k_metalog.value, bimodal_boot_k_qflex.value,
             _draw, bimodal_seed.value + 777, w1_ref="own-sample",
             w1_label="W1 vs resample", true_n_modes=bimodal_boot_scenario["true_modes"],
-            table_format="bimodal"                 # Table 6 columns; the bootstrap twin has no table of its own
+            table_format="bimodal"                 # Table 7 columns; the bootstrap twin has no table of its own
         )
     else:
         mo.output.replace(
@@ -2957,12 +2934,9 @@ def _(DATA_DIR, io, np, pd):
         #
         # JITTER CONVENTION: `jitter` is the HALF-WIDTH (amplitude), so the
         # noise is Uniform(-jitter, +jitter) and jitter=0.5 is the paper's
-        # "±0.5 lb". This matches every script in the repro repo
-        # (bootstrap_curve_store.py, fish_median_w1_bootstrap_ci.py,
-        # fish_mode_scatter_k10.py, ...), so a number set here means the same
-        # thing as the same number there. An earlier version of this notebook
-        # took the argument as the FULL width and halved it internally, which
-        # made "0.5" here only half the noise of "0.5" in the repo.
+        # "±0.5 lb". This matches the reproduction scripts (fish_common.py,
+        # geyser_common.py), so a number set here means the same thing as the
+        # same number there.
         _N = len(x_raw)
         _p_emp = np.arange(1, _N + 1) / (_N + 1)
         _src = x_raw if boot_source is None else np.asarray(boot_source, dtype=float)
@@ -3190,9 +3164,9 @@ def _(mo, section_header_html):
 def _(mo, paper_settings_note):
     paper_settings_note(
         mo,
-        "`42 + 40,000,000 + b`. GEV and every QPD see the **same** replicate *b*, so the curves are paired; the draft's own scripts drew GEV from seed 42 and the QPDs from 43.",
+        "`42 + 40,000,000 + b`. GEV and every QPD see the **same** replicate *b*, so the curves are paired.",
         [("Metalog K", "10"), ("QFlex K", "10"), ("QFlex constraint", "A+"), ("Jitter", "none &mdash; gauge heights are continuous"), ("Replicates", "1000")],
-        "Table 7 and the river-gauge figures. At these settings Log Metalog K=10 gives 37.2 % valid and median W1 0.0224; Log QFlex-A+ K=10 gives 100 % and 0.0326.",
+        "Table 8 and the river-gauge figures (Figures 10-14). At these settings Log Metalog K=10 gives 37.2 % valid and median W1 0.0224; Log QFlex-A+ K=10 gives 100 % and 0.0326.",
     )
     return
 
@@ -3334,7 +3308,7 @@ def _(
             # Equation 6: each fit against the resample it was made to.
             w1_ref="own-sample",
             w1_label="W1 vs resample", bounds=(0, None),
-            table_format="hydrology"               # Table 7
+            table_format="hydrology"               # Table 8
         )
     else:
         mo.output.replace(mo.md("*Click **▶ Run Bootstrap Analysis** to bootstrap-resample and refit repeatedly.*"))
@@ -3369,7 +3343,7 @@ def _(mo, paper_settings_note):
         mo,
         "`42 + round(j×100)×10,000 + b`; at the default jitter j = 0.5 that is `500042 + b`. Jitter is the **half-width**, so j means Uniform(−j, +j), and each replicate is re-jittered independently.",
         [("Metalog K", "10"), ("QFlex K", "10"), ("QFlex constraint", "TA+"), ("Jitter half-width j", "0.5 lb"), ("Replicates", "1000")],
-        "Tables 8 and 9, and the fish-weight figures. At these settings 82.0 % of Log Metalog K=10 fits are bimodal against 28.2 % for Log QFlex-TA+.",
+        "Tables 9 and 10, and the fish-weight figures (Figures 15-17). At these settings 82.0 % of Log Metalog K=10 fits are bimodal against 28.2 % for Log QFlex-TA+.",
     )
     return
 
@@ -3410,11 +3384,8 @@ def _(PAPER, fish_jitter, load_fish_raw, np):
     fish_raw = load_fish_raw()
     if fish_jitter.value > 0:
         # Draw 0 of the paper's own jitter_original stream -- the same
-        # realization the paper's fish figures are drawn from. This used to be
-        # default_rng(20260828), a date with no relation to any other seed in
-        # the project, which put the displayed point-estimate fit on a jitter
-        # realization that appears nowhere in the paper. (20_260_828 also lands
-        # inside the geyser replicate pool at a 2.6-minute jitter.)
+        # realization the paper's fish figures are drawn from, so the displayed
+        # point-estimate fit is on a jitter realization the paper uses.
         fish_x = np.sort(PAPER.jitter_original(
             fish_raw, fish_jitter.value, PAPER.FISH_STREAM_BASE,
             draw=0, floor=PAPER.FISH_FLOOR))
@@ -3542,7 +3513,7 @@ def _(
             w1_ref="own-sample",
             w1_label="W1 vs resample", bounds=(0, None),
             true_n_modes=None,
-            table_format="fish"                    # Table 9
+            table_format="fish"                    # Table 10
         )
     else:
         mo.output.replace(mo.md("*Click **▶ Run Bootstrap Analysis** to bootstrap-resample and refit repeatedly.*"))
@@ -3579,7 +3550,7 @@ def _(mo, paper_settings_note):
         mo,
         "`42 + 20,000,000 + 50×10,000 + b` = `20,500,042 + b`. The recorded waiting times are whole minutes, so each resample gets ±0.5 min of jitter.",
         [("Data", "299 Old Faithful waiting times, Azzalini &amp; Bowman (1990)"), ("Metalog K", "8"), ("QFlex K", "10"), ("QFlex constraint", "TA+"), ("Jitter half-width", "0.5 min"), ("Replicates", "1000")],
-        "Table 10 and the geyser figures. At these settings Log Metalog K=8 gives 72.5 % valid with 80.6 % bimodal; Log QFlex-TA+ K=10 gives 99.7 % and 96.8 %.",
+        "Table 13 and the geyser figures (Figures 18 and 19). At these settings Log Metalog K=8 gives 72.5 % valid with 80.6 % bimodal; Log QFlex-TA+ K=10 gives 99.7 % and 96.8 %.",
     )
     return
 
@@ -3707,7 +3678,7 @@ def _(
             w1_ref="own-sample",
             w1_label="W1 vs resample", bounds=(0, None),
             true_n_modes=2,
-            table_format="geyser"                  # Table 12
+            table_format="geyser"                  # Table 13
         )
     else:
         mo.output.replace(mo.md("*Click **▶ Run Bootstrap Analysis** to bootstrap-resample and refit repeatedly.*"))
